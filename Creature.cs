@@ -91,17 +91,15 @@ public class Creature : KinematicBody
     public void LookAtFood()
     {
         if (DesiredFood != null && !DesiredFood.Eating) return;
-        if(DesiredFood.Eating)
-        {
-            // run fight code
-        }
 
         Node parent = GetParent();
         Main main = (Main)parent.GetParent();
-        Vector3 loc = main.GetNearestFoodLocation(this);
-        if (loc != Translation)
+        //Vector3 loc = main.GetNearestFoodLocation(this);
+        Food food = main.GetNearestFoodLocation(this);
+        if (food != null)
         {
-            LookAtFromPosition(Translation, loc, Vector3.Up);
+            LookAtFromPosition(Translation, food.Translation, Vector3.Up);
+            food.CurrentSeeker = this;
         }
         else
         {
