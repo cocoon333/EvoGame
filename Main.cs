@@ -57,7 +57,7 @@ public class Main : Node
         for (int i = 0; i < foodCount; i++)
         {
             Food current = (Food)foodParent.GetChild(i);
-            if (current.IsQueuedForDeletion() || current.Eating || (currentSeeker != blob)) continue;
+            if (current.IsQueuedForDeletion() || current.Eating || (current.CurrentSeeker != null && current.CurrentSeeker != blob)) continue;
             float distance = current.Translation.DistanceTo(blob.Translation);
             if (distance < closestDistance && distance < blob.Abils.GetSight())
             {
