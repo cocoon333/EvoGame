@@ -86,9 +86,6 @@ public class Creature : KinematicBody
         DesiredFood = food;
         EatingTimeLeft = Abils.EatingTime;
         //food.QueueFree();
-
-
-        
     }
 
     public void LookAtFood()
