@@ -42,7 +42,7 @@ transform = Transform( 1, 0, 0, 0, 0.573576, 0.819152, 0, -0.819152, 0.573576, 0
 far = 200.0
 
 [node name="Wall1" type="StaticBody" parent="."]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 0 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -0.176559, 5.00001, -0.101318 )
 collision_layer = 4
 collision_mask = 0
 
@@ -77,7 +77,7 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
 shape = SubResource( 3 )
 
 [node name="MeshInstance" type="MeshInstance" parent="Wall3"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0.276711, -0.214836, -49.7991 )
 mesh = SubResource( 4 )
 
 [node name="Wall4" type="StaticBody" parent="."]

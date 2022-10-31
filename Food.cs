@@ -6,7 +6,7 @@ public class Food : KinematicBody
     public int Replenishment;
     public Boolean Poisonous;
 
-    public Boolean Eating;
+    public Boolean BeingAte;
 
     public Creature CurrentSeeker;
 

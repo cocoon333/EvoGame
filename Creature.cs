@@ -5,7 +5,7 @@ public class Creature : KinematicBody
 {
     public Abilities Abils;
     float EatingTimeLeft;
-    Food DesiredFood;
+    public Food DesiredFood;
 
     public int FallAcceleration = 75;
 
@@ -28,13 +28,22 @@ public class Creature : KinematicBody
     {
         if (Abils.Energy > 0) // temporary so energy isnt negative and screwing with color
         {
-            Abils.Energy -= 1;
+            Abils.Energy -= (Abils.EnergyLoss * delta);
             MeshInstance meshInst = GetNode<MeshInstance>("MeshInstance");
             SpatialMaterial material = (SpatialMaterial)meshInst.GetActiveMaterial(0);
             Color color = material.AlbedoColor;
             color.g = Abils.Energy / 100f;
             color.b = (100 - Abils.Energy) / 100f;
             material.AlbedoColor = color;
+        }
+        else
+        {
+            // blob is dead
+            if (DesiredFood != null) DesiredFood.CurrentSeeker = null;
+            DesiredFood.BeingAte = false;
+            
+            QueueFree();
+            return;
         }
 
         if (EatingTimeLeft <= 0)
@@ -51,22 +60,24 @@ public class Creature : KinematicBody
 
             LookAtFood();
 
-            // for (int i = 0; i < GetSlideCount(); i++)
-            // {
-            //     KinematicCollision collision = GetSlideCollision(i);
-            //     if (!(collision.Collider is StaticBody sb && sb.IsInGroup("ground")))
-            //     {
-            //         LookAtFood();
-            //         break;
-            //     }
-            // }
+            for (int i = 0; i < GetSlideCount(); i++)
+            {
+                KinematicCollision collision = GetSlideCollision(i);
+                if (!((collision.Collider is StaticBody sb && sb.IsInGroup("ground")) || (collision.Collider is Creature creat && creat != this)))
+                {
+                    if (DesiredFood != null) GD.Print(DesiredFood.Translation, " ", EatingTimeLeft);
+                    //LookAtFood();
+                    break;
+                }
+            }
         }
         else
         {
             EatingTimeLeft -= delta;
-            Eat(DesiredFood.Replenishment * delta / Abils.EatingTime);
-            if (EatingTimeLeft < 0)
+            Eat(delta);
+            if (EatingTimeLeft <= 0)
             {
+                EatingTimeLeft = 0;
                 DesiredFood.QueueFree();
                 DesiredFood = null;
 
@@ -79,18 +90,14 @@ public class Creature : KinematicBody
 
     public void OnFoodDetectorBodyEntered(Node body)
     {
-        if (!(body is Food)) return;
-        Food food = (Food)body;
-        if (food.IsQueuedForDeletion() || food.Eating) return; // be careful of this
-        food.Eating = true;
-        DesiredFood = food;
+        if (!(body is Food food) || food != DesiredFood) return;
+        food.BeingAte = true;
         EatingTimeLeft = Abils.EatingTime;
-        //food.QueueFree();
     }
 
     public void LookAtFood()
     {
-        if (DesiredFood != null && !DesiredFood.Eating) return;
+        if (DesiredFood != null && !DesiredFood.IsQueuedForDeletion() && !DesiredFood.BeingAte) return;
 
         Node parent = GetParent();
         Main main = (Main)parent.GetParent();
@@ -99,10 +106,12 @@ public class Creature : KinematicBody
         if (food != null)
         {
             LookAtFromPosition(Translation, food.Translation, Vector3.Up);
+            DesiredFood = food;
             food.CurrentSeeker = this;
         }
         else
         {
+            
             // What to do if no available food within a blobs sight distance
             RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));  // right now just have them turn randomly
         }
@@ -110,9 +119,10 @@ public class Creature : KinematicBody
         //RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));
     }
 
-    public void Eat(float replenishment)
+    public void Eat(float delta)    // Assert that food better exist
     {
-        Abils.Energy += replenishment;
-        Abils.Energy = Math.Min(Abils.Energy, 100);
+        if (DesiredFood == null) GD.Print(EatingTimeLeft);
+        Abils.Energy += (DesiredFood.Replenishment * (DesiredFood.Poisonous ? -1 : 1) * delta)/Abils.EatingTime;
+        Abils.Energy = Math.Min(Abils.Energy, 100); // Energy capped at 100
     }
 }

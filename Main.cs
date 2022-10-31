@@ -20,7 +20,7 @@ public class Main : Node
             SpawnFood();
         }
 
-        for(int i = 0; i < 3; i++)
+        for (int i = 0; i < 3; i++)
         {
             SpawnCreature();
         }
@@ -28,14 +28,14 @@ public class Main : Node
 
     public void SpawnCreature()
     {
-        Creature creature = (Creature) CreatureScene.Instance();
+        Creature creature = (Creature)CreatureScene.Instance();
         Node creatureParent = GetNode<Node>("CreatureParent");
         creatureParent.AddChild(creature);
 
-        Abilities abils = (Abilities) creature.GetNode<Node>("Abilities");
-        abils.Initialize(50, 10, 10, 10, 50, 10, 10, 10);
+        Abilities abils = (Abilities)creature.GetNode<Node>("Abilities");
+        abils.Initialize(50, 10, 10, 10, 50, 50, 10, 10);
 
-        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-48, 48), 1.6f, (float)GD.RandRange(-48, 48));
+        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-45, 45), 1.6f, (float)GD.RandRange(-45, 45));
         creature.Initialize(spawnLoc);
     }
 
@@ -44,8 +44,8 @@ public class Main : Node
         Food food = (Food)FoodScene.Instance();
         Node foodParent = GetNode<Node>("FoodParent");
         foodParent.AddChild(food);
-        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-48, 48), 1.6f, (float)GD.RandRange(-48, 48));
-        food.Initialize(20, false, spawnLoc);
+        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-45, 45), 1.6f, (float)GD.RandRange(-45, 45));
+        food.Initialize(25, false, spawnLoc);
     }
 
     public Food GetNearestFoodLocation(Creature blob)
@@ -57,7 +57,18 @@ public class Main : Node
         for (int i = 0; i < foodCount; i++)
         {
             Food current = (Food)foodParent.GetChild(i);
-            if (current.IsQueuedForDeletion() || current.Eating || (current.CurrentSeeker != null && current.CurrentSeeker != blob)) continue;
+
+
+            if (current.CurrentSeeker != null && !current.IsQueuedForDeletion())
+            {
+                Creature blob2 = current.CurrentSeeker;
+                if (blob2.DesiredFood != current) GD.Print("terrible error has occurred ", blob2.DesiredFood, " ", current);
+            }
+
+            if (IsNullOrQueued(current) || current.BeingAte ||
+                (!IsNullOrQueued(current.CurrentSeeker) && current.CurrentSeeker != blob)) continue;
+
+
             float distance = current.Translation.DistanceTo(blob.Translation);
             if (distance < closestDistance && distance < blob.Abils.GetSight())
             {
@@ -65,9 +76,12 @@ public class Main : Node
                 closestFood = current;
             }
         }
-        //if(closestFood == null) return blob.Translation;
         return closestFood;
-        //return closestFood.Translation;
+    }
+
+    public Boolean IsNullOrQueued(Node node)
+    {
+        return (node == null || node.IsQueuedForDeletion());
     }
 
     public override void _Process(float delta)
@@ -75,53 +89,53 @@ public class Main : Node
         Camera cam = GetNode<Camera>("CameraPivot/Camera");
         Vector3 direction = cam.Translation;
 
-        if(Input.IsActionPressed("move_forward"))
+        if (Input.IsActionPressed("move_forward"))
         {
             direction.z -= 1;
         }
-        if(Input.IsActionPressed("move_back"))
+        if (Input.IsActionPressed("move_back"))
         {
             direction.z += 1;
         }
-        if(Input.IsActionPressed("move_left"))
+        if (Input.IsActionPressed("move_left"))
         {
             direction.x -= 1;
         }
-        if(Input.IsActionPressed("move_right"))
+        if (Input.IsActionPressed("move_right"))
         {
             direction.x += 1;
         }
-        if(Input.IsActionPressed("ascend"))
+        if (Input.IsActionPressed("ascend"))
         {
             direction.y -= 1;
         }
-        if(Input.IsActionPressed("descend"))
+        if (Input.IsActionPressed("descend"))
         {
             direction.y += 1;
         }
         cam.Translation = direction;
 
-        if(Input.IsActionPressed("rotate_up"))
+        if (Input.IsActionPressed("rotate_up"))
         {
-            cam.RotateX((float)(-(Math.PI/180.0)));
+            cam.RotateX((float)(-(Math.PI / 180.0)));
         }
-        if(Input.IsActionPressed("rotate_down"))
+        if (Input.IsActionPressed("rotate_down"))
         {
-            cam.RotateX((float)(Math.PI/180.0));
+            cam.RotateX((float)(Math.PI / 180.0));
         }
-        if(Input.IsActionPressed("rotate_right"))
+        if (Input.IsActionPressed("rotate_right"))
         {
-            cam.RotateY((float)(-(Math.PI/180.0)));
+            cam.RotateY((float)(-(Math.PI / 180.0)));
         }
-        if(Input.IsActionPressed("rotate_left"))
+        if (Input.IsActionPressed("rotate_left"))
         {
-            cam.RotateY((float)(Math.PI/180.0));
+            cam.RotateY((float)(Math.PI / 180.0));
         }
-        if(Input.IsActionJustPressed("spawn_food"))
+        if (Input.IsActionJustPressed("spawn_food"))
         {
             SpawnFood();
         }
-        if(Input.IsActionJustPressed("spawn_blob"))
+        if (Input.IsActionJustPressed("spawn_blob"))
         {
             SpawnCreature();
         }
