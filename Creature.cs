@@ -5,7 +5,7 @@ public class Creature : KinematicBody
 {
     public Abilities Abils;
     float EatingTimeLeft;
-    Food currentlyEating;
+    Food DesiredFood;
 
     public int FallAcceleration = 75;
 
