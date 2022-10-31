@@ -48,7 +48,7 @@ public class Main : Node
         food.Initialize(20, false, spawnLoc);
     }
 
-    public Vector3 GetNearestFoodLocation(Creature blob)
+    public Food GetNearestFoodLocation(Creature blob)
     {
         Node foodParent = GetNode<Node>("FoodParent");
         int foodCount = foodParent.GetChildCount();
@@ -57,7 +57,7 @@ public class Main : Node
         for (int i = 0; i < foodCount; i++)
         {
             Food current = (Food)foodParent.GetChild(i);
-            if (current.IsQueuedForDeletion() || current.Eating) continue;
+            if (current.IsQueuedForDeletion() || current.Eating || (currentSeeker != blob)) continue;
             float distance = current.Translation.DistanceTo(blob.Translation);
             if (distance < closestDistance && distance < blob.Abils.GetSight())
             {
@@ -65,9 +65,9 @@ public class Main : Node
                 closestFood = current;
             }
         }
-        if(closestFood == null) return blob.Translation;
-
-        return closestFood.Translation;
+        //if(closestFood == null) return blob.Translation;
+        return closestFood;
+        //return closestFood.Translation;
     }
 
     public override void _Process(float delta)

@@ -8,6 +8,8 @@ public class Food : KinematicBody
 
     public Boolean Eating;
 
+    public Creature CurrentSeeker;
+
     
     // Called when the node enters the scene tree for the first time.
 
