@@ -15,7 +15,7 @@ public class Main : Node
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 5; i++)
         {
             SpawnFood();
         }
@@ -28,9 +28,13 @@ public class Main : Node
 
     public void SpawnCreature()
     {
-        Creature creature = (Creature)CreatureScene.Instance();
+        Creature creature = (Creature) CreatureScene.Instance();
         Node creatureParent = GetNode<Node>("CreatureParent");
         creatureParent.AddChild(creature);
+
+        Abilities abils = (Abilities) creature.GetNode<Node>("Abilities");
+        abils.Initialize(50, 10, 10, 10, 50, 10, 10, 10);
+
         Vector3 spawnLoc = new Vector3((float)GD.RandRange(-48, 48), 1.6f, (float)GD.RandRange(-48, 48));
         creature.Initialize(spawnLoc);
     }
@@ -44,7 +48,7 @@ public class Main : Node
         food.Initialize(20, false, spawnLoc);
     }
 
-    public Vector3 GetNearestFoodLocation(KinematicBody blob)
+    public Vector3 GetNearestFoodLocation(Creature blob)
     {
         Node foodParent = GetNode<Node>("FoodParent");
         int foodCount = foodParent.GetChildCount();
@@ -53,14 +57,15 @@ public class Main : Node
         for (int i = 0; i < foodCount; i++)
         {
             Food current = (Food)foodParent.GetChild(i);
-            if (current.Eaten) continue;
+            if (current.IsQueuedForDeletion() || current.Eating) continue;
             float distance = current.Translation.DistanceTo(blob.Translation);
-            if (distance < closestDistance)
+            if (distance < closestDistance && distance < blob.Abils.GetSight())
             {
                 closestDistance = distance;
                 closestFood = current;
             }
         }
+        if(closestFood == null) return blob.Translation;
 
         return closestFood.Translation;
     }
@@ -72,19 +77,19 @@ public class Main : Node
 
         if(Input.IsActionPressed("move_forward"))
         {
-            direction.z += 1;
+            direction.z -= 1;
         }
         if(Input.IsActionPressed("move_back"))
         {
-            direction.z -= 1;
+            direction.z += 1;
         }
         if(Input.IsActionPressed("move_left"))
         {
-            direction.x += 1;
+            direction.x -= 1;
         }
         if(Input.IsActionPressed("move_right"))
         {
-            direction.x -= 1;
+            direction.x += 1;
         }
         if(Input.IsActionPressed("ascend"))
         {

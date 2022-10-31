@@ -5,7 +5,8 @@ public class Food : KinematicBody
 {
     public int Replenishment;
     public Boolean Poisonous;
-    public Boolean Eaten = false;
+
+    public Boolean Eating;
 
     
     // Called when the node enters the scene tree for the first time.

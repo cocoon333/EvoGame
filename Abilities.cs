@@ -1,0 +1,77 @@
+using Godot;
+using System;
+
+public class Abilities : Node
+{
+    public float Speed;
+    public float Strength;
+    public float Intelligence;
+    public float Libido; 
+    public float Sight;
+    public float Endurance; 
+    public float Health;
+    public float Concealment; // range from 0 t0 1
+    
+    public float Energy;
+    public float Combat;
+    public float Metabolism;
+    
+    public float EatingTime = 3;
+
+    public void Initialize(float speed, float strength, float intelligence, float libido, float sight, float endurance, float health, float concealment)
+    {
+        Speed = speed;
+        Strength = strength;
+        Intelligence = intelligence;
+        Libido = libido;
+        Sight = sight;
+        Endurance = endurance;
+        Health = health;
+        Concealment = concealment;
+
+        //Calculate these stats
+        Energy = 0;
+        Combat = 0;
+        Metabolism = 0;
+    }
+    
+    public float GetSpeed() {
+        return Speed;
+    }
+    
+    public float GetStrength() {
+        return Strength;
+    }
+    
+    public float GetIntelligence() {
+        return Intelligence;
+    }
+
+    public float GetLibido() {
+        return Libido;
+    }
+
+    public float GetSight() {
+        return Sight;
+    }
+
+    public float GetEndurance() {
+        return Endurance;
+    }
+
+    public float GetHealth() {
+        return Health;
+    }
+
+    public float GetConcealment() {
+        return Concealment;
+    }
+
+    public float GetEnergy() {
+        return Energy;
+    }
+
+    public void SetEnergy(float newEnergy) {
+        Energy = newEnergy;
+    }
+}
