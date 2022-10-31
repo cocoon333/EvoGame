@@ -64,11 +64,11 @@ public class Creature : KinematicBody
         else
         {
             EatingTimeLeft -= delta;
-            Eat(currentlyEating.Replenishment * delta / Abils.EatingTime);
+            Eat(DesiredFood.Replenishment * delta / Abils.EatingTime);
             if (EatingTimeLeft < 0)
             {
-                currentlyEating.QueueFree();
-                currentlyEating = null;
+                DesiredFood.QueueFree();
+                DesiredFood = null;
 
                 Node parent = GetParent();
                 Main main = (Main)parent.GetParent();
@@ -83,13 +83,19 @@ public class Creature : KinematicBody
         Food food = (Food)body;
         if (food.IsQueuedForDeletion() || food.Eating) return; // be careful of this
         food.Eating = true;
-        currentlyEating = food;
+        DesiredFood = food;
         EatingTimeLeft = Abils.EatingTime;
         //food.QueueFree();
     }
 
     public void LookAtFood()
     {
+        if (DesiredFood != null && !DesiredFood.Eating) return;
+        if(DesiredFood.Eating)
+        {
+            // run fight code
+        }
+
         Node parent = GetParent();
         Main main = (Main)parent.GetParent();
         Vector3 loc = main.GetNearestFoodLocation(this);
