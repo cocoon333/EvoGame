@@ -65,8 +65,11 @@ public class Creature : KinematicBody
                 KinematicCollision collision = GetSlideCollision(i);
                 if (!((collision.Collider is StaticBody sb && sb.IsInGroup("ground")) || (collision.Collider is Creature creat && creat != this)))
                 {
-                    if (DesiredFood != null) GD.Print(DesiredFood.Translation, " ", EatingTimeLeft);
-                    //LookAtFood();
+                    //if (DesiredFood != null) GD.Print(DesiredFood.Translation, " ", EatingTimeLeft);
+                    if(DesiredFood != null)
+                    {
+                        LookAtFromPosition(Translation, DesiredFood.Translation, Vector3.Up);
+                    }
                     break;
                 }
             }

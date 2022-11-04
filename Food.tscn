@@ -7,6 +7,7 @@
 [sub_resource type="SphereMesh" id=1]
 
 [sub_resource type="SpatialMaterial" id=3]
+resource_local_to_scene = true
 albedo_color = Color( 1, 0, 0, 1 )
 
 [node name="Food" type="KinematicBody" groups=["food"]]

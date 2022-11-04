@@ -45,7 +45,7 @@ public class Main : Node
         Node foodParent = GetNode<Node>("FoodParent");
         foodParent.AddChild(food);
         Vector3 spawnLoc = new Vector3((float)GD.RandRange(-45, 45), 1.6f, (float)GD.RandRange(-45, 45));
-        food.Initialize(25, false, spawnLoc);
+        food.Initialize(25, (GD.Randf() < 0.2), spawnLoc);
     }
 
     public Food GetNearestFoodLocation(Creature blob)
