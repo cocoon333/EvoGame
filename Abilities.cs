@@ -22,7 +22,7 @@ public class Abilities : Node
 
     public void Initialize(float speed, float strength, float intelligence, float libido, float sight, float endurance, float health, float concealment)
     {
-        Speed = speed;
+        Speed = speed/2;    // modify stats here so "default" stats can stay at 50
         Strength = strength;
         Intelligence = intelligence;
         Libido = libido;

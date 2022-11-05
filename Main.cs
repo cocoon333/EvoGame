@@ -12,10 +12,13 @@ public class Main : Node
     public PackedScene CreatureScene;
 #pragma warning restore 649
 
+    public Boolean Dragging = false;
+
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
-        for (int i = 0; i < 5; i++)
+        Input.MouseMode = Input.MouseModeEnum.Captured;
+        for (int i = 0; i < 3; i++)
         {
             SpawnFood();
         }
@@ -84,53 +87,56 @@ public class Main : Node
         return (node == null || node.IsQueuedForDeletion());
     }
 
-    public override void _Process(float delta)
+    public override void _UnhandledInput(InputEvent @event)
     {
-        Camera cam = GetNode<Camera>("CameraPivot/Camera");
-        Vector3 direction = cam.Translation;
+        //base._UnhandledInput(@event);
+        if (@event is InputEventMouseButton mouseEvent)
+        {
+            if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.Right)
+            {
+                // Start dragging if right click pressed
+                if (!Dragging && mouseEvent.Pressed)
+                {
+                    Dragging = true;
+                }
+                // stop dragging if right click released
+                if (Dragging && !mouseEvent.Pressed)
+                {
+                    Dragging = false;
+                }
+            }
+            else if((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelUp)
+            {
+                Camera cam = GetNode<Camera>("CameraPivot/Camera");
+                Vector3 direction = cam.Translation;
+                direction.z -= 2;
+                if(direction.z <= 5) direction.z = 5;
+                cam.Translation = direction;
+            }
+            else if((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelDown)
+            {
+                Camera cam = GetNode<Camera>("CameraPivot/Camera");
+                Vector3 direction = cam.Translation;
+                direction.z += 2;
+                cam.Translation = direction;
+            }
+        }
+        else if (@event is InputEventMouseMotion motionEvent && Dragging)
+        {
+            Vector2 relative = motionEvent.Relative;
+            Position3D camPivot = GetNode<Position3D>("CameraPivot");
+            Camera cam = GetNode<Camera>("CameraPivot/Camera");
+            camPivot.RotateY(relative.x / (-1000));
+            cam.RotateX(relative.y / (-1000));
+            Vector3 rotation = cam.GlobalRotation;
+            rotation.x = Math.Max(rotation.x, -1.5f);
+            rotation.x = Math.Min(rotation.x, 0.5f);
+            cam.GlobalRotation = rotation;
+        }
+    }
 
-        if (Input.IsActionPressed("move_forward"))
-        {
-            direction.z -= 1;
-        }
-        if (Input.IsActionPressed("move_back"))
-        {
-            direction.z += 1;
-        }
-        if (Input.IsActionPressed("move_left"))
-        {
-            direction.x -= 1;
-        }
-        if (Input.IsActionPressed("move_right"))
-        {
-            direction.x += 1;
-        }
-        if (Input.IsActionPressed("ascend"))
-        {
-            direction.y -= 1;
-        }
-        if (Input.IsActionPressed("descend"))
-        {
-            direction.y += 1;
-        }
-        cam.Translation = direction;
-
-        if (Input.IsActionPressed("rotate_up"))
-        {
-            cam.RotateX((float)(-(Math.PI / 180.0)));
-        }
-        if (Input.IsActionPressed("rotate_down"))
-        {
-            cam.RotateX((float)(Math.PI / 180.0));
-        }
-        if (Input.IsActionPressed("rotate_right"))
-        {
-            cam.RotateY((float)(-(Math.PI / 180.0)));
-        }
-        if (Input.IsActionPressed("rotate_left"))
-        {
-            cam.RotateY((float)(Math.PI / 180.0));
-        }
+    public override void _Process(float delta)
+    {        
         if (Input.IsActionJustPressed("spawn_food"))
         {
             SpawnFood();
@@ -138,6 +144,11 @@ public class Main : Node
         if (Input.IsActionJustPressed("spawn_blob"))
         {
             SpawnCreature();
+        }
+
+        if(Input.IsActionPressed("exit_game"))
+        {
+            GetTree().Quit();
         }
     }
 }

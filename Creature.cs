@@ -21,7 +21,7 @@ public class Creature : KinematicBody
     {
         Translation = spawnLoc;
         Abils = GetNode<Abilities>("Abilities");
-        _velocity = Vector3.Forward * Abils.GetSpeed();
+        _velocity = Vector3.Forward * Abils.GetSpeed(); // is this even necessary lol
     }
 
     public override void _PhysicsProcess(float delta)
@@ -39,9 +39,12 @@ public class Creature : KinematicBody
         else
         {
             // blob is dead
-            if (DesiredFood != null) DesiredFood.CurrentSeeker = null;
-            DesiredFood.BeingAte = false;
-            
+            if (DesiredFood != null)
+            {
+                DesiredFood.CurrentSeeker = null;
+                DesiredFood.BeingAte = false;
+            }
+
             QueueFree();
             return;
         }
@@ -66,7 +69,7 @@ public class Creature : KinematicBody
                 if (!((collision.Collider is StaticBody sb && sb.IsInGroup("ground")) || (collision.Collider is Creature creat && creat != this)))
                 {
                     //if (DesiredFood != null) GD.Print(DesiredFood.Translation, " ", EatingTimeLeft);
-                    if(DesiredFood != null)
+                    if (DesiredFood != null)
                     {
                         LookAtFromPosition(Translation, DesiredFood.Translation, Vector3.Up);
                     }
@@ -114,7 +117,7 @@ public class Creature : KinematicBody
         }
         else
         {
-            
+
             // What to do if no available food within a blobs sight distance
             RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));  // right now just have them turn randomly
         }
@@ -125,7 +128,7 @@ public class Creature : KinematicBody
     public void Eat(float delta)    // Assert that food better exist
     {
         if (DesiredFood == null) GD.Print(EatingTimeLeft);
-        Abils.Energy += (DesiredFood.Replenishment * (DesiredFood.Poisonous ? -1 : 1) * delta)/Abils.EatingTime;
+        Abils.Energy += (DesiredFood.Replenishment * (DesiredFood.Poisonous ? -1 : 1) * delta) / Abils.EatingTime;
         Abils.Energy = Math.Min(Abils.Energy, 100); // Energy capped at 100
     }
 }
