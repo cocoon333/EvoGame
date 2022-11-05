@@ -1,14 +1,18 @@
-[gd_scene load_steps=9 format=2]
+[gd_scene load_steps=10 format=2]
 
 [ext_resource path="res://Main.cs" type="Script" id=1]
 [ext_resource path="res://Creature.tscn" type="PackedScene" id=2]
 [ext_resource path="res://Food.tscn" type="PackedScene" id=3]
-[ext_resource path="res://CreatureLabel.cs" type="Script" id=4]
+[ext_resource path="res://ScoreLabel.cs" type="Script" id=4]
 
 [sub_resource type="BoxShape" id=1]
 extents = Vector3( 50, 1, 50 )
 
+[sub_resource type="SpatialMaterial" id=5]
+albedo_color = Color( 0.0431373, 0.623529, 0.298039, 1 )
+
 [sub_resource type="CubeMesh" id=2]
+material = SubResource( 5 )
 size = Vector3( 100, 2, 100 )
 
 [sub_resource type="BoxShape" id=3]
@@ -102,5 +106,4 @@ mesh = SubResource( 4 )
 [node name="ScoreLabel" type="Label" parent="."]
 margin_right = 40.0
 margin_bottom = 14.0
-text = "Creatures: "
 script = ExtResource( 4 )

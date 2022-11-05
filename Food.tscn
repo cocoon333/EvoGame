@@ -8,7 +8,7 @@
 
 [sub_resource type="SpatialMaterial" id=3]
 resource_local_to_scene = true
-albedo_color = Color( 1, 0, 0, 1 )
+albedo_color = Color( 0.337255, 0.0196078, 0.45098, 1 )
 
 [node name="Food" type="KinematicBody" groups=["food"]]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0 )

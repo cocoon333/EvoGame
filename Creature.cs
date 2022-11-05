@@ -11,7 +11,7 @@ public class Creature : KinematicBody
 
     public Creature Mate;
 
-    //public bool Mating;
+    public int Team;
 
     private Vector3 _velocity = Vector3.Zero;
 
@@ -23,14 +23,30 @@ public class Creature : KinematicBody
         GD.Randomize();
     }
 
-    public void Initialize(Vector3 spawnLoc)
+    public void Initialize(Vector3 spawnLoc, int team)
     {
         Translation = spawnLoc;
         Abils = GetNode<Abilities>("Abilities");
-        _velocity = Vector3.Forward * Abils.GetSpeed(); // is this even necessary lol
+        Team = team;
 
         Node parent = GetParent();
         main = (Main)parent.GetParent();
+
+        MeshInstance hat1 = GetNode<MeshInstance>("Hat1");
+        SpatialMaterial material1 = (SpatialMaterial)hat1.GetActiveMaterial(0);
+        Color color1 = material1.AlbedoColor;
+
+        MeshInstance hat2 = GetNode<MeshInstance>("Hat2");
+        SpatialMaterial material2 = (SpatialMaterial)hat2.GetActiveMaterial(0);
+        Color color2 = material2.AlbedoColor;
+
+        if (team == 1)
+        {
+            color1.r = color1.g = color1.b = color2.r = color2.g = color2.b = 1;
+        }
+
+        material1.AlbedoColor = color1;
+        material2.AlbedoColor = color2;
     }
 
     public override void _PhysicsProcess(float delta)
@@ -41,14 +57,24 @@ public class Creature : KinematicBody
             MeshInstance meshInst = GetNode<MeshInstance>("MeshInstance");
             SpatialMaterial material = (SpatialMaterial)meshInst.GetActiveMaterial(0);
             Color color = material.AlbedoColor;
-            color.g = Abils.Energy / 100f;
-            color.b = (100 - Abils.Energy) / 100f;
+            if (CanMate())
+            {
+                color.r = 1;
+                color.g = 0;
+                color.b = 0.5f;
+            }
+            else
+            {
+                color.r = 0;
+                color.g = Abils.Energy / 100f;
+                color.b = (100 - Abils.Energy) / 100f;
+            }
             material.AlbedoColor = color;
         }
         else
         {
             // blob is dead
-            
+
 
             main.CreatureDeath(this);
             return;
@@ -92,9 +118,12 @@ public class Creature : KinematicBody
                 }
                 else
                 {
+                    LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
+                    Mate.LookAtFromPosition(Mate.Translation, Translation, Vector3.Up);
+
                     if (Translation.DistanceTo(Mate.Translation) < 3)
                     {
-                        main.SpawnCreature(Translation);
+                        main.SpawnCreature(Translation, Team);
                         Mate.Abils.SetEnergy(Mate.Abils.GetEnergy() - 60);
                         Abils.SetEnergy(Abils.GetEnergy() - 60);
                         Mate.Mate = null;
@@ -121,6 +150,7 @@ public class Creature : KinematicBody
                     else if (Mate != null)
                     {
                         LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
+                        Mate.LookAtFromPosition(Mate.Translation, Translation, Vector3.Up);
                     }
                     else
                     {

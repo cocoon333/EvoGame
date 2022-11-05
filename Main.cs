@@ -19,32 +19,32 @@ public class Main : Node
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
-        Input.MouseMode = Input.MouseModeEnum.Captured;
-        for (int i = 0; i < 3; i++)
+        scoreLabel = GetNode<ScoreLabel>("ScoreLabel");
+
+        
+        for (int i = 0; i < 25; i++)
         {
             SpawnFood();
         }
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 15; i++)
         {
             SpawnCreature();
         }
-
-        scoreLabel = GetNode<ScoreLabel>("ScoreLabel");
     }
 
-    public void SpawnCreature(Vector3 location)
+    public void SpawnCreature(Vector3 location, int team)
     {
         Creature creature = (Creature)CreatureScene.Instance();
         Node creatureParent = GetNode<Node>("CreatureParent");
         creatureParent.AddChild(creature);
 
         Abilities abils = (Abilities)creature.GetNode<Node>("Abilities");
-        abils.Initialize(50, 10, 10, 10, 50, 50, 10, 10);
+        abils.Initialize(50, 10, 10, 50, 50, 50, 10, 10);
 
-        creature.Initialize(location);
+        creature.Initialize(location, team);
 
-        scoreLabel.Text = string.Format(scoreLabel.DisplayString, (++scoreLabel.CreatureCount, scoreLabel.FoodCount));
+        scoreLabel.Text = string.Format(scoreLabel.DisplayString, ++scoreLabel.CreatureCount, scoreLabel.FoodCount);
     }
 
     public void CreatureDeath(Creature blob)
@@ -57,13 +57,13 @@ public class Main : Node
 
         blob.QueueFree();
 
-        scoreLabel.Text = string.Format(scoreLabel.DisplayString, (--scoreLabel.CreatureCount, scoreLabel.FoodCount));
+        scoreLabel.Text = string.Format(scoreLabel.DisplayString, --scoreLabel.CreatureCount, scoreLabel.FoodCount);
     }
 
     public void SpawnCreature()
     {
         Vector3 spawnLoc = new Vector3((float)GD.RandRange(-45, 45), 1.6f, (float)GD.RandRange(-45, 45));
-        SpawnCreature(spawnLoc);
+        SpawnCreature(spawnLoc, (int)(GD.Randf()+0.5)); // TODO: this is random, shouldnt be random
     }
 
     public void SpawnFood()
@@ -74,12 +74,12 @@ public class Main : Node
         Vector3 spawnLoc = new Vector3((float)GD.RandRange(-45, 45), 1.6f, (float)GD.RandRange(-45, 45));
         food.Initialize(25, (GD.Randf() < 0.2), spawnLoc);
 
-        scoreLabel.Text = string.Format(scoreLabel.DisplayString, (scoreLabel.CreatureCount, ++scoreLabel.FoodCount));
+        scoreLabel.Text = string.Format(scoreLabel.DisplayString, scoreLabel.CreatureCount, ++scoreLabel.FoodCount);
     }
 
     public void EatFood()
     {
-        scoreLabel.Text = string.Format(scoreLabel.DisplayString, (scoreLabel.CreatureCount, --scoreLabel.FoodCount));
+        scoreLabel.Text = string.Format(scoreLabel.DisplayString, scoreLabel.CreatureCount, --scoreLabel.FoodCount);
     }
 
     public Food GetNearestFoodLocation(Creature blob)
@@ -113,35 +113,30 @@ public class Main : Node
         return closestFood;
     }
 
-    // TODO: this sucks probably change
     public Creature GetNearestMatingCreature(Creature blob)
     {
-        // if (blob.Mate != null)
-        // {
-        //     blob.Mate.LookAtFromPosition(blob.Mate.Translation, blob.Translation, Vector3.Up);
-        //     blob.LookAtFromPosition(blob.Translation, blob.Mate.Translation, Vector3.Up);
-        //     return blob.Mate;
-        // }
         Node creatureParent = GetNode<Node>("CreatureParent");
         int creatureCount = creatureParent.GetChildCount();
+        float closestDistance = 1000000;
+        Creature creatureMate = null;
         for (int i = 0; i < creatureCount; i++)
         {
             Creature current = (Creature)creatureParent.GetChild(i); // possible possible race condition but we will probably definitely ignore this forever
                                                                      // yes they do
                                                                      // race conditions dont exist
-            if (IsNullOrQueued(current) || current == blob || current.Mate != null || !current.CanMate())
+            if (IsNullOrQueued(current) || current == blob || current.Team != blob.Team || current.Mate != null || !current.CanMate())
             {
-                return null;
+                continue;
             }
 
-            //current.Mate = blob;
-            //blob.Mate = current;
-
-            //current.LookAtFromPosition(current.Translation, blob.Translation, Vector3.Up);
-            //blob.LookAtFromPosition(blob.Translation, current.Translation, Vector3.Up);
-            return current;
+            float dist = blob.Translation.DistanceTo(current.Translation);
+            if(dist < closestDistance)
+            {
+                creatureMate = current;
+                closestDistance = dist;
+            }
         }
-        return null;
+        return creatureMate;
     }
 
     public Boolean IsNullOrQueued(Node node)
@@ -159,11 +154,13 @@ public class Main : Node
                 // Start dragging if right click pressed
                 if (!Dragging && mouseEvent.Pressed)
                 {
+                    Input.MouseMode = Input.MouseModeEnum.Captured;
                     Dragging = true;
                 }
                 // stop dragging if right click released
                 if (Dragging && !mouseEvent.Pressed)
                 {
+                    Input.MouseMode = Input.MouseModeEnum.Visible;
                     Dragging = false;
                 }
             }
