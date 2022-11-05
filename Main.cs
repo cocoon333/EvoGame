@@ -14,6 +14,8 @@ public class Main : Node
 
     public Boolean Dragging = false;
 
+    ScoreLabel scoreLabel;
+
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
@@ -27,9 +29,11 @@ public class Main : Node
         {
             SpawnCreature();
         }
+
+        scoreLabel = GetNode<ScoreLabel>("ScoreLabel");
     }
 
-    public void SpawnCreature()
+    public void SpawnCreature(Vector3 location)
     {
         Creature creature = (Creature)CreatureScene.Instance();
         Node creatureParent = GetNode<Node>("CreatureParent");
@@ -38,8 +42,28 @@ public class Main : Node
         Abilities abils = (Abilities)creature.GetNode<Node>("Abilities");
         abils.Initialize(50, 10, 10, 10, 50, 50, 10, 10);
 
+        creature.Initialize(location);
+
+        scoreLabel.Text = string.Format(scoreLabel.DisplayString, (++scoreLabel.CreatureCount, scoreLabel.FoodCount));
+    }
+
+    public void CreatureDeath(Creature blob)
+    {
+        if (blob.DesiredFood != null)
+        {
+            blob.DesiredFood.CurrentSeeker = null;
+            blob.DesiredFood.BeingAte = false;
+        }
+
+        blob.QueueFree();
+
+        scoreLabel.Text = string.Format(scoreLabel.DisplayString, (--scoreLabel.CreatureCount, scoreLabel.FoodCount));
+    }
+
+    public void SpawnCreature()
+    {
         Vector3 spawnLoc = new Vector3((float)GD.RandRange(-45, 45), 1.6f, (float)GD.RandRange(-45, 45));
-        creature.Initialize(spawnLoc);
+        SpawnCreature(spawnLoc);
     }
 
     public void SpawnFood()
@@ -49,6 +73,13 @@ public class Main : Node
         foodParent.AddChild(food);
         Vector3 spawnLoc = new Vector3((float)GD.RandRange(-45, 45), 1.6f, (float)GD.RandRange(-45, 45));
         food.Initialize(25, (GD.Randf() < 0.2), spawnLoc);
+
+        scoreLabel.Text = string.Format(scoreLabel.DisplayString, (scoreLabel.CreatureCount, ++scoreLabel.FoodCount));
+    }
+
+    public void EatFood()
+    {
+        scoreLabel.Text = string.Format(scoreLabel.DisplayString, (scoreLabel.CreatureCount, --scoreLabel.FoodCount));
     }
 
     public Food GetNearestFoodLocation(Creature blob)
@@ -61,7 +92,7 @@ public class Main : Node
         {
             Food current = (Food)foodParent.GetChild(i);
 
-
+            // testing code below
             if (current.CurrentSeeker != null && !current.IsQueuedForDeletion())
             {
                 Creature blob2 = current.CurrentSeeker;
@@ -82,12 +113,43 @@ public class Main : Node
         return closestFood;
     }
 
+    // TODO: this sucks probably change
+    public Creature GetNearestMatingCreature(Creature blob)
+    {
+        // if (blob.Mate != null)
+        // {
+        //     blob.Mate.LookAtFromPosition(blob.Mate.Translation, blob.Translation, Vector3.Up);
+        //     blob.LookAtFromPosition(blob.Translation, blob.Mate.Translation, Vector3.Up);
+        //     return blob.Mate;
+        // }
+        Node creatureParent = GetNode<Node>("CreatureParent");
+        int creatureCount = creatureParent.GetChildCount();
+        for (int i = 0; i < creatureCount; i++)
+        {
+            Creature current = (Creature)creatureParent.GetChild(i); // possible possible race condition but we will probably definitely ignore this forever
+                                                                     // yes they do
+                                                                     // race conditions dont exist
+            if (IsNullOrQueued(current) || current == blob || current.Mate != null || !current.CanMate())
+            {
+                return null;
+            }
+
+            //current.Mate = blob;
+            //blob.Mate = current;
+
+            //current.LookAtFromPosition(current.Translation, blob.Translation, Vector3.Up);
+            //blob.LookAtFromPosition(blob.Translation, current.Translation, Vector3.Up);
+            return current;
+        }
+        return null;
+    }
+
     public Boolean IsNullOrQueued(Node node)
     {
         return (node == null || node.IsQueuedForDeletion());
     }
 
-    public override void _UnhandledInput(InputEvent @event)
+    public override void _UnhandledInput(InputEvent @event) // weird architecture
     {
         //base._UnhandledInput(@event);
         if (@event is InputEventMouseButton mouseEvent)
@@ -105,15 +167,15 @@ public class Main : Node
                     Dragging = false;
                 }
             }
-            else if((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelUp)
+            else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelUp)
             {
                 Camera cam = GetNode<Camera>("CameraPivot/Camera");
                 Vector3 direction = cam.Translation;
                 direction.z -= 2;
-                if(direction.z <= 5) direction.z = 5;
+                if (direction.z <= 5) direction.z = 5;
                 cam.Translation = direction;
             }
-            else if((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelDown)
+            else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelDown)
             {
                 Camera cam = GetNode<Camera>("CameraPivot/Camera");
                 Vector3 direction = cam.Translation;
@@ -136,7 +198,7 @@ public class Main : Node
     }
 
     public override void _Process(float delta)
-    {        
+    {
         if (Input.IsActionJustPressed("spawn_food"))
         {
             SpawnFood();
@@ -146,7 +208,7 @@ public class Main : Node
             SpawnCreature();
         }
 
-        if(Input.IsActionPressed("exit_game"))
+        if (Input.IsActionPressed("exit_game"))
         {
             GetTree().Quit();
         }

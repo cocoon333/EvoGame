@@ -9,7 +9,13 @@ public class Creature : KinematicBody
 
     public int FallAcceleration = 75;
 
+    public Creature Mate;
+
+    //public bool Mating;
+
     private Vector3 _velocity = Vector3.Zero;
+
+    Main main;
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
@@ -22,6 +28,9 @@ public class Creature : KinematicBody
         Translation = spawnLoc;
         Abils = GetNode<Abilities>("Abilities");
         _velocity = Vector3.Forward * Abils.GetSpeed(); // is this even necessary lol
+
+        Node parent = GetParent();
+        main = (Main)parent.GetParent();
     }
 
     public override void _PhysicsProcess(float delta)
@@ -39,13 +48,9 @@ public class Creature : KinematicBody
         else
         {
             // blob is dead
-            if (DesiredFood != null)
-            {
-                DesiredFood.CurrentSeeker = null;
-                DesiredFood.BeingAte = false;
-            }
+            
 
-            QueueFree();
+            main.CreatureDeath(this);
             return;
         }
 
@@ -61,7 +66,47 @@ public class Creature : KinematicBody
 
             _velocity = MoveAndSlide(_velocity);
 
-            LookAtFood();
+            //Mating = CanMate(); // assumes that mating going from true -> false doesnt have to free any variables
+
+            if (CanMate())
+            {
+                if (DesiredFood != null)
+                {
+                    DesiredFood.BeingAte = false;
+                    DesiredFood.CurrentSeeker = null;
+                    DesiredFood = null;
+                }
+
+                if (Mate == null)
+                {
+                    Creature creature = main.GetNearestMatingCreature(this);
+
+                    if (creature != null)
+                    {
+                        Mate = creature;
+                        creature.Mate = this;
+
+                        LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
+                        Mate.LookAtFromPosition(Mate.Translation, Translation, Vector3.Up);
+                    }
+                }
+                else
+                {
+                    if (Translation.DistanceTo(Mate.Translation) < 3)
+                    {
+                        main.SpawnCreature(Translation);
+                        Mate.Abils.SetEnergy(Mate.Abils.GetEnergy() - 60);
+                        Abils.SetEnergy(Abils.GetEnergy() - 60);
+                        Mate.Mate = null;
+                        Mate = null;
+                    }
+                }
+            }
+            else
+            {
+                LookAtFood();
+            }
+
 
             for (int i = 0; i < GetSlideCount(); i++)
             {
@@ -72,6 +117,14 @@ public class Creature : KinematicBody
                     if (DesiredFood != null)
                     {
                         LookAtFromPosition(Translation, DesiredFood.Translation, Vector3.Up);
+                    }
+                    else if (Mate != null)
+                    {
+                        LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
+                    }
+                    else
+                    {
+                        RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));
                     }
                     break;
                 }
@@ -86,12 +139,23 @@ public class Creature : KinematicBody
                 EatingTimeLeft = 0;
                 DesiredFood.QueueFree();
                 DesiredFood = null;
-
-                Node parent = GetParent();
-                Main main = (Main)parent.GetParent();
+                main.EatFood();
                 main.SpawnFood();
             }
         }
+    }
+
+    public Boolean CanMate()
+    {
+        if (Mate != null) return true;
+        if (DesiredFood != null) return false;
+
+        float libido = Abils.GetLibido();
+        float energy = Abils.GetEnergy();
+
+        if (energy < (150 - libido)) return false; //TODO: curves needed
+
+        return true;
     }
 
     public void OnFoodDetectorBodyEntered(Node body)
@@ -105,8 +169,6 @@ public class Creature : KinematicBody
     {
         if (DesiredFood != null && !DesiredFood.IsQueuedForDeletion() && !DesiredFood.BeingAte) return;
 
-        Node parent = GetParent();
-        Main main = (Main)parent.GetParent();
         //Vector3 loc = main.GetNearestFoodLocation(this);
         Food food = main.GetNearestFoodLocation(this);
         if (food != null)
@@ -119,7 +181,7 @@ public class Creature : KinematicBody
         {
 
             // What to do if no available food within a blobs sight distance
-            RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));  // right now just have them turn randomly
+            //RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));  // right now just have them turn randomly
         }
 
         //RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));
@@ -129,6 +191,6 @@ public class Creature : KinematicBody
     {
         if (DesiredFood == null) GD.Print(EatingTimeLeft);
         Abils.Energy += (DesiredFood.Replenishment * (DesiredFood.Poisonous ? -1 : 1) * delta) / Abils.EatingTime;
-        Abils.Energy = Math.Min(Abils.Energy, 100); // Energy capped at 100
+        Abils.Energy = Math.Min(Abils.Energy, 150); // Energy capped at 100
     }
 }

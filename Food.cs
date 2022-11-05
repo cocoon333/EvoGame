@@ -20,7 +20,7 @@ public class Food : KinematicBody
 
         if(Poisonous)
         {
-            // in the future, have two SpatialMaterial static objects defined
+            // TODO: in the future, have two SpatialMaterial static objects defined
             // one for red and one for green and then materials dont need to be local to scene
             // maybe it saves memory
             MeshInstance meshInst = GetNode<MeshInstance>("MeshInstance");
