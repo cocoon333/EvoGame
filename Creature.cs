@@ -4,7 +4,7 @@ using System;
 public class Creature : KinematicBody
 {
     public Abilities Abils;
-    float EatingTimeLeft;
+    public float EatingTimeLeft;
     public Food DesiredFood;
 
     public int FallAcceleration = 75;
@@ -73,16 +73,15 @@ public class Creature : KinematicBody
         }
         else
         {
+            // TODO: make it so health depletes rapidly when energy is 0
             // blob is dead
-
-
             main.CreatureDeath(this);
             return;
         }
 
         if (EatingTimeLeft <= 0)
         {
-            _velocity = Vector3.Forward * Abils.GetSpeed();
+            _velocity = Vector3.Forward * Abils.GetModifiedSpeed();
             _velocity = _velocity.Rotated(Vector3.Up, Rotation.y);
 
             var direction = Vector3.Zero;
@@ -99,7 +98,7 @@ public class Creature : KinematicBody
                 if (DesiredFood != null)
                 {
                     DesiredFood.BeingAte = false;
-                    DesiredFood.CurrentSeeker = null;
+                    DesiredFood.CurrentSeekers.Remove(this);
                     DesiredFood = null;
                 }
 
@@ -167,10 +166,9 @@ public class Creature : KinematicBody
             if (EatingTimeLeft <= 0)
             {
                 EatingTimeLeft = 0;
-                DesiredFood.QueueFree();
-                DesiredFood = null;
-                main.EatFood();
-                main.SpawnFood();
+
+
+                main.EatFood(DesiredFood);
             }
         }
     }
@@ -180,7 +178,7 @@ public class Creature : KinematicBody
         if (Mate != null) return true;
         if (DesiredFood != null) return false;
 
-        float libido = Abils.GetLibido();
+        float libido = Abils.GetModifiedLibido();
         float energy = Abils.GetEnergy();
 
         if (energy < (150 - libido)) return false; //TODO: curves needed
@@ -193,6 +191,16 @@ public class Creature : KinematicBody
         if (!(body is Food food) || food != DesiredFood) return;
         food.BeingAte = true;
         EatingTimeLeft = Abils.EatingTime;
+
+        foreach (Creature seeker in food.CurrentSeekers)
+        {
+            if (main.IsNullOrQueued(seeker) || seeker == this || seeker.EatingTimeLeft <= 0) continue;
+
+            // this means that the other seeker (the enemy) has already reached this food
+            // this blob is the second to arrive to the food and can now determine whether or not a fight occurs
+
+            // insert fight code here
+        }
     }
 
     public void LookAtFood()
@@ -205,7 +213,10 @@ public class Creature : KinematicBody
         {
             LookAtFromPosition(Translation, food.Translation, Vector3.Up);
             DesiredFood = food;
-            food.CurrentSeeker = this;
+            if (!food.CurrentSeekers.Contains(this))
+            {
+                food.CurrentSeekers.Add(this);
+            }
         }
         else
         {
@@ -221,6 +232,6 @@ public class Creature : KinematicBody
     {
         if (DesiredFood == null) GD.Print(EatingTimeLeft);
         Abils.Energy += (DesiredFood.Replenishment * (DesiredFood.Poisonous ? -1 : 1) * delta) / Abils.EatingTime;
-        Abils.Energy = Math.Min(Abils.Energy, 150); // Energy capped at 100
+        Abils.Energy = Math.Min(Abils.Energy, Abils.ENERGY_MAX); // Energy capped at 150
     }
 }

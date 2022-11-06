@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 
 public class Main : Node
 {
@@ -21,13 +22,13 @@ public class Main : Node
     {
         scoreLabel = GetNode<ScoreLabel>("ScoreLabel");
 
-        
-        for (int i = 0; i < 25; i++)
+
+        for (int i = 0; i < 75; i++)
         {
             SpawnFood();
         }
 
-        for (int i = 0; i < 15; i++)
+        for (int i = 0; i < 100; i++)
         {
             SpawnCreature();
         }
@@ -40,7 +41,7 @@ public class Main : Node
         creatureParent.AddChild(creature);
 
         Abilities abils = (Abilities)creature.GetNode<Node>("Abilities");
-        abils.Initialize(50, 10, 10, 50, 50, 50, 10, 10);
+        abils.Initialize(50, 50, 50, 50, 50, 50, 50, 50);
 
         creature.Initialize(location, team);
 
@@ -51,7 +52,8 @@ public class Main : Node
     {
         if (blob.DesiredFood != null)
         {
-            blob.DesiredFood.CurrentSeeker = null;
+            blob.DesiredFood.CurrentSeekers.Remove(blob);
+            //blob.DesiredFood.CurrentSeeker = null;
             blob.DesiredFood.BeingAte = false;
         }
 
@@ -62,8 +64,8 @@ public class Main : Node
 
     public void SpawnCreature()
     {
-        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-45, 45), 1.6f, (float)GD.RandRange(-45, 45));
-        SpawnCreature(spawnLoc, (int)(GD.Randf()+0.5)); // TODO: this is random, shouldnt be random
+        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
+        SpawnCreature(spawnLoc, (int)(GD.Randf() + 0.5)); // TODO: this is random, shouldnt be random
     }
 
     public void SpawnFood()
@@ -71,14 +73,23 @@ public class Main : Node
         Food food = (Food)FoodScene.Instance();
         Node foodParent = GetNode<Node>("FoodParent");
         foodParent.AddChild(food);
-        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-45, 45), 1.6f, (float)GD.RandRange(-45, 45));
+        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
         food.Initialize(25, (GD.Randf() < 0.2), spawnLoc);
 
         scoreLabel.Text = string.Format(scoreLabel.DisplayString, scoreLabel.CreatureCount, ++scoreLabel.FoodCount);
     }
 
-    public void EatFood()
+    public void EatFood(Food food)
     {
+        List<Creature> seekers = food.CurrentSeekers;
+        foreach (Creature seeker in seekers)
+        {
+            seeker.DesiredFood = null;
+            seeker.EatingTimeLeft = 0;
+        }
+
+        SpawnFood();
+        food.QueueFree();
         scoreLabel.Text = string.Format(scoreLabel.DisplayString, scoreLabel.CreatureCount, --scoreLabel.FoodCount);
     }
 
@@ -86,30 +97,58 @@ public class Main : Node
     {
         Node foodParent = GetNode<Node>("FoodParent");
         int foodCount = foodParent.GetChildCount();
-        float closestDistance = 1000000;
+        float shortestTime = 1000000;
         Food closestFood = null;
+        List<Creature> seekers;
         for (int i = 0; i < foodCount; i++)
         {
             Food current = (Food)foodParent.GetChild(i);
 
-            // testing code below
-            if (current.CurrentSeeker != null && !current.IsQueuedForDeletion())
-            {
-                Creature blob2 = current.CurrentSeeker;
-                if (blob2.DesiredFood != current) GD.Print("terrible error has occurred ", blob2.DesiredFood, " ", current);
-            }
-
-            if (IsNullOrQueued(current) || current.BeingAte ||
-                (!IsNullOrQueued(current.CurrentSeeker) && current.CurrentSeeker != blob)) continue;
-
+            if (IsNullOrQueued(current)) continue;  // maybe try and steal currently being ate food later
 
             float distance = current.Translation.DistanceTo(blob.Translation);
-            if (distance < closestDistance && distance < blob.Abils.GetSight())
+            float timeToFood = distance / (blob.Abils.GetModifiedSpeed());
+            if (timeToFood < shortestTime && distance < blob.Abils.GetModifiedSight())
             {
-                closestDistance = distance;
-                closestFood = current;
+                seekers = current.CurrentSeekers;
+                Boolean isAllyCloser = false;
+                foreach (Creature seeker in seekers)
+                {
+                    if (!IsNullOrQueued(seeker) && seeker.Team == blob.Team)
+                    {
+                        float timeTo = distance / blob.Abils.GetModifiedSpeed();
+                        float timeAlly = (seeker.Translation.DistanceTo(current.Translation)) / seeker.Abils.GetModifiedSpeed();
+                        if (timeTo > timeAlly || seeker.EatingTimeLeft > 0) // if u r eating already, u are "closer"
+                        {
+                            isAllyCloser = true;
+                        }
+                    }
+                }
+
+                if (!isAllyCloser)
+                {
+                    shortestTime = timeToFood;
+                    closestFood = current;
+                }
             }
         }
+
+        if (closestFood == null) return closestFood;
+
+        seekers = closestFood.CurrentSeekers;
+        Creature seeker3 = null;
+        foreach (Creature seeker2 in seekers)
+        {
+            if (!IsNullOrQueued(seeker2) && seeker2.Team == blob.Team)
+            {
+                seeker2.DesiredFood = null;
+                //seeker2.EatingTimeLeft = 0; // this is the only way to stop it from crashing but shouldnt be kicking out blobs who are already eating right??
+                seeker3 = seeker2;
+                break;
+            }
+        }
+        seekers.Remove(seeker3);
+
         return closestFood;
     }
 
@@ -130,7 +169,8 @@ public class Main : Node
             }
 
             float dist = blob.Translation.DistanceTo(current.Translation);
-            if(dist < closestDistance)
+            // right now both blobs need to be within each others sight distance, maybe change this so only one of them needs to be within sight
+            if (dist < closestDistance && dist < blob.Abils.GetModifiedSight() && dist < current.Abils.GetModifiedSight())
             {
                 creatureMate = current;
                 closestDistance = dist;
@@ -141,7 +181,16 @@ public class Main : Node
 
     public Boolean IsNullOrQueued(Node node)
     {
-        return (node == null || node.IsQueuedForDeletion());
+        Boolean retValue = false;
+        try
+        {
+            retValue = (node == null || node.IsQueuedForDeletion());
+        }
+        catch(ObjectDisposedException)  // the method to check if something is deleted crashes cuz turns out it was deleted
+        {
+            retValue = true;
+        }
+        return retValue;
     }
 
     public override void _UnhandledInput(InputEvent @event) // weird architecture

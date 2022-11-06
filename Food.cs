@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using System.Collections.Generic;
 
 public class Food : KinematicBody
 {
@@ -8,7 +9,8 @@ public class Food : KinematicBody
 
     public Boolean BeingAte;
 
-    public Creature CurrentSeeker;
+    //public Creature CurrentSeeker;
+    public List<Creature> CurrentSeekers = new List<Creature>(2); // Change this if there are more than 2 teams
 
     
     // Called when the node enters the scene tree for the first time.
@@ -26,8 +28,8 @@ public class Food : KinematicBody
             MeshInstance meshInst = GetNode<MeshInstance>("MeshInstance");
             SpatialMaterial material = (SpatialMaterial)meshInst.GetActiveMaterial(0);
             Color color = material.AlbedoColor;
-            color.g = 0.5f;
-            color.r = 0;
+            color.g = 0;
+            color.r = (175/256.0f);
             color.b = 0;
             material.AlbedoColor = color;
         }
