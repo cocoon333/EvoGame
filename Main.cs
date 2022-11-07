@@ -23,7 +23,7 @@ public class Main : Node
         scoreLabel = GetNode<ScoreLabel>("ScoreLabel");
 
 
-        for (int i = 0; i < 75; i++)
+        for (int i = 0; i < 100; i++)
         {
             SpawnFood();
         }
@@ -33,7 +33,7 @@ public class Main : Node
             SpawnCreature();
         }
     }
-
+    
     public void SpawnCreature(Vector3 location, int team)
     {
         Creature creature = (Creature)CreatureScene.Instance();
@@ -41,7 +41,8 @@ public class Main : Node
         creatureParent.AddChild(creature);
 
         Abilities abils = (Abilities)creature.GetNode<Node>("Abilities");
-        abils.Initialize(50, 50, 50, 50, 50, 50, 50, 50);
+        float stats = (float)GD.RandRange(45, 50);
+        abils.Initialize(stats, stats, stats, stats, stats, stats, stats, stats);
 
         creature.Initialize(location, team);
 
@@ -93,6 +94,7 @@ public class Main : Node
         scoreLabel.Text = string.Format(scoreLabel.DisplayString, scoreLabel.CreatureCount, --scoreLabel.FoodCount);
     }
 
+    /*
     public Food GetNearestFoodLocation(Creature blob)
     {
         Node foodParent = GetNode<Node>("FoodParent");
@@ -136,18 +138,15 @@ public class Main : Node
         if (closestFood == null) return closestFood;
 
         seekers = closestFood.CurrentSeekers;
-        Creature seeker3 = null;
         foreach (Creature seeker2 in seekers)
         {
             if (!IsNullOrQueued(seeker2) && seeker2.Team == blob.Team)
             {
                 seeker2.DesiredFood = null;
-                //seeker2.EatingTimeLeft = 0; // this is the only way to stop it from crashing but shouldnt be kicking out blobs who are already eating right??
-                seeker3 = seeker2;
+                seekers.Remove(seeker2);    // concurrent modification exception just isnt a thing apparently
                 break;
             }
         }
-        seekers.Remove(seeker3);
 
         return closestFood;
     }
@@ -177,6 +176,55 @@ public class Main : Node
             }
         }
         return creatureMate;
+    }
+    */
+
+    public List<Food> GetAllFoodInSight(Creature creature)
+    {
+        Node foodParent = GetNode<Node>("FoodParent");
+        int foodCount = foodParent.GetChildCount();
+        List<Food> allFood = new List<Food>();
+        for (int i = 0; i < foodCount; i++)
+        {
+            Food current = (Food)foodParent.GetChild(i);
+
+            if (!IsNullOrQueued(current) && current.Translation.DistanceTo(creature.Translation) < creature.Abils.GetModifiedSight())
+            {
+                allFood.Add(current);
+            }
+        }
+        return allFood;
+    }
+
+    public List<Creature> GetAllCreaturesInSight(Creature creature)
+    {
+        Node creatureParent = GetNode<Node>("CreatureParent");
+        int creatureCount = creatureParent.GetChildCount();
+        List<Creature> allCreatures = new List<Creature>();
+        for (int i = 0; i < creatureCount; i++)
+        {
+            Creature current = (Creature)creatureParent.GetChild(i);
+
+            if (!IsNullOrQueued(current) && current.Translation.DistanceTo(creature.Translation) < creature.Abils.GetModifiedSight() && current != creature)
+            {
+                allCreatures.Add(current);
+            }
+        }
+        return allCreatures;
+    }
+
+    public List<Creature> GetAllTeamMembersInSight(Creature creature)
+    {
+        List<Creature> allCreatures = GetAllCreaturesInSight(creature);
+        List<Creature> teamMembers = new List<Creature>();
+        foreach (Creature teamMember in allCreatures)
+        {
+            if (teamMember.Team == creature.Team)
+            {
+                teamMembers.Add(teamMember);
+            }
+        }
+        return teamMembers;
     }
 
     public Boolean IsNullOrQueued(Node node)
