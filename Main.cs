@@ -16,12 +16,14 @@ public class Main : Node
     public Boolean Dragging = false;
 
     ScoreLabel scoreLabel;
+    Creature SelectedCreature = null;
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
         scoreLabel = GetNode<ScoreLabel>("ScoreLabel");
-
+        Label label = GetNode<Label>("CreatureLabel");
+        label.MarginRight = GetViewport().Size.x;
 
         for (int i = 0; i < 100; i++)
         {
@@ -92,6 +94,51 @@ public class Main : Node
         SpawnFood();
         food.QueueFree();
         scoreLabel.Text = string.Format(scoreLabel.DisplayString, scoreLabel.CreatureCount, --scoreLabel.FoodCount);
+    }
+
+    public void SelectCreature(Creature creature)
+    {
+        creature.Selected = true;
+        creature.UpdateColor();
+
+        if (!IsNullOrQueued(SelectedCreature))
+        {
+            SelectedCreature.Selected = false;
+            SelectedCreature.UpdateColor();
+
+            if (SelectedCreature == creature)
+            {
+                creature = null;
+            }
+
+            SelectedCreature = null;
+        }
+
+        SelectedCreature = creature;
+        UpdateCreatureLabel(creature);
+    }
+
+    public void UpdateCreatureLabel(Creature creature)
+    {
+        Label label = GetNode<Label>("CreatureLabel");
+
+        if (IsNullOrQueued(creature))
+        {
+            label.Text = "";
+            return;
+        }
+
+        Dictionary<String, float> abils = creature.Abils.GetAllAbils();
+        String labelText = "";
+        foreach (KeyValuePair<String, float> kvp in abils)
+        {
+            // This seems like a cleaner way to do it but need to figure out how to make it work
+            // String appendString = ("{0}: {1}", kvp.Key, kvp.Value);
+            // labelText += appendString;
+
+            labelText += (kvp.Key + ": " + Mathf.RoundToInt(kvp.Value) + "\n");
+        }
+        label.Text = labelText;
     }
 
     /*
@@ -293,6 +340,8 @@ public class Main : Node
 
     public override void _Process(float delta)
     {
+        UpdateCreatureLabel(SelectedCreature);
+        
         if (Input.IsActionJustPressed("spawn_food"))
         {
             SpawnFood();
@@ -300,6 +349,11 @@ public class Main : Node
         if (Input.IsActionJustPressed("spawn_blob"))
         {
             SpawnCreature();
+        }
+
+        if (Input.IsActionJustPressed("pause_game"))
+        {
+            GetTree().Paused = !GetTree().Paused;
         }
 
         if (Input.IsActionPressed("exit_game"))

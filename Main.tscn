@@ -22,6 +22,7 @@ extents = Vector3( 50, 5, 1 )
 size = Vector3( 100, 10, 2 )
 
 [node name="Main" type="Node"]
+pause_mode = 2
 script = ExtResource( 1 )
 FoodScene = ExtResource( 3 )
 CreatureScene = ExtResource( 2 )
@@ -48,9 +49,12 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 200 )
 far = 8192.0
 
 [node name="Wall1" type="StaticBody" parent="."]
-transform = Transform( 2, 0, 0, 0, 1, 0, 0, 0, 2, -0.176559, 5.00001, -0.101318 )
+transform = Transform( 2, 0, 0, 0, 1, 0, 0, 0, 2, 0, 5, 0 )
 collision_layer = 4
 collision_mask = 0
+__meta__ = {
+"_edit_group_": true
+}
 
 [node name="CollisionShape" type="CollisionShape" parent="Wall1"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
@@ -64,6 +68,9 @@ mesh = SubResource( 4 )
 transform = Transform( 2, 0, 0, 0, 1, 0, 0, 0, 2, 0, 5, 0 )
 collision_layer = 4
 collision_mask = 0
+__meta__ = {
+"_edit_group_": true
+}
 
 [node name="CollisionShape" type="CollisionShape" parent="Wall2"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 50 )
@@ -77,6 +84,9 @@ mesh = SubResource( 4 )
 transform = Transform( -8.74228e-08, 0, 2, 0, 1, 0, -2, 0, -8.74228e-08, 0, 5, 0 )
 collision_layer = 4
 collision_mask = 0
+__meta__ = {
+"_edit_group_": true
+}
 
 [node name="CollisionShape" type="CollisionShape" parent="Wall3"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
@@ -90,6 +100,9 @@ mesh = SubResource( 4 )
 transform = Transform( -8.74228e-08, 0, -2, 0, 1, 0, 2, 0, -8.74228e-08, 0, 5, 0 )
 collision_layer = 4
 collision_mask = 0
+__meta__ = {
+"_edit_group_": true
+}
 
 [node name="CollisionShape" type="CollisionShape" parent="Wall4"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
@@ -100,10 +113,19 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
 mesh = SubResource( 4 )
 
 [node name="FoodParent" type="Node" parent="."]
+pause_mode = 1
 
 [node name="CreatureParent" type="Node" parent="."]
+pause_mode = 1
 
 [node name="ScoreLabel" type="Label" parent="."]
 margin_right = 40.0
 margin_bottom = 14.0
 script = ExtResource( 4 )
+
+[node name="CreatureLabel" type="Label" parent="."]
+margin_left = 1200.0
+margin_right = 1280.0
+margin_bottom = 24.0
+grow_horizontal = 0
+align = 2

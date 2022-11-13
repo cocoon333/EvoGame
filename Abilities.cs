@@ -1,5 +1,7 @@
 using Godot;
 using System;
+using System.Collections.Generic;
+
 
 public class Abilities : Node
 {
@@ -38,7 +40,7 @@ public class Abilities : Node
         Combat = 0;
         Metabolism = 0;
 
-        EnergyLoss = (100 - Endurance) / 100f * 5;
+        EnergyLoss = (100 - GetModifiedEndurance()) / 100f * 5;
     }
 
     public float GetModifiedStat(float mainStat, float inverseStat)
@@ -111,5 +113,24 @@ public class Abilities : Node
     public void SetEnergy(float newEnergy)
     {
         Energy = newEnergy;
+    }
+
+    public Dictionary<String, float> GetAllAbils()
+    {
+        Dictionary<String, float> allAbils = new Dictionary<String, float>();
+
+        allAbils.Add("Speed", GetModifiedSpeed());
+        allAbils.Add("Strength", GetModifiedStrength());
+        allAbils.Add("Intelligence", GetModifiedIntelligence());
+        allAbils.Add("Libido", GetModifiedLibido());
+        allAbils.Add("Sight", GetModifiedSight());
+        allAbils.Add("Endurance", GetModifiedEndurance());
+        allAbils.Add("Health", GetModifiedHealth());
+        allAbils.Add("Concealment", GetModifiedConcealment());
+        allAbils.Add("Energy", Energy);
+        allAbils.Add("Combat", Combat);
+        allAbils.Add("EnergyLoss", EnergyLoss);
+
+        return allAbils;
     }
 }

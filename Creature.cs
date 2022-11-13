@@ -21,6 +21,8 @@ public class Creature : KinematicBody
     SpatialMaterial material;
     List<Food> blacklist = new List<Food>();
 
+    public Boolean Selected = false;
+
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
@@ -55,16 +57,16 @@ public class Creature : KinematicBody
         }
     }
 
-    public override void _Process(float delta)
+    public void UpdateColor()
     {
-        if (Abils.Energy > 0) // temporary so energy isnt negative and screwing with color
-        {
             Color color = material.AlbedoColor;
-            if (CanMate())
+            if (Selected)
             {
-                color.r = 1;
-                color.g = 0;
-                color.b = 0.5f;
+                color = new Color(1, (68/256.0f), (51/256.0f), color.a);
+            }
+            else if (CanMate())
+            {
+                color = new Color(1, 0, 0.5f, color.a);
             }
             else
             {
@@ -73,6 +75,13 @@ public class Creature : KinematicBody
                 color.b = (100 - Abils.Energy) / 100f;
             }
             material.AlbedoColor = color;
+    }
+
+    public override void _Process(float delta)
+    {
+        if (Abils.Energy > 0) // temporary so energy isnt negative and screwing with color
+        {
+            UpdateColor();
         }
     }
 
@@ -270,6 +279,15 @@ public class Creature : KinematicBody
                 main.CreatureDeath(killedCreature);
                 return;
             }
+        }
+    }
+
+    public void OnFoodDetectorInputEvent(object camera, object @event, Vector3 position, Vector3 normal, int shape_idx)
+    {
+        if (@event is InputEventMouseButton buttonEvent && buttonEvent.Pressed && (ButtonList)buttonEvent.ButtonIndex == ButtonList.Left && buttonEvent.Doubleclick)
+        {
+            // do stuff
+            main.SelectCreature(this);
         }
     }
 
