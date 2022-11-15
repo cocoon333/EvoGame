@@ -101,7 +101,7 @@ public class Creature : KinematicBody
 
         if (EatingTimeLeft <= 0)
         {
-            _velocity = Vector3.Forward * Abils.GetModifiedSpeed();
+            _velocity = Vector3.Forward * Abils.GetModifiedSpeed()/2;
             _velocity = _velocity.Rotated(Vector3.Up, Rotation.y);
 
             var direction = Vector3.Zero;

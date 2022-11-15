@@ -48,13 +48,13 @@ public class Abilities : Node
         float offset = (-Mathf.Pow((inverseStat-50)/15, 3));
         offset = Mathf.Min(offset, 0);
         float finalStat = mainStat + offset;
-        finalStat *= 1.0f - ENERGY_MODIFIER * Energy / ENERGY_MAX;
+        finalStat *= 1.0f - ENERGY_MODIFIER * ((ENERGY_MAX - Energy) / ENERGY_MAX);
         return finalStat;
     }
 
     public float GetModifiedSpeed()
     {
-        return GetModifiedStat(Speed, Strength)/2;
+        return GetModifiedStat(Speed, Strength);
     }
 
     public float GetModifiedStrength()
@@ -128,7 +128,6 @@ public class Abilities : Node
         allAbils.Add("Health", GetModifiedHealth());
         allAbils.Add("Concealment", GetModifiedConcealment());
         allAbils.Add("Energy", Energy);
-        allAbils.Add("Combat", Combat);
         allAbils.Add("EnergyLoss", EnergyLoss);
 
         return allAbils;
