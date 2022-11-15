@@ -20,6 +20,10 @@ window/size/width=1280
 window/size/height=720
 window/size/fullscreen=true
 
+[global]
+
+language=false
+
 [gui]
 
 common/drop_mouse_on_gui_input_disabled=true

@@ -59,22 +59,22 @@ public class Creature : KinematicBody
 
     public void UpdateColor()
     {
-            Color color = material.AlbedoColor;
-            if (Selected)
-            {
-                color = new Color(1, (68/256.0f), (51/256.0f), color.a);
-            }
-            else if (CanMate())
-            {
-                color = new Color(1, 0, 0.5f, color.a);
-            }
-            else
-            {
-                color.r = 0;
-                color.g = Abils.Energy / 100f;
-                color.b = (100 - Abils.Energy) / 100f;
-            }
-            material.AlbedoColor = color;
+        Color color = material.AlbedoColor;
+        if (Selected)
+        {
+            color = new Color(1, (68 / 256.0f), (51 / 256.0f), color.a);
+        }
+        else if (CanMate())
+        {
+            color = new Color(1, 0, 0.5f, color.a);
+        }
+        else
+        {
+            color.r = 0;
+            color.g = Abils.Energy / 100f;
+            color.b = (100 - Abils.Energy) / 100f;
+        }
+        material.AlbedoColor = color;
     }
 
     public override void _Process(float delta)
@@ -101,7 +101,7 @@ public class Creature : KinematicBody
 
         if (EatingTimeLeft <= 0)
         {
-            _velocity = Vector3.Forward * Abils.GetModifiedSpeed()/2;
+            _velocity = Vector3.Forward * Abils.GetModifiedSpeed() / 2;
             _velocity = _velocity.Rotated(Vector3.Up, Rotation.y);
 
             var direction = Vector3.Zero;
@@ -120,7 +120,7 @@ public class Creature : KinematicBody
                     DesiredFood = null;
                 }
 
-                if (Mate == null)
+                if (main.IsNullOrQueued(Mate))
                 {
                     Creature creature = GetNearestMate();
 
@@ -157,23 +157,30 @@ public class Creature : KinematicBody
             for (int i = 0; i < GetSlideCount(); i++)
             {
                 KinematicCollision collision = GetSlideCollision(i);
-                if (!((collision.Collider is StaticBody sb && sb.IsInGroup("ground")) || (collision.Collider is Creature creat && creat != this)))
+                if (!(collision.Collider is StaticBody sb && sb.IsInGroup("ground")))
                 {
-                    //if (DesiredFood != null) GD.Print(DesiredFood.Translation, " ", EatingTimeLeft);
-                    if (DesiredFood != null)
+                    if (!(collision.Collider is Creature creat && creat != this))
                     {
-                        LookAtFromPosition(Translation, DesiredFood.Translation, Vector3.Up);
+                        //if (DesiredFood != null) GD.Print(DesiredFood.Translation, " ", EatingTimeLeft);
+                        if (DesiredFood != null)
+                        {
+                            LookAtFromPosition(Translation, DesiredFood.Translation, Vector3.Up);
+                        }
+                        else if (Mate != null)
+                        {
+                            LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
+                            Mate.LookAtFromPosition(Mate.Translation, Translation, Vector3.Up);
+                        }
+                        else
+                        {
+                            RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));
+                        }
+                        break;
                     }
-                    else if (Mate != null)
+                    else if (collision.Collider is Creature && creat.Team != Team)
                     {
-                        LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
-                        Mate.LookAtFromPosition(Mate.Translation, Translation, Vector3.Up);
+                        Fight(creat);
                     }
-                    else
-                    {
-                        RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));
-                    }
-                    break;
                 }
             }
         }
@@ -215,6 +222,7 @@ public class Creature : KinematicBody
             {
                 if (creature != this)
                 {
+                    if (creature.Team == Team) { GD.Print("Friendly fire has occured"); }
                     enemy = creature;
                     break;
                 }
@@ -230,55 +238,66 @@ public class Creature : KinematicBody
             // this means that the other seeker (the enemy) has already reached this food
             // this blob is the second to arrive to the food and can now determine whether or not a fight occurs
 
-            // TODO: insert fight code here
+            Fight(enemy);
+        }
+    }
 
-            // Divide the difference of 100 and intelligence by 1/10th of your sight to get the error in enemy strength guess
-            // for example 50 intelligence and sight will result in 50 / (50/10) or error margin of 10
+    public void Fight(Creature enemy)
+    {
+        // TODO: insert fight code here
 
-            // dividing by 10 is basically a constant, should be tweaked later
-            float errorMargin = (100 - Abils.GetModifiedIntelligence()) / (Abils.GetModifiedSight() / 10);
-            float strength = Abils.GetModifiedStrength();
-            float enemyStrength = enemy.Abils.GetModifiedStrength();
-            float estimatedEnemyStrength = (float)GD.RandRange(enemyStrength - errorMargin, enemyStrength + errorMargin);
+        // Divide the difference of 100 and intelligence by 1/10th of your sight to get the error in enemy strength guess
+        // for example 50 intelligence and sight will result in 50 / (50/10) or error margin of 10
 
-            // right now there is no functionality for a blob to not fight even if they estimate they are stronger, this may be a change to make later
-            if (estimatedEnemyStrength > strength)
+        // dividing by 10 is basically a constant, should be tweaked later
+
+        if (main.IsNullOrQueued(enemy)) // enemy already dead
+        {
+            return;
+        }
+
+        float errorMargin = (100 - Abils.GetModifiedIntelligence()) / (Abils.GetModifiedSight() / 10);
+        float strength = Abils.GetModifiedStrength();
+        float enemyStrength = enemy.Abils.GetModifiedStrength();
+        float estimatedEnemyStrength = (float)GD.RandRange(enemyStrength - errorMargin, enemyStrength + errorMargin);
+
+        // right now there is no functionality for a blob to not fight even if they estimate they are stronger, this may be a change to make later
+        if (estimatedEnemyStrength > strength && DesiredFood != null)
+        {
+            // what should happen if estimated strength is greater than our strength
+            // potentially check differences in speed and run away but should enemy speed be estimated in the same way as enemy strength
+            // and what if speed is less than enemy speed, do we always try and brave it in battle if both stats are against us or do we always try and run or mix of both
+
+            if (Abils.GetModifiedSpeed() < enemy.Abils.GetModifiedSpeed()) // currently this uses their exact speed ( not an estimation )
             {
-                // what should happen if estimated strength is greater than our strength
-                // potentially check differences in speed and run away but should enemy speed be estimated in the same way as enemy strength
-                // and what if speed is less than enemy speed, do we always try and brave it in battle if both stats are against us or do we always try and run or mix of both
-
-                if (Abils.GetModifiedSpeed() < enemy.Abils.GetModifiedSpeed()) // currently this uses their exact speed ( not an estimation )
-                {
-                    blacklist.Add(DesiredFood);
-                    DesiredFood.CurrentSeekers.Remove(this);
-                    DesiredFood = null;
-                    EatingTimeLeft = 0;
-                }
-                else    // what to do if we are both weaker and slower ?
-                {
-                    // This is just placeholder code for something to happen
-                    // if we are weaker, we run no matter if slower or faster
-
-                    blacklist.Add(DesiredFood);
-                    DesiredFood.CurrentSeekers.Remove(this);
-                    DesiredFood = null;
-                    EatingTimeLeft = 0;
-                }
+                blacklist.Add(DesiredFood);
+                DesiredFood.CurrentSeekers.Remove(this);
+                DesiredFood = null;
+                EatingTimeLeft = 0;
             }
-            else
+            else    // what to do if we are both weaker and slower ?
             {
-                // we think we can take them since supposedly higher strength
-                // cue fighting
+                // This is just placeholder code for something to happen
+                // if we are weaker, we run no matter if slower or faster
 
-                Creature killedCreature = this;
-                if (enemyStrength < strength)   // defender has the slight edge in equal cases
-                {
-                    killedCreature = enemy;
-                }
-                main.CreatureDeath(killedCreature);
-                return;
+                blacklist.Add(DesiredFood);
+                DesiredFood.CurrentSeekers.Remove(this);
+                DesiredFood = null;
+                EatingTimeLeft = 0;
             }
+        }
+        else
+        {
+            // we think we can take them since supposedly higher strength
+            // cue fighting
+
+            Creature killedCreature = this;
+            if (enemyStrength < strength)   // defender has the slight edge in equal cases
+            {
+                killedCreature = enemy;
+            }
+            main.CreatureDeath(killedCreature);
+            return;
         }
     }
 
