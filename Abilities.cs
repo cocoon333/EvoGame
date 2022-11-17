@@ -11,7 +11,6 @@ public class Abilities : Node
     public float Libido;
     public float Sight;
     public float Endurance;
-    public float Health;
     public float Concealment;
 
     public float Energy;
@@ -24,7 +23,7 @@ public class Abilities : Node
     public float ENERGY_MAX = 150;
 
     public float ENERGY_MODIFIER = 0.2f;
-    public void Initialize(float speed, float strength, float intelligence, float libido, float sight, float endurance, float health, float concealment)
+    public void Initialize(float speed, float strength, float intelligence, float libido, float sight, float endurance, float concealment)
     {
         Speed = speed;
         Strength = strength;
@@ -32,7 +31,6 @@ public class Abilities : Node
         Libido = libido;
         Sight = sight;
         Endurance = endurance;
-        Health = health;
         Concealment = concealment;
 
         //Calculate these stats
@@ -45,7 +43,7 @@ public class Abilities : Node
 
     public float GetModifiedStat(float mainStat, float inverseStat)
     {
-        float offset = (-Mathf.Pow((inverseStat-50)/15, 3));
+        float offset = (-Mathf.Pow((inverseStat - 50) / 15, 3));
         offset = Mathf.Min(offset, 0);
         float finalStat = mainStat + offset;
         finalStat *= 1.0f - ENERGY_MODIFIER * ((ENERGY_MAX - Energy) / ENERGY_MAX);
@@ -60,6 +58,14 @@ public class Abilities : Node
     public float GetModifiedStrength()
     {
         return GetModifiedStat(Strength, Speed);
+    }
+
+    public float GetCombatScore()
+    {
+        float combatScore = GetModifiedStrength();
+        combatScore += (GetModifiedSpeed() * 0.1f);
+        combatScore += (GetModifiedIntelligence() + GetModifiedSight()) * 0.05f;
+        return combatScore;
     }
 
     public float GetModifiedIntelligence()
@@ -82,22 +88,16 @@ public class Abilities : Node
     {
         float finalEndurance = 0;
 
-        finalEndurance += Mathf.Min(-Mathf.Pow(Speed-50, 3), 0);
-        finalEndurance += Mathf.Min(-Mathf.Pow(Strength-50, 3), 0);
-        finalEndurance += Mathf.Min(-Mathf.Pow(Intelligence-50, 3), 0);
-        finalEndurance += Mathf.Min(-Mathf.Pow(Sight-50, 3), 0);
-        finalEndurance += Mathf.Min(-Mathf.Pow(Concealment-50, 3), 0);
-        finalEndurance += Mathf.Min(-Mathf.Pow(Health-50, 3), 0);
+        finalEndurance += Mathf.Min(-Mathf.Pow(Speed - 50, 3), 0);
+        finalEndurance += Mathf.Min(-Mathf.Pow(Strength - 50, 3), 0);
+        finalEndurance += Mathf.Min(-Mathf.Pow(Intelligence - 50, 3), 0);
+        finalEndurance += Mathf.Min(-Mathf.Pow(Sight - 50, 3), 0);
+        finalEndurance += Mathf.Min(-Mathf.Pow(Concealment - 50, 3), 0);
 
         finalEndurance /= 1000;
         finalEndurance += Endurance;
-        
-        return finalEndurance;
-    }
 
-    public float GetModifiedHealth()
-    {
-        return Health;
+        return finalEndurance;
     }
 
     public float GetModifiedConcealment()
@@ -125,7 +125,6 @@ public class Abilities : Node
         allAbils.Add("Libido", GetModifiedLibido());
         allAbils.Add("Sight", GetModifiedSight());
         allAbils.Add("Endurance", GetModifiedEndurance());
-        allAbils.Add("Health", GetModifiedHealth());
         allAbils.Add("Concealment", GetModifiedConcealment());
         allAbils.Add("Energy", Energy);
         allAbils.Add("EnergyLoss", EnergyLoss);

@@ -242,63 +242,74 @@ public class Creature : KinematicBody
         }
     }
 
-    public void Fight(Creature enemy)
+    public Boolean WantsToFight(Creature enemy)
     {
-        // TODO: insert fight code here
-
         // Divide the difference of 100 and intelligence by 1/10th of your sight to get the error in enemy strength guess
         // for example 50 intelligence and sight will result in 50 / (50/10) or error margin of 10
 
         // dividing by 10 is basically a constant, should be tweaked later
+        float errorMargin = (100 - Abils.GetModifiedIntelligence()) / (Abils.GetModifiedSight() / 10);
+        float combatScore = Abils.GetCombatScore();
+        float enemyCombatScore = enemy.Abils.GetCombatScore();
+        float estimatedEnemyCombatScore = (float)GD.RandRange(enemyCombatScore - errorMargin, enemyCombatScore + errorMargin);
 
-        if (main.IsNullOrQueued(enemy)) // enemy already dead
+        return (estimatedEnemyCombatScore < combatScore);
+    }
+
+    public void Fight(Creature enemy)
+    {
+        if (main.IsNullOrQueued(enemy) || main.IsNullOrQueued(this)) // enemy already dead
         {
             return;
         }
 
-        float errorMargin = (100 - Abils.GetModifiedIntelligence()) / (Abils.GetModifiedSight() / 10);
-        float strength = Abils.GetModifiedStrength();
-        float enemyStrength = enemy.Abils.GetModifiedStrength();
-        float estimatedEnemyStrength = (float)GD.RandRange(enemyStrength - errorMargin, enemyStrength + errorMargin);
-
         // right now there is no functionality for a blob to not fight even if they estimate they are stronger, this may be a change to make later
-        if (estimatedEnemyStrength > strength && DesiredFood != null)
+        if (!WantsToFight(enemy))
         {
-            // what should happen if estimated strength is greater than our strength
-            // potentially check differences in speed and run away but should enemy speed be estimated in the same way as enemy strength
-            // and what if speed is less than enemy speed, do we always try and brave it in battle if both stats are against us or do we always try and run or mix of both
-
-            if (Abils.GetModifiedSpeed() < enemy.Abils.GetModifiedSpeed()) // currently this uses their exact speed ( not an estimation )
+            // this is what happens if estimated strength is greater than our strength
+            
+            // exact speed is greater, or enemy doesnt want to fight, or random small chance to escape
+            if (Abils.GetModifiedSpeed() < enemy.Abils.GetModifiedSpeed() || !enemy.WantsToFight(this) || GD.Randf() < 0.1f)
             {
-                blacklist.Add(DesiredFood);
-                DesiredFood.CurrentSeekers.Remove(this);
-                DesiredFood = null;
-                EatingTimeLeft = 0;
+                if (DesiredFood != null)
+                {
+                    blacklist.Add(DesiredFood);
+                    DesiredFood.CurrentSeekers.Remove(this);
+                    DesiredFood = null;
+                    EatingTimeLeft = 0;
+                }
             }
-            else    // what to do if we are both weaker and slower ?
+            else    // fight happen
             {
-                // This is just placeholder code for something to happen
-                // if we are weaker, we run no matter if slower or faster
-
-                blacklist.Add(DesiredFood);
-                DesiredFood.CurrentSeekers.Remove(this);
-                DesiredFood = null;
-                EatingTimeLeft = 0;
+                main.CreatureDeath(GetLoser(enemy));
             }
+
+            // if speed > opponent speed
+            //  ez dub get away
+            // else run number
+            //  greater than threshold -> getaway
+            //  less than threshold -> check if opponent wants to fight/chase
+            // if false or small chance you escape anyways -> getaway
+            // else (true) -> fight
         }
         else
         {
             // we think we can take them since supposedly higher strength
             // cue fighting
 
-            Creature killedCreature = this;
-            if (enemyStrength < strength)   // defender has the slight edge in equal cases
-            {
-                killedCreature = enemy;
-            }
-            main.CreatureDeath(killedCreature);
-            return;
+            main.CreatureDeath(GetLoser(enemy));
         }
+    }
+
+    public Creature GetLoser(Creature enemy)
+    {
+        Creature killedCreature = this;
+        if (enemy.Abils.GetCombatScore() < Abils.GetCombatScore())   // defender has the slight edge in equal cases
+        {
+            killedCreature = enemy;
+        }
+        
+        return killedCreature;
     }
 
     public void OnFoodDetectorInputEvent(object camera, object @event, Vector3 position, Vector3 normal, int shape_idx)

@@ -44,7 +44,7 @@ public class Main : Node
 
 		Abilities abils = (Abilities)creature.GetNode<Node>("Abilities");
 		float stats = (float)GD.RandRange(45, 50);
-		abils.Initialize(stats, stats, stats, stats, stats, stats, stats, stats);
+		abils.Initialize(stats, stats, stats, stats, stats, stats, stats);
 
 		creature.Initialize(location, team);
 

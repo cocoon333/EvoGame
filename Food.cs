@@ -28,7 +28,7 @@ public class Food : KinematicBody
             MeshInstance meshInst = GetNode<MeshInstance>("MeshInstance");
             SpatialMaterial material = (SpatialMaterial)meshInst.GetActiveMaterial(0);
             Color color = material.AlbedoColor;
-            color = new Color(0, (175/256.0f), 0, color.a);
+            color = new Color((175/256.0f), 0, 0, color.a);
             material.AlbedoColor = color;
         }
 
