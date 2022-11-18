@@ -14,7 +14,7 @@ public class Abilities : Node
     public float Concealment;
 
     public float Energy;
-    public float Combat;
+    public float Combat; //TODO: pretty sure this is useless
     public float Metabolism;
 
     public float EatingTime = 2;
@@ -25,6 +25,7 @@ public class Abilities : Node
     public float ENERGY_MODIFIER = 0.2f;
     public void Initialize(float speed, float strength, float intelligence, float libido, float sight, float endurance, float concealment)
     {
+        //TODO: might be useless and should delete in the future but keeping it for now
         Speed = speed;
         Strength = strength;
         Intelligence = intelligence;
@@ -32,6 +33,24 @@ public class Abilities : Node
         Sight = sight;
         Endurance = endurance;
         Concealment = concealment;
+
+        //Calculate these stats
+        Energy = 50;
+        Combat = 0;
+        Metabolism = 0;
+
+        EnergyLoss = (100 - GetModifiedEndurance()) / 100f * 5;
+    }
+
+    public void Initialize(List<float> stats)
+    {
+        Speed = stats[0];
+        Strength = stats[1];
+        Intelligence = stats[2];
+        Libido = stats[3];
+        Sight = stats[4];
+        Endurance = stats[5];
+        Concealment = stats[6];
 
         //Calculate these stats
         Energy = 50;

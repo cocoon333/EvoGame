@@ -26,7 +26,7 @@ public class Creature : KinematicBody
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
-        GD.Randomize();
+        return;
     }
 
     public void Initialize(Vector3 spawnLoc, int team)
@@ -267,7 +267,7 @@ public class Creature : KinematicBody
         if (!WantsToFight(enemy))
         {
             // this is what happens if estimated strength is greater than our strength
-            
+
             // exact speed is greater, or enemy doesnt want to fight, or random small chance to escape
             if (Abils.GetModifiedSpeed() < enemy.Abils.GetModifiedSpeed() || !enemy.WantsToFight(this) || GD.Randf() < 0.1f)
             {
@@ -308,7 +308,7 @@ public class Creature : KinematicBody
         {
             killedCreature = enemy;
         }
-        
+
         return killedCreature;
     }
 

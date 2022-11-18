@@ -5,143 +5,162 @@ using System.Collections.Generic;
 public class Main : Node
 {
 #pragma warning disable 649
-	// We assign this in the editor, so we don't need the warning about not being assigned.
-	[Export]
-	public PackedScene FoodScene;
+    // We assign this in the editor, so we don't need the warning about not being assigned.
+    [Export]
+    public PackedScene FoodScene;
 
-	[Export]
-	public PackedScene CreatureScene;
+    [Export]
+    public PackedScene CreatureScene;
 #pragma warning restore 649
 
-	public Boolean Dragging = false;
+    public Boolean Dragging = false;
 
-	ScoreLabel scoreLabel;
-	Creature SelectedCreature = null;
+    ScoreLabel scoreLabel;
+    Creature SelectedCreature = null;
+    List<List<float>> StatsList = new List<List<float>>();
+    RandomNumberGenerator Rng;
 
-	// Called when the node enters the scene tree for the first time.
-	public override void _Ready()
-	{
-		scoreLabel = GetNode<ScoreLabel>("ScoreLabel");
-		Label label = GetNode<Label>("CreatureLabel");
-		label.MarginRight = GetViewport().Size.x;
+    // Called when the node enters the scene tree for the first time.
+    public override void _Ready()
+    {
+        scoreLabel = GetNode<ScoreLabel>("ScoreLabel");
+        Label label = GetNode<Label>("CreatureLabel");
+        label.MarginRight = GetViewport().Size.x;
 
-		for (int i = 0; i < 100; i++)
-		{
-			SpawnFood();
-		}
+        StatsList.Add(new List<float> { 50f, 50f, 50f, 50f, 50f, 50f, 50f });
+        StatsList.Add(new List<float> { 50f, 50f, 50f, 50f, 50f, 50f, 50f });
 
-		for (int i = 0; i < 100; i++)
-		{
-			SpawnCreature();
-		}
-	}
-	
-	public void SpawnCreature(Vector3 location, int team)
-	{
-		Creature creature = (Creature)CreatureScene.Instance();
-		Node creatureParent = GetNode<Node>("CreatureParent");
-		creatureParent.AddChild(creature);
+        Rng = new RandomNumberGenerator();
+        Rng.Randomize();
+        GD.Randomize();
 
-		Abilities abils = (Abilities)creature.GetNode<Node>("Abilities");
-		float stats = (float)GD.RandRange(45, 50);
-		abils.Initialize(stats, stats, stats, stats, stats, stats, stats);
+        for (int i = 0; i < 100; i++)
+        {
+            SpawnFood();
+        }
 
-		creature.Initialize(location, team);
+        for (int i = 0; i < 100; i++)
+        {
+            SpawnCreature();
+        }
+    }
 
-		scoreLabel.Text = string.Format(scoreLabel.DisplayString, ++scoreLabel.CreatureCount, scoreLabel.FoodCount);
-	}
+    public void SpawnCreature(Vector3 location, int team)
+    {
+        Creature creature = (Creature)CreatureScene.Instance();
+        Node creatureParent = GetNode<Node>("CreatureParent");
+        creatureParent.AddChild(creature);
 
-	public void CreatureDeath(Creature blob)
-	{
-		if (blob.DesiredFood != null)
-		{
-			blob.DesiredFood.CurrentSeekers.Remove(blob);
-			//blob.DesiredFood.CurrentSeeker = null;
-			blob.DesiredFood.BeingAte = false;
-		}
+        Abilities abils = (Abilities)creature.GetNode<Node>("Abilities");
+        float stats = (float)GD.RandRange(45, 50);
+        abils.Initialize(GetStats(team));
 
-		blob.QueueFree();
+        creature.Initialize(location, team);
 
-		scoreLabel.Text = string.Format(scoreLabel.DisplayString, --scoreLabel.CreatureCount, scoreLabel.FoodCount);
-	}
+        scoreLabel.Text = string.Format(scoreLabel.DisplayString, ++scoreLabel.CreatureCount, scoreLabel.FoodCount);
+    }
 
-	public void SpawnCreature()
-	{
-		Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
-		SpawnCreature(spawnLoc, (int)(GD.Randf() + 0.5)); // TODO: this is random, shouldnt be random
-	}
+    public List<float> GetStats(int team)
+    {
+        List<float> stats = StatsList[team];
+        for (int i = 0; i < stats.Count; i++)
+        {
+            stats[i] = Rng.Randfn(stats[i], stats[i] * 0.05f); // normal distribution with +-5% for standard deviation
+        }
+        return stats;
+    }
 
-	public void SpawnFood()
-	{
-		Food food = (Food)FoodScene.Instance();
-		Node foodParent = GetNode<Node>("FoodParent");
-		foodParent.AddChild(food);
-		Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
-		food.Initialize(25, (GD.Randf() < 0.2), spawnLoc);
+    public void CreatureDeath(Creature blob)
+    {
+        if (blob.DesiredFood != null)
+        {
+            blob.DesiredFood.CurrentSeekers.Remove(blob);
+            //blob.DesiredFood.CurrentSeeker = null;
+            blob.DesiredFood.BeingAte = false;
+        }
 
-		scoreLabel.Text = string.Format(scoreLabel.DisplayString, scoreLabel.CreatureCount, ++scoreLabel.FoodCount);
-	}
+        blob.QueueFree();
 
-	public void EatFood(Food food)
-	{
-		List<Creature> seekers = food.CurrentSeekers;
-		foreach (Creature seeker in seekers)
-		{
-			seeker.DesiredFood = null;
-			seeker.EatingTimeLeft = 0;
-		}
+        scoreLabel.Text = string.Format(scoreLabel.DisplayString, --scoreLabel.CreatureCount, scoreLabel.FoodCount);
+    }
 
-		SpawnFood();
-		food.QueueFree();
-		scoreLabel.Text = string.Format(scoreLabel.DisplayString, scoreLabel.CreatureCount, --scoreLabel.FoodCount);
-	}
+    public void SpawnCreature()
+    {
+        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
+        SpawnCreature(spawnLoc, (int)(GD.Randf() + 0.5)); // TODO: this is random, shouldnt be random
+    }
 
-	public void SelectCreature(Creature creature)
-	{
-		creature.Selected = true;
-		creature.UpdateColor();
+    public void SpawnFood()
+    {
+        Food food = (Food)FoodScene.Instance();
+        Node foodParent = GetNode<Node>("FoodParent");
+        foodParent.AddChild(food);
+        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
+        food.Initialize(25, (GD.Randf() < 0.2), spawnLoc);
 
-		if (!IsNullOrQueued(SelectedCreature))
-		{
-			SelectedCreature.Selected = false;
-			SelectedCreature.UpdateColor();
+        scoreLabel.Text = string.Format(scoreLabel.DisplayString, scoreLabel.CreatureCount, ++scoreLabel.FoodCount);
+    }
 
-			if (SelectedCreature == creature)
-			{
-				creature = null;
-			}
+    public void EatFood(Food food)
+    {
+        List<Creature> seekers = food.CurrentSeekers;
+        foreach (Creature seeker in seekers)
+        {
+            seeker.DesiredFood = null;
+            seeker.EatingTimeLeft = 0;
+        }
 
-			SelectedCreature = null;
-		}
+        SpawnFood();
+        food.QueueFree();
+        scoreLabel.Text = string.Format(scoreLabel.DisplayString, scoreLabel.CreatureCount, --scoreLabel.FoodCount);
+    }
 
-		SelectedCreature = creature;
-		UpdateCreatureLabel(creature);
-	}
+    public void SelectCreature(Creature creature)
+    {
+        creature.Selected = true;
+        creature.UpdateColor();
 
-	public void UpdateCreatureLabel(Creature creature)
-	{
-		Label label = GetNode<Label>("CreatureLabel");
+        if (!IsNullOrQueued(SelectedCreature))
+        {
+            SelectedCreature.Selected = false;
+            SelectedCreature.UpdateColor();
 
-		if (IsNullOrQueued(creature))
-		{
-			label.Text = "";
-			return;
-		}
+            if (SelectedCreature == creature)
+            {
+                creature = null;
+            }
 
-		Dictionary<String, float> abils = creature.Abils.GetAllAbils();
-		String labelText = "";
-		foreach (KeyValuePair<String, float> kvp in abils)
-		{
-			// This seems like a cleaner way to do it but need to figure out how to make it work
-			// String appendString = ("{0}: {1}", kvp.Key, kvp.Value);
-			// labelText += appendString;
+            SelectedCreature = null;
+        }
 
-			labelText += (kvp.Key + ": " + Mathf.RoundToInt(kvp.Value) + "\n");
-		}
-		label.Text = labelText;
-	}
+        SelectedCreature = creature;
+        UpdateCreatureLabel(creature);
+    }
 
-	/*
+    public void UpdateCreatureLabel(Creature creature)
+    {
+        Label label = GetNode<Label>("CreatureLabel");
+
+        if (IsNullOrQueued(creature))
+        {
+            label.Text = "";
+            return;
+        }
+
+        Dictionary<String, float> abils = creature.Abils.GetAllAbils();
+        String labelText = "";
+        foreach (KeyValuePair<String, float> kvp in abils)
+        {
+            // This seems like a cleaner way to do it but need to figure out how to make it work
+            // String appendString = ("{0}: {1}", kvp.Key, kvp.Value);
+            // labelText += appendString;
+
+            labelText += (kvp.Key + ": " + Mathf.RoundToInt(kvp.Value) + "\n");
+        }
+        label.Text = labelText;
+    }
+
+    /*
 	public Food GetNearestFoodLocation(Creature blob)
 	{
 		Node foodParent = GetNode<Node>("FoodParent");
@@ -226,139 +245,139 @@ public class Main : Node
 	}
 	*/
 
-	public List<Food> GetAllFoodInSight(Creature creature)
-	{
-		Node foodParent = GetNode<Node>("FoodParent");
-		int foodCount = foodParent.GetChildCount();
-		List<Food> allFood = new List<Food>();
-		for (int i = 0; i < foodCount; i++)
-		{
-			Food current = (Food)foodParent.GetChild(i);
+    public List<Food> GetAllFoodInSight(Creature creature)
+    {
+        Node foodParent = GetNode<Node>("FoodParent");
+        int foodCount = foodParent.GetChildCount();
+        List<Food> allFood = new List<Food>();
+        for (int i = 0; i < foodCount; i++)
+        {
+            Food current = (Food)foodParent.GetChild(i);
 
-			if (!IsNullOrQueued(current) && current.Translation.DistanceTo(creature.Translation) < creature.Abils.GetModifiedSight())
-			{
-				allFood.Add(current);
-			}
-		}
-		return allFood;
-	}
+            if (!IsNullOrQueued(current) && current.Translation.DistanceTo(creature.Translation) < creature.Abils.GetModifiedSight())
+            {
+                allFood.Add(current);
+            }
+        }
+        return allFood;
+    }
 
-	public List<Creature> GetAllCreaturesInSight(Creature creature)
-	{
-		Node creatureParent = GetNode<Node>("CreatureParent");
-		int creatureCount = creatureParent.GetChildCount();
-		List<Creature> allCreatures = new List<Creature>();
-		for (int i = 0; i < creatureCount; i++)
-		{
-			Creature current = (Creature)creatureParent.GetChild(i);
+    public List<Creature> GetAllCreaturesInSight(Creature creature)
+    {
+        Node creatureParent = GetNode<Node>("CreatureParent");
+        int creatureCount = creatureParent.GetChildCount();
+        List<Creature> allCreatures = new List<Creature>();
+        for (int i = 0; i < creatureCount; i++)
+        {
+            Creature current = (Creature)creatureParent.GetChild(i);
 
-			if (!IsNullOrQueued(current) && current.Translation.DistanceTo(creature.Translation) < creature.Abils.GetModifiedSight() && current != creature)
-			{
-				allCreatures.Add(current);
-			}
-		}
-		return allCreatures;
-	}
+            if (!IsNullOrQueued(current) && current.Translation.DistanceTo(creature.Translation) < creature.Abils.GetModifiedSight() && current != creature)
+            {
+                allCreatures.Add(current);
+            }
+        }
+        return allCreatures;
+    }
 
-	public List<Creature> GetAllTeamMembersInSight(Creature creature)
-	{
-		List<Creature> allCreatures = GetAllCreaturesInSight(creature);
-		List<Creature> teamMembers = new List<Creature>();
-		foreach (Creature teamMember in allCreatures)
-		{
-			if (teamMember.Team == creature.Team)
-			{
-				teamMembers.Add(teamMember);
-			}
-		}
-		return teamMembers;
-	}
+    public List<Creature> GetAllTeamMembersInSight(Creature creature)
+    {
+        List<Creature> allCreatures = GetAllCreaturesInSight(creature);
+        List<Creature> teamMembers = new List<Creature>();
+        foreach (Creature teamMember in allCreatures)
+        {
+            if (teamMember.Team == creature.Team)
+            {
+                teamMembers.Add(teamMember);
+            }
+        }
+        return teamMembers;
+    }
 
-	public Boolean IsNullOrQueued(Node node)
-	{
-		Boolean retValue = false;
-		try
-		{
-			retValue = (node == null || node.IsQueuedForDeletion());
-		}
-		catch(ObjectDisposedException)  // the method to check if something is deleted crashes cuz turns out it was deleted
-		{
-			retValue = true;
-		}
-		return retValue;
-	}
+    public Boolean IsNullOrQueued(Node node)
+    {
+        Boolean retValue = false;
+        try
+        {
+            retValue = (node == null || node.IsQueuedForDeletion());
+        }
+        catch (ObjectDisposedException)  // the method to check if something is deleted crashes cuz turns out it was deleted
+        {
+            retValue = true;
+        }
+        return retValue;
+    }
 
-	public override void _UnhandledInput(InputEvent @event) // weird architecture
-	{
-		//base._UnhandledInput(@event);
-		if (@event is InputEventMouseButton mouseEvent)
-		{
-			if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.Right)
-			{
-				// Start dragging if right click pressed
-				if (!Dragging && mouseEvent.Pressed)
-				{
-					Input.MouseMode = Input.MouseModeEnum.Captured;
-					Dragging = true;
-				}
-				// stop dragging if right click released
-				if (Dragging && !mouseEvent.Pressed)
-				{
-					Input.MouseMode = Input.MouseModeEnum.Visible;
-					Dragging = false;
-				}
-			}
-			else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelUp)
-			{
-				Camera cam = GetNode<Camera>("CameraPivot/Camera");
-				Vector3 direction = cam.Translation;
-				direction.z -= 2;
-				if (direction.z <= 5) direction.z = 5;
-				cam.Translation = direction;
-			}
-			else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelDown)
-			{
-				Camera cam = GetNode<Camera>("CameraPivot/Camera");
-				Vector3 direction = cam.Translation;
-				direction.z += 2;
-				cam.Translation = direction;
-			}
-		}
-		else if (@event is InputEventMouseMotion motionEvent && Dragging)
-		{
-			Vector2 relative = motionEvent.Relative;
-			Position3D camPivot = GetNode<Position3D>("CameraPivot");
-			Camera cam = GetNode<Camera>("CameraPivot/Camera");
-			camPivot.RotateY(relative.x / (-1000));
-			cam.RotateX(relative.y / (-1000));
-			Vector3 rotation = cam.GlobalRotation;
-			rotation.x = Math.Max(rotation.x, -1.5f);
-			rotation.x = Math.Min(rotation.x, 0.5f);
-			cam.GlobalRotation = rotation;
-		}
-	}
+    public override void _UnhandledInput(InputEvent @event) // weird architecture
+    {
+        //base._UnhandledInput(@event);
+        if (@event is InputEventMouseButton mouseEvent)
+        {
+            if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.Right)
+            {
+                // Start dragging if right click pressed
+                if (!Dragging && mouseEvent.Pressed)
+                {
+                    Input.MouseMode = Input.MouseModeEnum.Captured;
+                    Dragging = true;
+                }
+                // stop dragging if right click released
+                if (Dragging && !mouseEvent.Pressed)
+                {
+                    Input.MouseMode = Input.MouseModeEnum.Visible;
+                    Dragging = false;
+                }
+            }
+            else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelUp)
+            {
+                Camera cam = GetNode<Camera>("CameraPivot/Camera");
+                Vector3 direction = cam.Translation;
+                direction.z -= 2;
+                if (direction.z <= 5) direction.z = 5;
+                cam.Translation = direction;
+            }
+            else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelDown)
+            {
+                Camera cam = GetNode<Camera>("CameraPivot/Camera");
+                Vector3 direction = cam.Translation;
+                direction.z += 2;
+                cam.Translation = direction;
+            }
+        }
+        else if (@event is InputEventMouseMotion motionEvent && Dragging)
+        {
+            Vector2 relative = motionEvent.Relative;
+            Position3D camPivot = GetNode<Position3D>("CameraPivot");
+            Camera cam = GetNode<Camera>("CameraPivot/Camera");
+            camPivot.RotateY(relative.x / (-1000));
+            cam.RotateX(relative.y / (-1000));
+            Vector3 rotation = cam.GlobalRotation;
+            rotation.x = Math.Max(rotation.x, -1.5f);
+            rotation.x = Math.Min(rotation.x, 0.5f);
+            cam.GlobalRotation = rotation;
+        }
+    }
 
-	public override void _Process(float delta)
-	{
-		UpdateCreatureLabel(SelectedCreature);
-		
-		if (Input.IsActionJustPressed("spawn_food"))
-		{
-			SpawnFood();
-		}
-		if (Input.IsActionJustPressed("spawn_blob"))
-		{
-			SpawnCreature();
-		}
+    public override void _Process(float delta)
+    {
+        UpdateCreatureLabel(SelectedCreature);
 
-		if (Input.IsActionJustPressed("pause_game"))
-		{
-			GetTree().Paused = !GetTree().Paused;
-		}
+        if (Input.IsActionJustPressed("spawn_food"))
+        {
+            SpawnFood();
+        }
+        if (Input.IsActionJustPressed("spawn_blob"))
+        {
+            SpawnCreature();
+        }
 
-		if (Input.IsActionPressed("exit_game"))
-		{
-			GetTree().Quit();
-		}
-	}
+        if (Input.IsActionJustPressed("pause_game"))
+        {
+            GetTree().Paused = !GetTree().Paused;
+        }
+
+        if (Input.IsActionPressed("exit_game"))
+        {
+            GetTree().Quit();
+        }
+    }
 }
