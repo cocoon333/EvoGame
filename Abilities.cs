@@ -150,4 +150,14 @@ public class Abilities : Node
 
         return allAbils;
     }
+
+    public List<float> GetModifiedStats()
+    {
+        return new List<float> {GetModifiedSpeed(), GetModifiedStrength(), GetModifiedIntelligence(), GetModifiedLibido(), GetModifiedSight(), GetModifiedEndurance(), GetModifiedConcealment()};
+    }
+
+    public List<float> GetStats()
+    {
+        return new List<float> {Speed, Strength, Intelligence, Libido, Sight, Endurance, Concealment};
+    }
 }

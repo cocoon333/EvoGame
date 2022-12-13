@@ -11,12 +11,21 @@ public class Team : Node
     public PackedScene CreatureScene;
 #pragma warning restore 649
 
-    List<float> StatsList;
+    //public List<float> StatsList;
+    public Abilities TeamAbilities;
 
-    RandomNumberGenerator Rng;
+    public RandomNumberGenerator Rng;
 
     public int TeamNumber;
     public int CreatureCount;
+
+    public int EvoPoints;
+
+    public int TotalBirths;
+
+    public int TotalDeaths;
+
+    public int TotalKills;
 
     public void Initialize()
     {
@@ -24,22 +33,29 @@ public class Team : Node
         Rng.Randomize();
         GD.Randomize();
 
-        StatsList = new List<float> { 50f, 50f, 50f, 50f, 50f, 50f, 50f };
+        //StatsList = new List<float> { 50f, 50f, 50f, 50f, 50f, 50f, 50f };
+        TeamAbilities = new Abilities();
+        TeamAbilities.Initialize(new List<float> { 50f, 50f, 50f, 50f, 50f, 50f, 50f });
     }
 
     public List<float> GetStats()
     {
+        List<float> stats = TeamAbilities.GetStats();
         List<float> randomStats = new List<float>();
-        for (int i = 0; i < StatsList.Count; i++)
+        for (int i = 0; i < stats.Count; i++)
         {
-            randomStats.Add(Rng.Randfn(StatsList[i], StatsList[i] * 0.05f)); // normal distribution with +-5% for standard deviation
+            randomStats.Add(Rng.Randfn(stats[i], stats[i] * 0.05f)); // normal distribution with +-5% for standard deviation
         }
         return randomStats;
     }
 
     public void ChangeStats(int statIndex, int change)
     {
-        StatsList[statIndex] += change;
+        TeamAbilities.GetStats()[statIndex] += change;
+        
+        List<float> newStats = TeamAbilities.GetStats();
+        newStats[statIndex] += change;
+        TeamAbilities.Initialize(newStats);
     }
 
     public void SpawnCreature(Vector3 location)
@@ -54,6 +70,9 @@ public class Team : Node
         creature.Initialize(location);
 
         CreatureCount++;
+        TotalBirths++;
+
+        if (TotalBirths % 5 == 0) EvoPoints++;
     }
 
     public void CreatureDeath(Creature blob)
@@ -66,6 +85,19 @@ public class Team : Node
 
         blob.QueueFree();
         CreatureCount--;
-        //scoreLabel.Text = string.Format(scoreLabel.DisplayString, --scoreLabel.CreatureCount, scoreLabel.FoodCount);
+        TotalDeaths++;
+    }
+
+    public String DisplayTeamInfo()
+    {
+        String returnString = "";
+        returnString += "Team " + (TeamNumber+1) + "\n";
+        returnString += "Creature Count: " + CreatureCount + "\n";
+        returnString += "Evolution Points: " + EvoPoints + "\n";
+        returnString += "Total Births: " + TotalBirths + "\n";
+        returnString += "Total Deaths: " + TotalDeaths + "\n";
+        returnString += "Total Kills: " + TotalKills + "\n";
+
+        return returnString;
     }
 }

@@ -21,12 +21,16 @@ public class Main : Node
 
     List<Team> TeamsList;
 
+    int FoodCount = 0;
+
+    Team playerTeam;
+
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
         scoreLabel = GetNode<ScoreLabel>("ScoreLabel");
         Label label = GetNode<Label>("CreatureLabel");
-        label.MarginRight = GetViewport().Size.x;
+        //label.MarginRight = GetViewport().Size.x;
 
         TeamsList = new List<Team>();
 
@@ -51,13 +55,15 @@ public class Main : Node
                 SpawnCreature(team);
             }
         }
+
+        playerTeam = TeamsList[0];
     }
 
     public void SpawnCreature(Vector3 location, Team team)
     {
         team.SpawnCreature(location);
 
-        // update the score label here
+        scoreLabel.UpdateString(TeamsList, FoodCount);
     }
 
     public void SpawnCreature(Team team)
@@ -71,7 +77,7 @@ public class Main : Node
         Team team = creature.TeamObj;
         team.CreatureDeath(creature);
 
-        // update the score label here
+        scoreLabel.UpdateString(TeamsList, FoodCount);
     }
 
     public void SpawnFood()
@@ -82,7 +88,7 @@ public class Main : Node
         Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
         food.Initialize(25, (GD.Randf() < 0.2), spawnLoc);
 
-        scoreLabel.Text = string.Format(scoreLabel.DisplayString, scoreLabel.CreatureCount, ++scoreLabel.FoodCount);
+        scoreLabel.UpdateString(TeamsList, ++FoodCount);
     }
 
     public void EatFood(Food food)
@@ -96,7 +102,8 @@ public class Main : Node
 
         SpawnFood();
         food.QueueFree();
-        scoreLabel.Text = string.Format(scoreLabel.DisplayString, scoreLabel.CreatureCount, --scoreLabel.FoodCount);
+
+        scoreLabel.UpdateString(TeamsList, --FoodCount);
     }
 
     public void SelectCreature(Creature creature)
@@ -165,9 +172,9 @@ public class Main : Node
     public List<Creature> GetAllCreaturesInSight(Creature creature)
     {
         List<Creature> allCreatures = new List<Creature>();
-        foreach(Team team in TeamsList)
+        foreach (Team team in TeamsList)
         {
-           for (int i = 0; i < team.GetChildCount(); i++)
+            for (int i = 0; i < team.GetChildCount(); i++)
             {
                 Creature current = (Creature)team.GetChild(i);
 
@@ -175,7 +182,7 @@ public class Main : Node
                 {
                     allCreatures.Add(current);
                 }
-            } 
+            }
         }
         return allCreatures;
     }
@@ -183,7 +190,6 @@ public class Main : Node
     public List<Creature> GetAllTeamMembersInSight(Creature creature)
     {
         List<Creature> allCreatures = GetAllCreaturesInSight(creature);
-        GD.Print(allCreatures.Count);
         List<Creature> teamMembers = new List<Creature>();
         foreach (Creature teamMember in allCreatures)
         {
@@ -264,7 +270,82 @@ public class Main : Node
         }
     }
 
+    
 
+    public void OnStatsButtonPressed(String buttonPressed)  // TODO: maybe make it so user isnt always team id 0
+    {
+        if (playerTeam.EvoPoints <= 0)
+        {
+            return;
+        }
+        else
+        {
+            playerTeam.EvoPoints--;
+        }
+
+        if (buttonPressed == "increment_speed")
+        {
+            ChangeStat(playerTeam, 0, 1); // TODO: magic number L, 0 for team id and 1 for increment value
+        }
+        else if (buttonPressed == "decrement_speed")
+        {
+            ChangeStat(playerTeam, 0, -1);
+        }
+        else if (buttonPressed == "increment_strength")
+        {
+            ChangeStat(playerTeam, 1, 1);
+        }
+        else if (buttonPressed == "decrement_strength")
+        {
+            ChangeStat(playerTeam, 1, -1);
+        }
+        else if (buttonPressed == "increment_intelligence")
+        {
+            ChangeStat(playerTeam, 2, 1);
+        }
+        else if (buttonPressed == "decrement_intelligence")
+        {
+            ChangeStat(playerTeam, 2, -1);
+        }
+        else if (buttonPressed == "increment_libido")
+        {
+            ChangeStat(playerTeam, 3, 1);
+        }
+        else if (buttonPressed == "decrement_libido")
+        {
+            ChangeStat(playerTeam, 3, -1);
+        }
+        else if (buttonPressed == "increment_sight")
+        {
+            ChangeStat(playerTeam, 4, 1);
+        }
+        else if (buttonPressed == "decrement_sight")
+        {
+            ChangeStat(playerTeam, 4, -1);
+        }
+        else if (buttonPressed == "increment_endurance")
+        {
+            ChangeStat(playerTeam, 5, 1);
+        }
+        else if (buttonPressed == "decrement_endurance")
+        {
+            ChangeStat(playerTeam, 5, -1);
+        }
+        else if (buttonPressed == "increment_concealment")
+        {
+            ChangeStat(playerTeam, 6, 1);
+        }
+        else if (buttonPressed == "decrement_concealment")
+        {
+            ChangeStat(playerTeam, 6, -1);
+        }
+        else
+        {
+            // Something terrible has gone wrong
+            GD.Print("Tried to change a stat but button passed in an invalid string D: String: " + buttonPressed);
+        }
+        UpdateStatsMenu();
+    }
 
     public override void _Process(float delta)
     {
@@ -276,90 +357,105 @@ public class Main : Node
         }
         if (Input.IsActionJustPressed("spawn_blob"))
         {
-            SpawnCreature(TeamsList[0]);
+            SpawnCreature(playerTeam);
         }
 
-        if (Input.IsActionJustPressed("pause_game"))
+        if (Input.IsActionJustPressed("exit_menu"))
         {
-            GetTree().Paused = !GetTree().Paused;
+            if (GetNode<Control>("StatsMenu").Visible)
+            {
+                ToggleStatsMenu();
+            }
+            else
+            {
+                TogglePauseMenu();
+            }
         }
-/*
-        if (Input.IsActionJustPressed("increment_speed"))
+
+        if (Input.IsActionJustPressed("toggle_stats_menu"))
         {
-            ChangeStat(TeamsList[0], 0, 1); // TODO: magic number L, 0 for team id and 1 for increment value
+            ToggleStatsMenu();
         }
+    }
 
-        if (Input.IsActionJustPressed("decrement_speed"))
+    public void ToggleStatsMenu()
+    {
+        Label creatureLabel = GetNode<Label>("CreatureLabel");
+        creatureLabel.Visible = !creatureLabel.Visible;
+        Label scoreLabel = GetNode<Label>("ScoreLabel");
+        scoreLabel.Visible = !scoreLabel.Visible;
+        
+        Control statsMenu = GetNode<Control>("StatsMenu");
+        statsMenu.Visible = !statsMenu.Visible;
+        GetTree().Paused = !GetTree().Paused;
+
+        if (statsMenu.Visible)
         {
-            ChangeStat(TeamsList[0], 0, -1);
+            UpdateStatsMenu();
         }
+    }
 
-        if (Input.IsActionJustPressed("increment_strength"))
+    public void UpdateStatsMenu()
+    {
+        // All the code to setup/update the stats menu
+        Control statsMenu = GetNode<Control>("StatsMenu");
+        
+        List<String> stats = new List<String> {"Speed", "Strength", "Intelligence", "Libido", "Sight", "Endurance", "Concealment"};
+        List<float> statsList = playerTeam.TeamAbilities.GetStats();
+        
+        for (int i = 0; i < stats.Count; i++)
         {
-            ChangeStat(TeamsList[0], 1, 1);
+            Label number = GetNode<Label>("StatsMenu/" + stats[i] + "Label/Number");
+            number.Text = statsList[i] + "";
         }
 
-        if (Input.IsActionJustPressed("decrement_strength"))
+        
+        Label evoPoints = GetNode<Label>("StatsMenu/EvoPointsLabel");
+        evoPoints.Text = "Evolution Points\n" + playerTeam.EvoPoints;
+
+        Label idealStats = GetNode<Label>("StatsMenu/StatsInfo/IdealStatsLabel");
+        String idealStatsString = "";
+        for (int i = 0; i < statsList.Count; i++)
         {
-            ChangeStat(TeamsList[0], 1, -1);
+            idealStatsString += statsList[i] + "\n";
         }
+        idealStats.Text = idealStatsString;
 
-        if (Input.IsActionJustPressed("increment_intelligence"))
+        List<float> modifiedStats = playerTeam.TeamAbilities.GetModifiedStats();
+        Label modifiedStatsLabel = GetNode<Label>("StatsMenu/StatsInfo/ActualStatsLabel");
+        String modifiedStatsString = "";
+        for (int i = 0; i < modifiedStats.Count; i++)
         {
-            ChangeStat(TeamsList[0], 2, 1);
+            modifiedStatsString += (Mathf.Round(modifiedStats[i])) + "\n";
         }
+        modifiedStatsLabel.Text = modifiedStatsString;
+    }
 
-        if (Input.IsActionJustPressed("decrement_intelligence"))
-        {
-            ChangeStat(TeamsList[0], 2, -1);
-        }
+    public void TogglePauseMenu()
+    {
+        GetTree().Paused = !GetTree().Paused;
+        Control pauseMenu = GetNode<Control>("PauseMenu");
+        pauseMenu.Visible = !pauseMenu.Visible;
 
-        if (Input.IsActionJustPressed("increment_libido"))
-        {
-            ChangeStat(TeamsList[0], 3, 1);
-        }
+        Label creatureLabel = GetNode<Label>("CreatureLabel");
+        creatureLabel.Visible = !creatureLabel.Visible;
+        Label scoreLabel = GetNode<Label>("ScoreLabel");
+        scoreLabel.Visible = !scoreLabel.Visible;
+    }
 
-        if (Input.IsActionJustPressed("decrement_libido"))
-        {
-            ChangeStat(TeamsList[0], 3, -1);
-        }
+    public void OnResumeButtonPressed()
+    {
+        TogglePauseMenu();
+    }
 
-        if (Input.IsActionJustPressed("increment_sight"))
-        {
-            ChangeStat(TeamsList[0], 4, 1);
-        }
+    public void OnRestartButtonPressed()
+    {
+        GetTree().ReloadCurrentScene();
+        GetTree().Paused = false;
+    }
 
-        if (Input.IsActionJustPressed("decrement_sight"))
-        {
-            ChangeStat(TeamsList[0], 4, -1);
-        }
-
-        if (Input.IsActionJustPressed("increment_endurance"))
-        {
-            ChangeStat(TeamsList[0], 5, 1);
-        }
-
-        if (Input.IsActionJustPressed("decrement_endurance"))
-        {
-            ChangeStat(TeamsList[0], 5, -1);
-        }
-
-        if (Input.IsActionJustPressed("increment_concealment"))
-        {
-            ChangeStat(TeamsList[0], 6, 1);
-        }
-
-        if (Input.IsActionJustPressed("decrement_concealment"))
-        {
-            ChangeStat(TeamsList[0], 6, -1);
-        }
-*/
-
-        if (Input.IsActionPressed("exit_game"))
-        {
-            GetTree().Quit();
-        }
-
-
+    public void OnExitButtonPressed()
+    {
+        GetTree().Quit();
     }
 }

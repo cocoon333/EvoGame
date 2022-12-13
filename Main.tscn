@@ -1,9 +1,12 @@
-[gd_scene load_steps=10 format=2]
+[gd_scene load_steps=22 format=2]
 
 [ext_resource path="res://Main.cs" type="Script" id=1]
+[ext_resource path="res://futura medium bt.ttf" type="DynamicFontData" id=2]
 [ext_resource path="res://Food.tscn" type="PackedScene" id=3]
 [ext_resource path="res://ScoreLabel.cs" type="Script" id=4]
 [ext_resource path="res://Team.tscn" type="PackedScene" id=5]
+[ext_resource path="res://minus.png" type="Texture" id=6]
+[ext_resource path="res://plus.png" type="Texture" id=7]
 
 [sub_resource type="BoxShape" id=1]
 extents = Vector3( 50, 1, 50 )
@@ -21,6 +24,38 @@ extents = Vector3( 50, 5, 1 )
 
 [sub_resource type="CubeMesh" id=4]
 size = Vector3( 100, 10, 2 )
+
+[sub_resource type="DynamicFont" id=6]
+font_data = ExtResource( 2 )
+
+[sub_resource type="DynamicFont" id=7]
+font_data = ExtResource( 2 )
+
+[sub_resource type="DynamicFont" id=8]
+size = 32
+font_data = ExtResource( 2 )
+
+[sub_resource type="Theme" id=9]
+default_font = SubResource( 8 )
+
+[sub_resource type="DynamicFont" id=10]
+size = 32
+font_data = ExtResource( 2 )
+
+[sub_resource type="Theme" id=11]
+default_font = SubResource( 10 )
+
+[sub_resource type="DynamicFont" id=12]
+size = 40
+font_data = ExtResource( 2 )
+
+[sub_resource type="DynamicFont" id=13]
+size = 55
+font_data = ExtResource( 2 )
+
+[sub_resource type="DynamicFont" id=14]
+size = 40
+font_data = ExtResource( 2 )
 
 [node name="Main" type="Node"]
 pause_mode = 2
@@ -113,20 +148,361 @@ shape = SubResource( 3 )
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
 mesh = SubResource( 4 )
 
+[node name="TeamParent" type="Node" parent="."]
+pause_mode = 1
+
 [node name="FoodParent" type="Node" parent="."]
 pause_mode = 1
 
 [node name="ScoreLabel" type="Label" parent="."]
+margin_left = 15.0
+margin_top = 15.0
 margin_right = 40.0
 margin_bottom = 14.0
+custom_fonts/font = SubResource( 6 )
 script = ExtResource( 4 )
 
 [node name="CreatureLabel" type="Label" parent="."]
-margin_left = 1200.0
-margin_right = 1280.0
+anchor_left = 1.0
+anchor_right = 1.0
+margin_left = -95.0
+margin_top = 15.0
+margin_right = -15.0
 margin_bottom = 24.0
 grow_horizontal = 0
+custom_fonts/font = SubResource( 7 )
 align = 2
 
-[node name="TeamParent" type="Node" parent="."]
-pause_mode = 1
+[node name="PauseMenu" type="Control" parent="."]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = SubResource( 9 )
+
+[node name="ColorRect" type="ColorRect" parent="PauseMenu"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color( 0, 0, 0, 0.717647 )
+
+[node name="ResumeButton" type="Button" parent="PauseMenu"]
+anchor_left = 0.5
+anchor_right = 0.5
+margin_left = -100.0
+margin_top = 400.0
+margin_right = 100.0
+margin_bottom = 475.0
+text = "Resume"
+
+[node name="RestartButton" type="Button" parent="PauseMenu"]
+margin_left = 860.0
+margin_top = 550.0
+margin_right = 1060.0
+margin_bottom = 625.0
+text = "Restart"
+
+[node name="ExitButton" type="Button" parent="PauseMenu"]
+anchor_left = 0.5
+anchor_right = 0.5
+margin_left = -100.0
+margin_top = 700.0
+margin_right = 100.0
+margin_bottom = 775.0
+text = "Exit"
+
+[node name="StatsMenu" type="Control" parent="."]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = SubResource( 11 )
+
+[node name="ColorRect" type="ColorRect" parent="StatsMenu"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color( 0, 0, 0, 0.717647 )
+
+[node name="SpeedLabel" type="Label" parent="StatsMenu"]
+margin_left = 100.0
+margin_top = 600.0
+margin_right = 300.0
+margin_bottom = 680.0
+text = "Speed"
+valign = 1
+
+[node name="AddButton" type="TextureButton" parent="StatsMenu/SpeedLabel"]
+margin_left = 375.0
+margin_top = 15.0
+margin_right = 425.0
+margin_bottom = 65.0
+texture_normal = ExtResource( 7 )
+
+[node name="SubtractButton" type="TextureButton" parent="StatsMenu/SpeedLabel"]
+margin_left = 225.0
+margin_top = 15.0
+margin_right = 275.0
+margin_bottom = 65.0
+texture_normal = ExtResource( 6 )
+
+[node name="Number" type="Label" parent="StatsMenu/SpeedLabel"]
+margin_left = 300.0
+margin_top = 15.0
+margin_right = 350.0
+margin_bottom = 65.0
+custom_fonts/font = SubResource( 12 )
+align = 1
+valign = 1
+
+[node name="StrengthLabel" type="Label" parent="StatsMenu"]
+margin_left = 100.0
+margin_top = 750.0
+margin_right = 300.0
+margin_bottom = 830.0
+text = "Strength"
+valign = 1
+
+[node name="AddButton" type="TextureButton" parent="StatsMenu/StrengthLabel"]
+margin_left = 375.0
+margin_top = 15.0
+margin_right = 425.0
+margin_bottom = 65.0
+texture_normal = ExtResource( 7 )
+
+[node name="SubtractButton" type="TextureButton" parent="StatsMenu/StrengthLabel"]
+margin_left = 225.0
+margin_top = 15.0
+margin_right = 275.0
+margin_bottom = 65.0
+texture_normal = ExtResource( 6 )
+
+[node name="Number" type="Label" parent="StatsMenu/StrengthLabel"]
+margin_left = 300.0
+margin_top = 15.0
+margin_right = 350.0
+margin_bottom = 65.0
+custom_fonts/font = SubResource( 12 )
+align = 1
+valign = 1
+
+[node name="IntelligenceLabel" type="Label" parent="StatsMenu"]
+margin_left = 100.0
+margin_top = 900.0
+margin_right = 300.0
+margin_bottom = 980.0
+text = "Intelligence"
+valign = 1
+
+[node name="AddButton" type="TextureButton" parent="StatsMenu/IntelligenceLabel"]
+margin_left = 375.0
+margin_top = 15.0
+margin_right = 425.0
+margin_bottom = 65.0
+texture_normal = ExtResource( 7 )
+
+[node name="SubtractButton" type="TextureButton" parent="StatsMenu/IntelligenceLabel"]
+margin_left = 225.0
+margin_top = 15.0
+margin_right = 275.0
+margin_bottom = 65.0
+texture_normal = ExtResource( 6 )
+
+[node name="Number" type="Label" parent="StatsMenu/IntelligenceLabel"]
+margin_left = 300.0
+margin_top = 15.0
+margin_right = 350.0
+margin_bottom = 65.0
+custom_fonts/font = SubResource( 12 )
+align = 1
+valign = 1
+
+[node name="LibidoLabel" type="Label" parent="StatsMenu"]
+margin_left = 1395.0
+margin_top = 600.0
+margin_right = 1595.0
+margin_bottom = 680.0
+text = "Libido"
+valign = 1
+
+[node name="AddButton" type="TextureButton" parent="StatsMenu/LibidoLabel"]
+margin_left = 375.0
+margin_top = 15.0
+margin_right = 425.0
+margin_bottom = 65.0
+texture_normal = ExtResource( 7 )
+
+[node name="SubtractButton" type="TextureButton" parent="StatsMenu/LibidoLabel"]
+margin_left = 225.0
+margin_top = 15.0
+margin_right = 275.0
+margin_bottom = 65.0
+texture_normal = ExtResource( 6 )
+
+[node name="Number" type="Label" parent="StatsMenu/LibidoLabel"]
+margin_left = 300.0
+margin_top = 15.0
+margin_right = 350.0
+margin_bottom = 65.0
+custom_fonts/font = SubResource( 12 )
+align = 1
+valign = 1
+
+[node name="SightLabel" type="Label" parent="StatsMenu"]
+margin_left = 747.5
+margin_top = 750.0
+margin_right = 997.5
+margin_bottom = 830.0
+text = "Sight"
+valign = 1
+
+[node name="AddButton" type="TextureButton" parent="StatsMenu/SightLabel"]
+margin_left = 375.0
+margin_top = 15.0
+margin_right = 425.0
+margin_bottom = 65.0
+texture_normal = ExtResource( 7 )
+
+[node name="SubtractButton" type="TextureButton" parent="StatsMenu/SightLabel"]
+margin_left = 225.0
+margin_top = 15.0
+margin_right = 275.0
+margin_bottom = 65.0
+texture_normal = ExtResource( 6 )
+
+[node name="Number" type="Label" parent="StatsMenu/SightLabel"]
+margin_left = 300.0
+margin_top = 15.0
+margin_right = 350.0
+margin_bottom = 65.0
+custom_fonts/font = SubResource( 12 )
+align = 1
+valign = 1
+
+[node name="EnduranceLabel" type="Label" parent="StatsMenu"]
+margin_left = 1395.0
+margin_top = 750.0
+margin_right = 1595.0
+margin_bottom = 830.0
+text = "Endurance"
+valign = 1
+
+[node name="AddButton" type="TextureButton" parent="StatsMenu/EnduranceLabel"]
+margin_left = 375.0
+margin_top = 15.0
+margin_right = 425.0
+margin_bottom = 65.0
+texture_normal = ExtResource( 7 )
+
+[node name="SubtractButton" type="TextureButton" parent="StatsMenu/EnduranceLabel"]
+margin_left = 225.0
+margin_top = 15.0
+margin_right = 275.0
+margin_bottom = 65.0
+texture_normal = ExtResource( 6 )
+
+[node name="Number" type="Label" parent="StatsMenu/EnduranceLabel"]
+margin_left = 300.0
+margin_top = 15.0
+margin_right = 350.0
+margin_bottom = 65.0
+custom_fonts/font = SubResource( 12 )
+align = 1
+valign = 1
+
+[node name="ConcealmentLabel" type="Label" parent="StatsMenu"]
+margin_left = 1395.0
+margin_top = 900.0
+margin_right = 1595.0
+margin_bottom = 980.0
+text = "Concealment"
+valign = 1
+
+[node name="AddButton" type="TextureButton" parent="StatsMenu/ConcealmentLabel"]
+margin_left = 375.0
+margin_top = 15.0
+margin_right = 425.0
+margin_bottom = 65.0
+texture_normal = ExtResource( 7 )
+
+[node name="SubtractButton" type="TextureButton" parent="StatsMenu/ConcealmentLabel"]
+margin_left = 225.0
+margin_top = 15.0
+margin_right = 275.0
+margin_bottom = 65.0
+texture_normal = ExtResource( 6 )
+
+[node name="Number" type="Label" parent="StatsMenu/ConcealmentLabel"]
+margin_left = 300.0
+margin_top = 15.0
+margin_right = 350.0
+margin_bottom = 65.0
+custom_fonts/font = SubResource( 12 )
+align = 1
+valign = 1
+
+[node name="EvoPointsLabel" type="Label" parent="StatsMenu"]
+margin_left = 747.5
+margin_top = 500.0
+margin_right = 1172.5
+margin_bottom = 650.0
+custom_fonts/font = SubResource( 13 )
+text = "Evolution Points
+"
+align = 1
+valign = 1
+
+[node name="StatsInfo" type="Control" parent="StatsMenu"]
+margin_right = 40.0
+margin_bottom = 40.0
+
+[node name="StatsTitleLabel" type="Label" parent="StatsMenu/StatsInfo"]
+margin_left = 90.0
+margin_top = 74.0
+margin_right = 620.0
+margin_bottom = 133.0
+custom_fonts/font = SubResource( 14 )
+text = "Abilities Information"
+align = 1
+valign = 1
+
+[node name="StatsNamesLabel" type="Label" parent="StatsMenu/StatsInfo"]
+margin_left = 90.0
+margin_top = 145.0
+margin_right = 620.0
+margin_bottom = 478.0
+rect_pivot_offset = Vector2( 487, 181 )
+text = "Ability                 Ideal          Actual
+Speed
+Strength
+Intelligence
+Libido
+Sight
+Endurance
+Concealment"
+
+[node name="IdealStatsLabel" type="Label" parent="StatsMenu/StatsInfo"]
+margin_left = 367.0
+margin_top = 187.0
+margin_right = 407.0
+margin_bottom = 486.0
+
+[node name="ActualStatsLabel" type="Label" parent="StatsMenu/StatsInfo"]
+margin_left = 547.0
+margin_top = 187.0
+margin_right = 587.0
+margin_bottom = 486.0
+
+[connection signal="pressed" from="PauseMenu/ResumeButton" to="." method="OnResumeButtonPressed"]
+[connection signal="pressed" from="PauseMenu/RestartButton" to="." method="OnRestartButtonPressed"]
+[connection signal="pressed" from="PauseMenu/ExitButton" to="." method="OnExitButtonPressed"]
+[connection signal="pressed" from="StatsMenu/SpeedLabel/AddButton" to="." method="OnStatsButtonPressed" binds= [ "increment_speed" ]]
+[connection signal="pressed" from="StatsMenu/SpeedLabel/SubtractButton" to="." method="OnStatsButtonPressed" binds= [ "decrement_speed" ]]
+[connection signal="pressed" from="StatsMenu/StrengthLabel/AddButton" to="." method="OnStatsButtonPressed" binds= [ "increment_strength" ]]
+[connection signal="pressed" from="StatsMenu/StrengthLabel/SubtractButton" to="." method="OnStatsButtonPressed" binds= [ "decrement_strength" ]]
+[connection signal="pressed" from="StatsMenu/IntelligenceLabel/AddButton" to="." method="OnStatsButtonPressed" binds= [ "increment_intelligence" ]]
+[connection signal="pressed" from="StatsMenu/IntelligenceLabel/SubtractButton" to="." method="OnStatsButtonPressed" binds= [ "decrement_intelligence" ]]
+[connection signal="pressed" from="StatsMenu/LibidoLabel/AddButton" to="." method="OnStatsButtonPressed" binds= [ "increment_libido" ]]
+[connection signal="pressed" from="StatsMenu/LibidoLabel/SubtractButton" to="." method="OnStatsButtonPressed" binds= [ "decrement_libido" ]]
+[connection signal="pressed" from="StatsMenu/SightLabel/AddButton" to="." method="OnStatsButtonPressed" binds= [ "increment_sight" ]]
+[connection signal="pressed" from="StatsMenu/SightLabel/SubtractButton" to="." method="OnStatsButtonPressed" binds= [ "decrement_sight" ]]
+[connection signal="pressed" from="StatsMenu/EnduranceLabel/AddButton" to="." method="OnStatsButtonPressed" binds= [ "increment_endurance" ]]
+[connection signal="pressed" from="StatsMenu/EnduranceLabel/SubtractButton" to="." method="OnStatsButtonPressed" binds= [ "decrement_endurance" ]]
+[connection signal="pressed" from="StatsMenu/ConcealmentLabel/AddButton" to="." method="OnStatsButtonPressed" binds= [ "increment_concealment" ]]
+[connection signal="pressed" from="StatsMenu/ConcealmentLabel/SubtractButton" to="." method="OnStatsButtonPressed" binds= [ "decrement_concealment" ]]

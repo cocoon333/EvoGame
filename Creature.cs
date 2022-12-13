@@ -125,12 +125,11 @@ public class Creature : KinematicBody
 
                 if (MainObj.IsNullOrQueued(Mate))
                 {
-                    Creature creature = GetNearestMate();
+                    Mate = GetNearestMate();
 
-                    if (creature != null)
+                    if (Mate != null)
                     {
-                        Mate = creature;
-                        creature.Mate = this;
+                        Mate.Mate = this;
 
                         LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
                         Mate.LookAtFromPosition(Mate.Translation, Translation, Vector3.Up);
@@ -169,7 +168,7 @@ public class Creature : KinematicBody
                         {
                             LookAtFromPosition(Translation, DesiredFood.Translation, Vector3.Up);
                         }
-                        else if (Mate != null)
+                        else if (Mate != null)  // TODO: Crash on first line happened cuz of cant access disposed object error, fix eventually
                         {
                             LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
                             Mate.LookAtFromPosition(Mate.Translation, Translation, Vector3.Up);
@@ -284,7 +283,10 @@ public class Creature : KinematicBody
             }
             else    // fight happen
             {
-                MainObj.CreatureDeath(GetLoser(enemy));
+                Creature loser = GetLoser(enemy);
+                Team winningTeam = (loser == enemy ? TeamObj : enemy.TeamObj);
+                winningTeam.TotalKills++;
+                MainObj.CreatureDeath(loser);
             }
 
             // if speed > opponent speed
@@ -300,7 +302,10 @@ public class Creature : KinematicBody
             // we think we can take them since supposedly higher strength
             // cue fighting
 
-            MainObj.CreatureDeath(GetLoser(enemy));
+            Creature loser = GetLoser(enemy);
+            Team winningTeam = (loser == enemy ? TeamObj : enemy.TeamObj);
+            winningTeam.TotalKills++;
+            MainObj.CreatureDeath(loser);
         }
     }
 
