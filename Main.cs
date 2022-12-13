@@ -10,15 +10,16 @@ public class Main : Node
     public PackedScene FoodScene;
 
     [Export]
-    public PackedScene CreatureScene;
+    public PackedScene TeamScene;
+
 #pragma warning restore 649
 
     public Boolean Dragging = false;
 
     ScoreLabel scoreLabel;
     Creature SelectedCreature = null;
-    List<List<float>> StatsList = new List<List<float>>();
-    RandomNumberGenerator Rng;
+
+    List<Team> TeamsList;
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
@@ -27,67 +28,50 @@ public class Main : Node
         Label label = GetNode<Label>("CreatureLabel");
         label.MarginRight = GetViewport().Size.x;
 
-        StatsList.Add(new List<float> { 50f, 50f, 50f, 50f, 50f, 50f, 50f });
-        StatsList.Add(new List<float> { 50f, 50f, 50f, 50f, 50f, 50f, 50f });
+        TeamsList = new List<Team>();
 
-        Rng = new RandomNumberGenerator();
-        Rng.Randomize();
-        GD.Randomize();
 
-        for (int i = 0; i < 100; i++)
+        for (int i = 0; i < 40; i++)
         {
             SpawnFood();
         }
 
-        for (int i = 0; i < 100; i++)
+        for (int i = 0; i < 2; i++)
         {
-            SpawnCreature();
+            Team team = (Team)TeamScene.Instance();
+            team.TeamNumber = i;
+            TeamsList.Add(team);
+            team.Initialize();
+
+            Node teamParent = GetNode<Node>("TeamParent");
+            teamParent.AddChild(team);
+
+            for (int j = 0; j < 50; j++)
+            {
+                SpawnCreature(team);
+            }
         }
     }
 
-    public void SpawnCreature(Vector3 location, int team)
+    public void SpawnCreature(Vector3 location, Team team)
     {
-        Creature creature = (Creature)CreatureScene.Instance();
-        Node creatureParent = GetNode<Node>("CreatureParent");
-        creatureParent.AddChild(creature);
+        team.SpawnCreature(location);
 
-        Abilities abils = (Abilities)creature.GetNode<Node>("Abilities");
-        float stats = (float)GD.RandRange(45, 50);
-        abils.Initialize(GetStats(team));
-
-        creature.Initialize(location, team);
-
-        scoreLabel.Text = string.Format(scoreLabel.DisplayString, ++scoreLabel.CreatureCount, scoreLabel.FoodCount);
+        // update the score label here
     }
 
-    public List<float> GetStats(int team)
-    {
-        List<float> stats = StatsList[team];
-        for (int i = 0; i < stats.Count; i++)
-        {
-            stats[i] = Rng.Randfn(stats[i], stats[i] * 0.05f); // normal distribution with +-5% for standard deviation
-        }
-        return stats;
-    }
-
-    public void CreatureDeath(Creature blob)
-    {
-        if (blob.DesiredFood != null)
-        {
-            blob.DesiredFood.CurrentSeekers.Remove(blob);
-            //blob.DesiredFood.CurrentSeeker = null;
-            blob.DesiredFood.BeingAte = false;
-        }
-
-        blob.QueueFree();
-
-        scoreLabel.Text = string.Format(scoreLabel.DisplayString, --scoreLabel.CreatureCount, scoreLabel.FoodCount);
-    }
-
-    public void SpawnCreature()
+    public void SpawnCreature(Team team)
     {
         Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
-        SpawnCreature(spawnLoc, (int)(GD.Randf() + 0.5)); // TODO: this is random, shouldnt be random
+        SpawnCreature(spawnLoc, team);
+    }
+
+    public void CreatureDeath(Creature creature)
+    {
+        Team team = creature.TeamObj;
+        team.CreatureDeath(creature);
+
+        // update the score label here
     }
 
     public void SpawnFood()
@@ -160,90 +144,6 @@ public class Main : Node
         label.Text = labelText;
     }
 
-    /*
-	public Food GetNearestFoodLocation(Creature blob)
-	{
-		Node foodParent = GetNode<Node>("FoodParent");
-		int foodCount = foodParent.GetChildCount();
-		float shortestTime = 1000000;
-		Food closestFood = null;
-		List<Creature> seekers;
-		for (int i = 0; i < foodCount; i++)
-		{
-			Food current = (Food)foodParent.GetChild(i);
-
-			if (IsNullOrQueued(current)) continue;  // maybe try and steal currently being ate food later
-
-			float distance = current.Translation.DistanceTo(blob.Translation);
-			float timeToFood = distance / (blob.Abils.GetModifiedSpeed());
-			if (timeToFood < shortestTime && distance < blob.Abils.GetModifiedSight())
-			{
-				seekers = current.CurrentSeekers;
-				Boolean isAllyCloser = false;
-				foreach (Creature seeker in seekers)
-				{
-					if (!IsNullOrQueued(seeker) && seeker.Team == blob.Team)
-					{
-						float timeTo = distance / blob.Abils.GetModifiedSpeed();
-						float timeAlly = (seeker.Translation.DistanceTo(current.Translation)) / seeker.Abils.GetModifiedSpeed();
-						if (timeTo > timeAlly || seeker.EatingTimeLeft > 0) // if u r eating already, u are "closer"
-						{
-							isAllyCloser = true;
-						}
-					}
-				}
-
-				if (!isAllyCloser)
-				{
-					shortestTime = timeToFood;
-					closestFood = current;
-				}
-			}
-		}
-
-		if (closestFood == null) return closestFood;
-
-		seekers = closestFood.CurrentSeekers;
-		foreach (Creature seeker2 in seekers)
-		{
-			if (!IsNullOrQueued(seeker2) && seeker2.Team == blob.Team)
-			{
-				seeker2.DesiredFood = null;
-				seekers.Remove(seeker2);    // concurrent modification exception just isnt a thing apparently
-				break;
-			}
-		}
-
-		return closestFood;
-	}
-
-	public Creature GetNearestMatingCreature(Creature blob)
-	{
-		Node creatureParent = GetNode<Node>("CreatureParent");
-		int creatureCount = creatureParent.GetChildCount();
-		float closestDistance = 1000000;
-		Creature creatureMate = null;
-		for (int i = 0; i < creatureCount; i++)
-		{
-			Creature current = (Creature)creatureParent.GetChild(i); // possible possible race condition but we will probably definitely ignore this forever
-																	 // yes they do
-																	 // race conditions dont exist
-			if (IsNullOrQueued(current) || current == blob || current.Team != blob.Team || current.Mate != null || !current.CanMate())
-			{
-				continue;
-			}
-
-			float dist = blob.Translation.DistanceTo(current.Translation);
-			// right now both blobs need to be within each others sight distance, maybe change this so only one of them needs to be within sight
-			if (dist < closestDistance && dist < blob.Abils.GetModifiedSight() && dist < current.Abils.GetModifiedSight())
-			{
-				creatureMate = current;
-				closestDistance = dist;
-			}
-		}
-		return creatureMate;
-	}
-	*/
 
     public List<Food> GetAllFoodInSight(Creature creature)
     {
@@ -264,17 +164,18 @@ public class Main : Node
 
     public List<Creature> GetAllCreaturesInSight(Creature creature)
     {
-        Node creatureParent = GetNode<Node>("CreatureParent");
-        int creatureCount = creatureParent.GetChildCount();
         List<Creature> allCreatures = new List<Creature>();
-        for (int i = 0; i < creatureCount; i++)
+        foreach(Team team in TeamsList)
         {
-            Creature current = (Creature)creatureParent.GetChild(i);
-
-            if (!IsNullOrQueued(current) && current.Translation.DistanceTo(creature.Translation) < creature.Abils.GetModifiedSight() && current != creature)
+           for (int i = 0; i < team.GetChildCount(); i++)
             {
-                allCreatures.Add(current);
-            }
+                Creature current = (Creature)team.GetChild(i);
+
+                if (!IsNullOrQueued(current) && current.Translation.DistanceTo(creature.Translation) < creature.Abils.GetModifiedSight() && current != creature)
+                {
+                    allCreatures.Add(current);
+                }
+            } 
         }
         return allCreatures;
     }
@@ -282,10 +183,11 @@ public class Main : Node
     public List<Creature> GetAllTeamMembersInSight(Creature creature)
     {
         List<Creature> allCreatures = GetAllCreaturesInSight(creature);
+        GD.Print(allCreatures.Count);
         List<Creature> teamMembers = new List<Creature>();
         foreach (Creature teamMember in allCreatures)
         {
-            if (teamMember.Team == creature.Team)
+            if (teamMember.TeamObj.TeamNumber == creature.TeamObj.TeamNumber)
             {
                 teamMembers.Add(teamMember);
             }
@@ -305,6 +207,11 @@ public class Main : Node
             retValue = true;
         }
         return retValue;
+    }
+
+    public void ChangeStat(Team team, int statIndex, int increment)
+    {
+        team.ChangeStats(statIndex, increment);
     }
 
     public override void _UnhandledInput(InputEvent @event) // weird architecture
@@ -357,6 +264,8 @@ public class Main : Node
         }
     }
 
+
+
     public override void _Process(float delta)
     {
         UpdateCreatureLabel(SelectedCreature);
@@ -367,17 +276,90 @@ public class Main : Node
         }
         if (Input.IsActionJustPressed("spawn_blob"))
         {
-            SpawnCreature();
+            SpawnCreature(TeamsList[0]);
         }
 
         if (Input.IsActionJustPressed("pause_game"))
         {
             GetTree().Paused = !GetTree().Paused;
         }
+/*
+        if (Input.IsActionJustPressed("increment_speed"))
+        {
+            ChangeStat(TeamsList[0], 0, 1); // TODO: magic number L, 0 for team id and 1 for increment value
+        }
+
+        if (Input.IsActionJustPressed("decrement_speed"))
+        {
+            ChangeStat(TeamsList[0], 0, -1);
+        }
+
+        if (Input.IsActionJustPressed("increment_strength"))
+        {
+            ChangeStat(TeamsList[0], 1, 1);
+        }
+
+        if (Input.IsActionJustPressed("decrement_strength"))
+        {
+            ChangeStat(TeamsList[0], 1, -1);
+        }
+
+        if (Input.IsActionJustPressed("increment_intelligence"))
+        {
+            ChangeStat(TeamsList[0], 2, 1);
+        }
+
+        if (Input.IsActionJustPressed("decrement_intelligence"))
+        {
+            ChangeStat(TeamsList[0], 2, -1);
+        }
+
+        if (Input.IsActionJustPressed("increment_libido"))
+        {
+            ChangeStat(TeamsList[0], 3, 1);
+        }
+
+        if (Input.IsActionJustPressed("decrement_libido"))
+        {
+            ChangeStat(TeamsList[0], 3, -1);
+        }
+
+        if (Input.IsActionJustPressed("increment_sight"))
+        {
+            ChangeStat(TeamsList[0], 4, 1);
+        }
+
+        if (Input.IsActionJustPressed("decrement_sight"))
+        {
+            ChangeStat(TeamsList[0], 4, -1);
+        }
+
+        if (Input.IsActionJustPressed("increment_endurance"))
+        {
+            ChangeStat(TeamsList[0], 5, 1);
+        }
+
+        if (Input.IsActionJustPressed("decrement_endurance"))
+        {
+            ChangeStat(TeamsList[0], 5, -1);
+        }
+
+        if (Input.IsActionJustPressed("increment_concealment"))
+        {
+            ChangeStat(TeamsList[0], 6, 1);
+        }
+
+        if (Input.IsActionJustPressed("decrement_concealment"))
+        {
+            ChangeStat(TeamsList[0], 6, -1);
+        }
+*/
 
         if (Input.IsActionPressed("exit_game"))
         {
             GetTree().Quit();
         }
+
+
     }
 }

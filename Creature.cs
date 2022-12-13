@@ -12,14 +12,17 @@ public class Creature : KinematicBody
 
     public Creature Mate;
 
-    public int Team;
+    //public int Team;
+
+    public Team TeamObj;
+
     public float TimeAlive;
 
     private Vector3 _velocity = Vector3.Zero;
 
-    Main main;
-    SpatialMaterial material;
-    List<Food> blacklist = new List<Food>();
+    Main MainObj;
+    SpatialMaterial Material;
+    List<Food> Blacklist = new List<Food>();
 
     public Boolean Selected = false;
 
@@ -29,19 +32,19 @@ public class Creature : KinematicBody
         return;
     }
 
-    public void Initialize(Vector3 spawnLoc, int team)
+    public void Initialize(Vector3 spawnLoc)
     {
         Translation = spawnLoc;
         Abils = GetNode<Abilities>("Abilities");
-        Team = team;
+        TeamObj = (Team)GetParent();
 
-        Node parent = GetParent();
-        main = (Main)parent.GetParent();
+        Node teamParent = TeamObj.GetParent();
+        MainObj = (Main)teamParent.GetParent();
 
         MeshInstance meshInst = GetNode<MeshInstance>("MeshInstance");
-        material = (SpatialMaterial)meshInst.GetActiveMaterial(0);
+        Material = (SpatialMaterial)meshInst.GetActiveMaterial(0);
 
-        if (team == 1)
+        if (TeamObj.TeamNumber == 1)
         {
             MeshInstance hat1 = GetNode<MeshInstance>("Hat1");
             SpatialMaterial material1 = (SpatialMaterial)hat1.GetActiveMaterial(0);
@@ -59,7 +62,7 @@ public class Creature : KinematicBody
 
     public void UpdateColor()
     {
-        Color color = material.AlbedoColor;
+        Color color = Material.AlbedoColor;
         if (Selected)
         {
             color = new Color(1, (68 / 256.0f), (51 / 256.0f), color.a);
@@ -74,7 +77,7 @@ public class Creature : KinematicBody
             color.g = Abils.Energy / 100f;
             color.b = (100 - Abils.Energy) / 100f;
         }
-        material.AlbedoColor = color;
+        Material.AlbedoColor = color;
     }
 
     public override void _Process(float delta)
@@ -95,7 +98,7 @@ public class Creature : KinematicBody
         {
             // TODO: make it so health depletes rapidly when energy is 0
             // blob is dead
-            main.CreatureDeath(this);
+            MainObj.CreatureDeath(this);
             return;
         }
 
@@ -120,7 +123,7 @@ public class Creature : KinematicBody
                     DesiredFood = null;
                 }
 
-                if (main.IsNullOrQueued(Mate))
+                if (MainObj.IsNullOrQueued(Mate))
                 {
                     Creature creature = GetNearestMate();
 
@@ -140,7 +143,7 @@ public class Creature : KinematicBody
 
                     if (Translation.DistanceTo(Mate.Translation) < 3)
                     {
-                        main.SpawnCreature(Translation, Team);
+                        MainObj.SpawnCreature(Translation, TeamObj);
                         Mate.Abils.SetEnergy(Mate.Abils.GetEnergy() - 60);
                         Abils.SetEnergy(Abils.GetEnergy() - 60);
                         Mate.Mate = null;
@@ -177,7 +180,7 @@ public class Creature : KinematicBody
                         }
                         break;
                     }
-                    else if (collision.Collider is Creature && creat.Team != Team)
+                    else if (collision.Collider is Creature && creat.TeamObj.TeamNumber != TeamObj.TeamNumber)
                     {
                         Fight(creat);
                     }
@@ -191,7 +194,7 @@ public class Creature : KinematicBody
             if (EatingTimeLeft <= 0)
             {
                 EatingTimeLeft = 0;
-                main.EatFood(DesiredFood);
+                MainObj.EatFood(DesiredFood);
             }
         }
     }
@@ -222,7 +225,7 @@ public class Creature : KinematicBody
             {
                 if (creature != this)
                 {
-                    if (creature.Team == Team) { GD.Print("Friendly fire has occured"); }
+                    if (creature.TeamObj.TeamNumber == TeamObj.TeamNumber) { GD.Print("Friendly fire has occured"); }
                     enemy = creature;
                     break;
                 }
@@ -258,7 +261,7 @@ public class Creature : KinematicBody
 
     public void Fight(Creature enemy)
     {
-        if (main.IsNullOrQueued(enemy) || main.IsNullOrQueued(this)) // enemy already dead
+        if (MainObj.IsNullOrQueued(enemy) || MainObj.IsNullOrQueued(this)) // enemy already dead
         {
             return;
         }
@@ -273,7 +276,7 @@ public class Creature : KinematicBody
             {
                 if (DesiredFood != null)
                 {
-                    blacklist.Add(DesiredFood);
+                    Blacklist.Add(DesiredFood);
                     DesiredFood.CurrentSeekers.Remove(this);
                     DesiredFood = null;
                     EatingTimeLeft = 0;
@@ -281,7 +284,7 @@ public class Creature : KinematicBody
             }
             else    // fight happen
             {
-                main.CreatureDeath(GetLoser(enemy));
+                MainObj.CreatureDeath(GetLoser(enemy));
             }
 
             // if speed > opponent speed
@@ -297,7 +300,7 @@ public class Creature : KinematicBody
             // we think we can take them since supposedly higher strength
             // cue fighting
 
-            main.CreatureDeath(GetLoser(enemy));
+            MainObj.CreatureDeath(GetLoser(enemy));
         }
     }
 
@@ -317,25 +320,25 @@ public class Creature : KinematicBody
         if (@event is InputEventMouseButton buttonEvent && buttonEvent.Pressed && (ButtonList)buttonEvent.ButtonIndex == ButtonList.Left && buttonEvent.Doubleclick)
         {
             // do stuff
-            main.SelectCreature(this);
+            MainObj.SelectCreature(this);
         }
     }
 
     public Creature GetNearestMate()
     {
-        if (!main.IsNullOrQueued(Mate)) // This shouldnt happen
+        if (!MainObj.IsNullOrQueued(Mate)) // This shouldnt happen
         {
             LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
             return Mate;
         }
 
-        List<Creature> teamMembers = main.GetAllTeamMembersInSight(this);
+        List<Creature> teamMembers = MainObj.GetAllTeamMembersInSight(this);
         Creature closestMate = null;
         float closestDistance = 1000000;
 
         foreach (Creature teamMember in teamMembers)
         {
-            if (main.IsNullOrQueued(teamMember) || !teamMember.CanMate() || !main.IsNullOrQueued(teamMember.Mate)) continue;
+            if (MainObj.IsNullOrQueued(teamMember) || !teamMember.CanMate() || !MainObj.IsNullOrQueued(teamMember.Mate)) continue;
 
             float distance = Translation.DistanceTo(teamMember.Translation);
             if (distance < closestDistance && distance < teamMember.Abils.GetModifiedSight())
@@ -350,16 +353,16 @@ public class Creature : KinematicBody
 
     public void LookAtClosestFood()
     {
-        if (!main.IsNullOrQueued(DesiredFood)) return;
+        if (!MainObj.IsNullOrQueued(DesiredFood)) return;
 
-        List<Food> allFood = main.GetAllFoodInSight(this);
+        List<Food> allFood = MainObj.GetAllFoodInSight(this);
 
         float shortestTime = 1000000;
         Food closestFood = null;
 
         foreach (Food food in allFood)
         {
-            if (blacklist.Contains(food)) continue;
+            if (Blacklist.Contains(food)) continue;
 
             float distance = Translation.DistanceTo(food.Translation);
             float timeToFood = distance / Abils.GetModifiedSpeed();
@@ -370,7 +373,7 @@ public class Creature : KinematicBody
                 Boolean isAllyCloser = false;
                 foreach (Creature seeker in seekers)
                 {
-                    if (!main.IsNullOrQueued(seeker) && seeker.Team == Team)
+                    if (!MainObj.IsNullOrQueued(seeker) && seeker.TeamObj.TeamNumber == TeamObj.TeamNumber)
                     {
                         float timeAlly = (seeker.Translation.DistanceTo(food.Translation)) / seeker.Abils.GetModifiedSpeed();
                         if (timeToFood > timeAlly || seeker.EatingTimeLeft > 0) // if u r eating already, u are "closer"
@@ -393,7 +396,7 @@ public class Creature : KinematicBody
             List<Creature> seekers = closestFood.CurrentSeekers;
             foreach (Creature ally in seekers)
             {
-                if (!main.IsNullOrQueued(ally) && ally.Team == Team)
+                if (!MainObj.IsNullOrQueued(ally) && ally.TeamObj.TeamNumber == TeamObj.TeamNumber)
                 {
                     ally.DesiredFood = null;
                     seekers.Remove(ally);    // concurrent modification exception just isnt a thing apparently
@@ -419,8 +422,8 @@ public class Creature : KinematicBody
     {
         if (DesiredFood != null && !DesiredFood.IsQueuedForDeletion() && !DesiredFood.BeingAte) return;
 
-        //Vector3 loc = main.GetNearestFoodLocation(this);
-        Food food = main.GetNearestFoodLocation(this);
+        //Vector3 loc = MainObj.GetNearestFoodLocation(this);
+        Food food = MainObj.GetNearestFoodLocation(this);
         if (food != null)
         {
             LookAtFromPosition(Translation, food.Translation, Vector3.Up);

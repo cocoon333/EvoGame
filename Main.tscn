@@ -1,16 +1,15 @@
-[gd_scene load_steps=11 format=2]
+[gd_scene load_steps=10 format=2]
 
 [ext_resource path="res://Main.cs" type="Script" id=1]
-[ext_resource path="res://Creature.tscn" type="PackedScene" id=2]
 [ext_resource path="res://Food.tscn" type="PackedScene" id=3]
 [ext_resource path="res://ScoreLabel.cs" type="Script" id=4]
-[ext_resource path="res://dirt.webp" type="Texture" id=5]
+[ext_resource path="res://Team.tscn" type="PackedScene" id=5]
 
 [sub_resource type="BoxShape" id=1]
 extents = Vector3( 50, 1, 50 )
 
 [sub_resource type="SpatialMaterial" id=5]
-albedo_texture = ExtResource( 5 )
+albedo_color = Color( 0.113725, 0.654902, 0.00784314, 1 )
 uv1_scale = Vector3( 6, 4, 2 )
 
 [sub_resource type="CubeMesh" id=2]
@@ -27,7 +26,7 @@ size = Vector3( 100, 10, 2 )
 pause_mode = 2
 script = ExtResource( 1 )
 FoodScene = ExtResource( 3 )
-CreatureScene = ExtResource( 2 )
+TeamScene = ExtResource( 5 )
 
 [node name="Ground" type="StaticBody" parent="." groups=["ground"]]
 transform = Transform( 2, 0, 0, 0, 1, 0, 0, 0, 2, 0, -1, 0 )
@@ -117,9 +116,6 @@ mesh = SubResource( 4 )
 [node name="FoodParent" type="Node" parent="."]
 pause_mode = 1
 
-[node name="CreatureParent" type="Node" parent="."]
-pause_mode = 1
-
 [node name="ScoreLabel" type="Label" parent="."]
 margin_right = 40.0
 margin_bottom = 14.0
@@ -131,3 +127,6 @@ margin_right = 1280.0
 margin_bottom = 24.0
 grow_horizontal = 0
 align = 2
+
+[node name="TeamParent" type="Node" parent="."]
+pause_mode = 1
