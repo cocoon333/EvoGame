@@ -16,24 +16,25 @@ public class Main : Node
 
     public Boolean Dragging = false;
 
-    ScoreLabel scoreLabel;
     Creature SelectedCreature = null;
 
     List<Team> TeamsList;
 
     int FoodCount = 0;
 
-    Team playerTeam;
+    Team PlayerTeam;
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
-        scoreLabel = GetNode<ScoreLabel>("ScoreLabel");
-        Label label = GetNode<Label>("CreatureLabel");
-        //label.MarginRight = GetViewport().Size.x;
+        
+    }
 
+    public void NewGame()
+    {
         TeamsList = new List<Team>();
-
+        FoodCount = 0;
+        UpdateCreatureLabel(null);
 
         for (int i = 0; i < 40; i++)
         {
@@ -56,14 +57,24 @@ public class Main : Node
             }
         }
 
-        playerTeam = TeamsList[0];
+        PlayerTeam = TeamsList[0];
+
+        Control mainMenu = GetNode<Control>("MainMenuScreen");
+        mainMenu.Visible = false;
+        Spatial arenaNodes = GetNode<Spatial>("ArenaNodes");
+        arenaNodes.Visible = true;
+
+        Label creatureLabel = GetNode<Label>("CreatureLabel");
+        creatureLabel.Visible = true;
+        Label scoreLabel = GetNode<Label>("ScoreLabel");
+        scoreLabel.Visible = true;
     }
 
     public void SpawnCreature(Vector3 location, Team team)
     {
         team.SpawnCreature(location);
 
-        scoreLabel.UpdateString(TeamsList, FoodCount);
+        GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, FoodCount);
     }
 
     public void SpawnCreature(Team team)
@@ -77,7 +88,12 @@ public class Main : Node
         Team team = creature.TeamObj;
         team.CreatureDeath(creature);
 
-        scoreLabel.UpdateString(TeamsList, FoodCount);
+        GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, FoodCount);
+
+        if (creature.TeamObj.CreatureCount == 0)
+        {
+            GameOver();
+        }
     }
 
     public void SpawnFood()
@@ -88,7 +104,7 @@ public class Main : Node
         Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
         food.Initialize(25, (GD.Randf() < 0.2), spawnLoc);
 
-        scoreLabel.UpdateString(TeamsList, ++FoodCount);
+        GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, ++FoodCount);
     }
 
     public void EatFood(Food food)
@@ -103,7 +119,7 @@ public class Main : Node
         SpawnFood();
         food.QueueFree();
 
-        scoreLabel.UpdateString(TeamsList, --FoodCount);
+        GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, --FoodCount);
     }
 
     public void SelectCreature(Creature creature)
@@ -242,7 +258,7 @@ public class Main : Node
             }
             else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelUp)
             {
-                Camera cam = GetNode<Camera>("CameraPivot/Camera");
+                Camera cam = GetNode<Camera>("ArenaNodes/CameraPivot/Camera");
                 Vector3 direction = cam.Translation;
                 direction.z -= 2;
                 if (direction.z <= 5) direction.z = 5;
@@ -250,7 +266,7 @@ public class Main : Node
             }
             else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelDown)
             {
-                Camera cam = GetNode<Camera>("CameraPivot/Camera");
+                Camera cam = GetNode<Camera>("ArenaNodes/CameraPivot/Camera");
                 Vector3 direction = cam.Translation;
                 direction.z += 2;
                 cam.Translation = direction;
@@ -259,8 +275,8 @@ public class Main : Node
         else if (@event is InputEventMouseMotion motionEvent && Dragging)
         {
             Vector2 relative = motionEvent.Relative;
-            Position3D camPivot = GetNode<Position3D>("CameraPivot");
-            Camera cam = GetNode<Camera>("CameraPivot/Camera");
+            Position3D camPivot = GetNode<Position3D>("ArenaNodes/CameraPivot");
+            Camera cam = GetNode<Camera>("ArenaNodes/CameraPivot/Camera");
             camPivot.RotateY(relative.x / (-1000));
             cam.RotateX(relative.y / (-1000));
             Vector3 rotation = cam.GlobalRotation;
@@ -270,74 +286,72 @@ public class Main : Node
         }
     }
 
-    
-
     public void OnStatsButtonPressed(String buttonPressed)  // TODO: maybe make it so user isnt always team id 0
     {
-        if (playerTeam.EvoPoints <= 0)
+        if (PlayerTeam.EvoPoints <= 0)
         {
             return;
         }
         else
         {
-            playerTeam.EvoPoints--;
+            PlayerTeam.EvoPoints--;
         }
 
         if (buttonPressed == "increment_speed")
         {
-            ChangeStat(playerTeam, 0, 1); // TODO: magic number L, 0 for team id and 1 for increment value
+            ChangeStat(PlayerTeam, 0, 1); // TODO: magic number L, 0 for team id and 1 for increment value
         }
         else if (buttonPressed == "decrement_speed")
         {
-            ChangeStat(playerTeam, 0, -1);
+            ChangeStat(PlayerTeam, 0, -1);
         }
         else if (buttonPressed == "increment_strength")
         {
-            ChangeStat(playerTeam, 1, 1);
+            ChangeStat(PlayerTeam, 1, 1);
         }
         else if (buttonPressed == "decrement_strength")
         {
-            ChangeStat(playerTeam, 1, -1);
+            ChangeStat(PlayerTeam, 1, -1);
         }
         else if (buttonPressed == "increment_intelligence")
         {
-            ChangeStat(playerTeam, 2, 1);
+            ChangeStat(PlayerTeam, 2, 1);
         }
         else if (buttonPressed == "decrement_intelligence")
         {
-            ChangeStat(playerTeam, 2, -1);
+            ChangeStat(PlayerTeam, 2, -1);
         }
         else if (buttonPressed == "increment_libido")
         {
-            ChangeStat(playerTeam, 3, 1);
+            ChangeStat(PlayerTeam, 3, 1);
         }
         else if (buttonPressed == "decrement_libido")
         {
-            ChangeStat(playerTeam, 3, -1);
+            ChangeStat(PlayerTeam, 3, -1);
         }
         else if (buttonPressed == "increment_sight")
         {
-            ChangeStat(playerTeam, 4, 1);
+            ChangeStat(PlayerTeam, 4, 1);
         }
         else if (buttonPressed == "decrement_sight")
         {
-            ChangeStat(playerTeam, 4, -1);
+            ChangeStat(PlayerTeam, 4, -1);
         }
         else if (buttonPressed == "increment_endurance")
         {
-            ChangeStat(playerTeam, 5, 1);
+            ChangeStat(PlayerTeam, 5, 1);
         }
         else if (buttonPressed == "decrement_endurance")
         {
-            ChangeStat(playerTeam, 5, -1);
+            ChangeStat(PlayerTeam, 5, -1);
         }
         else if (buttonPressed == "increment_concealment")
         {
-            ChangeStat(playerTeam, 6, 1);
+            ChangeStat(PlayerTeam, 6, 1);
         }
         else if (buttonPressed == "decrement_concealment")
         {
-            ChangeStat(playerTeam, 6, -1);
+            ChangeStat(PlayerTeam, 6, -1);
         }
         else
         {
@@ -357,7 +371,7 @@ public class Main : Node
         }
         if (Input.IsActionJustPressed("spawn_blob"))
         {
-            SpawnCreature(playerTeam);
+            SpawnCreature(PlayerTeam);
         }
 
         if (Input.IsActionJustPressed("exit_menu"))
@@ -376,6 +390,31 @@ public class Main : Node
         {
             ToggleStatsMenu();
         }
+    }
+
+    public void GameOver()
+    {
+        GetTree().Paused = true;
+        Control gameOverScreen = GetNode<Control>("GameOverScreen");
+        gameOverScreen.Visible = true;
+
+        Label gameWinnerLabel = gameOverScreen.GetNode<Label>("GameWinnerLabel");
+        gameWinnerLabel.Text = "You " + (PlayerTeam.CreatureCount == 0 ? "Lost" : "Won") + "!";
+    }
+
+    public void OnStatsButtonPressed()
+    {
+        // Show User statistics after a game is over
+    }
+
+    public void OnAchievementsButtonPressed()
+    {
+        // Show User achievements from main menu screen
+    }
+
+    public void OnMainMenuStatsButtonPressed()
+    {
+        // Show user lifetime statistics on main menu screen
     }
 
     public void ToggleStatsMenu()
@@ -401,7 +440,7 @@ public class Main : Node
         Control statsMenu = GetNode<Control>("StatsMenu");
         
         List<String> stats = new List<String> {"Speed", "Strength", "Intelligence", "Libido", "Sight", "Endurance", "Concealment"};
-        List<float> statsList = playerTeam.TeamAbilities.GetStats();
+        List<float> statsList = PlayerTeam.TeamAbilities.GetStats();
         
         for (int i = 0; i < stats.Count; i++)
         {
@@ -411,7 +450,7 @@ public class Main : Node
 
         
         Label evoPoints = GetNode<Label>("StatsMenu/EvoPointsLabel");
-        evoPoints.Text = "Evolution Points\n" + playerTeam.EvoPoints;
+        evoPoints.Text = "Evolution Points\n" + PlayerTeam.EvoPoints;
 
         Label idealStats = GetNode<Label>("StatsMenu/StatsInfo/IdealStatsLabel");
         String idealStatsString = "";
@@ -421,7 +460,7 @@ public class Main : Node
         }
         idealStats.Text = idealStatsString;
 
-        List<float> modifiedStats = playerTeam.TeamAbilities.GetModifiedStats();
+        List<float> modifiedStats = PlayerTeam.TeamAbilities.GetModifiedStats();
         Label modifiedStatsLabel = GetNode<Label>("StatsMenu/StatsInfo/ActualStatsLabel");
         String modifiedStatsString = "";
         for (int i = 0; i < modifiedStats.Count; i++)
@@ -448,10 +487,36 @@ public class Main : Node
         TogglePauseMenu();
     }
 
-    public void OnRestartButtonPressed()
+    public void OnNewGameButtonPressed()
     {
-        GetTree().ReloadCurrentScene();
+        //GetTree().ReloadCurrentScene();
+        NewGame();
+        Control pauseMenu = GetNode<Control>("PauseMenu");
+        if (pauseMenu.Visible) pauseMenu.Visible = false;
+        else
+        {
+            Control gameOverScreen = GetNode<Control>("GameOverScreen");
+            if (gameOverScreen.Visible) gameOverScreen.Visible = false;
+        }
         GetTree().Paused = false;
+    }
+
+    public void OnMainMenuButtonPressed()
+    {
+        Control mainMenu = GetNode<Control>("MainMenuScreen");
+        mainMenu.Visible = true;
+        Spatial arenaNodes = GetNode<Spatial>("ArenaNodes");
+        arenaNodes.Visible = false;
+        GetNode<ScoreLabel>("ScoreLabel").Text = "";
+        UpdateCreatureLabel(null);
+
+        Control pauseMenu = GetNode<Control>("PauseMenu");
+        if (pauseMenu.Visible) pauseMenu.Visible = false;
+        else
+        {
+            Control gameOverScreen = GetNode<Control>("GameOverScreen");
+            if (gameOverScreen.Visible) gameOverScreen.Visible = false;
+        }
     }
 
     public void OnExitButtonPressed()

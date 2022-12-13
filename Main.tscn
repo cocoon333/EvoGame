@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=2]
+[gd_scene load_steps=27 format=2]
 
 [ext_resource path="res://Main.cs" type="Script" id=1]
 [ext_resource path="res://futura medium bt.ttf" type="DynamicFontData" id=2]
@@ -7,6 +7,13 @@
 [ext_resource path="res://Team.tscn" type="PackedScene" id=5]
 [ext_resource path="res://minus.png" type="Texture" id=6]
 [ext_resource path="res://plus.png" type="Texture" id=7]
+
+[sub_resource type="DynamicFont" id=18]
+size = 32
+font_data = ExtResource( 2 )
+
+[sub_resource type="Theme" id=19]
+default_font = SubResource( 18 )
 
 [sub_resource type="BoxShape" id=1]
 extents = Vector3( 50, 1, 50 )
@@ -57,34 +64,88 @@ font_data = ExtResource( 2 )
 size = 40
 font_data = ExtResource( 2 )
 
+[sub_resource type="DynamicFont" id=15]
+size = 32
+font_data = ExtResource( 2 )
+
+[sub_resource type="Theme" id=16]
+default_font = SubResource( 15 )
+
+[sub_resource type="DynamicFont" id=17]
+size = 80
+font_data = ExtResource( 2 )
+
 [node name="Main" type="Node"]
 pause_mode = 2
 script = ExtResource( 1 )
 FoodScene = ExtResource( 3 )
 TeamScene = ExtResource( 5 )
 
-[node name="Ground" type="StaticBody" parent="." groups=["ground"]]
+[node name="MainMenuScreen" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = SubResource( 19 )
+
+[node name="ColorRect" type="ColorRect" parent="MainMenuScreen"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color( 0, 0, 0, 0.717647 )
+
+[node name="NewGameButton" type="Button" parent="MainMenuScreen"]
+margin_left = 835.0
+margin_top = 250.0
+margin_right = 1085.0
+margin_bottom = 325.0
+text = "New Game"
+
+[node name="AchievementsButton" type="Button" parent="MainMenuScreen"]
+margin_left = 835.0
+margin_top = 400.0
+margin_right = 1085.0
+margin_bottom = 475.0
+text = "Achievements"
+
+[node name="StatsButton" type="Button" parent="MainMenuScreen"]
+margin_left = 835.0
+margin_top = 550.0
+margin_right = 1085.0
+margin_bottom = 625.0
+text = "Statistics"
+
+[node name="ExitButton" type="Button" parent="MainMenuScreen"]
+anchor_left = 0.5
+anchor_right = 0.5
+margin_left = -125.0
+margin_top = 700.0
+margin_right = 125.0
+margin_bottom = 775.0
+text = "Exit"
+
+[node name="ArenaNodes" type="Spatial" parent="."]
+visible = false
+
+[node name="Ground" type="StaticBody" parent="ArenaNodes" groups=["ground"]]
 transform = Transform( 2, 0, 0, 0, 1, 0, 0, 0, 2, 0, -1, 0 )
 collision_layer = 4
 collision_mask = 0
 
-[node name="CollisionShape" type="CollisionShape" parent="Ground"]
+[node name="CollisionShape" type="CollisionShape" parent="ArenaNodes/Ground"]
 shape = SubResource( 1 )
 
-[node name="MeshInstance" type="MeshInstance" parent="Ground"]
+[node name="MeshInstance" type="MeshInstance" parent="ArenaNodes/Ground"]
 mesh = SubResource( 2 )
 
-[node name="DirectionalLight" type="DirectionalLight" parent="."]
+[node name="DirectionalLight" type="DirectionalLight" parent="ArenaNodes"]
 transform = Transform( 1, 0, 0, 0, 0.5, 0.866025, 0, -0.866025, 0.5, 0, 15, 3 )
 
-[node name="CameraPivot" type="Position3D" parent="."]
+[node name="CameraPivot" type="Position3D" parent="ArenaNodes"]
 transform = Transform( 1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 0, 0 )
 
-[node name="Camera" type="Camera" parent="CameraPivot"]
+[node name="Camera" type="Camera" parent="ArenaNodes/CameraPivot"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 200 )
 far = 8192.0
 
-[node name="Wall1" type="StaticBody" parent="."]
+[node name="Wall1" type="StaticBody" parent="ArenaNodes"]
 transform = Transform( 2, 0, 0, 0, 1, 0, 0, 0, 2, 0, 5, 0 )
 collision_layer = 4
 collision_mask = 0
@@ -92,15 +153,15 @@ __meta__ = {
 "_edit_group_": true
 }
 
-[node name="CollisionShape" type="CollisionShape" parent="Wall1"]
+[node name="CollisionShape" type="CollisionShape" parent="ArenaNodes/Wall1"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
 shape = SubResource( 3 )
 
-[node name="MeshInstance" type="MeshInstance" parent="Wall1"]
+[node name="MeshInstance" type="MeshInstance" parent="ArenaNodes/Wall1"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
 mesh = SubResource( 4 )
 
-[node name="Wall2" type="StaticBody" parent="."]
+[node name="Wall2" type="StaticBody" parent="ArenaNodes"]
 transform = Transform( 2, 0, 0, 0, 1, 0, 0, 0, 2, 0, 5, 0 )
 collision_layer = 4
 collision_mask = 0
@@ -108,15 +169,15 @@ __meta__ = {
 "_edit_group_": true
 }
 
-[node name="CollisionShape" type="CollisionShape" parent="Wall2"]
+[node name="CollisionShape" type="CollisionShape" parent="ArenaNodes/Wall2"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 50 )
 shape = SubResource( 3 )
 
-[node name="MeshInstance" type="MeshInstance" parent="Wall2"]
+[node name="MeshInstance" type="MeshInstance" parent="ArenaNodes/Wall2"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 50 )
 mesh = SubResource( 4 )
 
-[node name="Wall3" type="StaticBody" parent="."]
+[node name="Wall3" type="StaticBody" parent="ArenaNodes"]
 transform = Transform( -8.74228e-08, 0, 2, 0, 1, 0, -2, 0, -8.74228e-08, 0, 5, 0 )
 collision_layer = 4
 collision_mask = 0
@@ -124,15 +185,15 @@ __meta__ = {
 "_edit_group_": true
 }
 
-[node name="CollisionShape" type="CollisionShape" parent="Wall3"]
+[node name="CollisionShape" type="CollisionShape" parent="ArenaNodes/Wall3"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
 shape = SubResource( 3 )
 
-[node name="MeshInstance" type="MeshInstance" parent="Wall3"]
+[node name="MeshInstance" type="MeshInstance" parent="ArenaNodes/Wall3"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
 mesh = SubResource( 4 )
 
-[node name="Wall4" type="StaticBody" parent="."]
+[node name="Wall4" type="StaticBody" parent="ArenaNodes"]
 transform = Transform( -8.74228e-08, 0, -2, 0, 1, 0, 2, 0, -8.74228e-08, 0, 5, 0 )
 collision_layer = 4
 collision_mask = 0
@@ -140,11 +201,11 @@ __meta__ = {
 "_edit_group_": true
 }
 
-[node name="CollisionShape" type="CollisionShape" parent="Wall4"]
+[node name="CollisionShape" type="CollisionShape" parent="ArenaNodes/Wall4"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
 shape = SubResource( 3 )
 
-[node name="MeshInstance" type="MeshInstance" parent="Wall4"]
+[node name="MeshInstance" type="MeshInstance" parent="ArenaNodes/Wall4"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
 mesh = SubResource( 4 )
 
@@ -193,21 +254,21 @@ margin_right = 100.0
 margin_bottom = 475.0
 text = "Resume"
 
-[node name="RestartButton" type="Button" parent="PauseMenu"]
+[node name="NewGameButton" type="Button" parent="PauseMenu"]
 margin_left = 860.0
 margin_top = 550.0
 margin_right = 1060.0
 margin_bottom = 625.0
-text = "Restart"
+text = "New Game"
 
-[node name="ExitButton" type="Button" parent="PauseMenu"]
+[node name="MainMenuButton" type="Button" parent="PauseMenu"]
 anchor_left = 0.5
 anchor_right = 0.5
 margin_left = -100.0
 margin_top = 700.0
 margin_right = 100.0
 margin_bottom = 775.0
-text = "Exit"
+text = "Main Menu"
 
 [node name="StatsMenu" type="Control" parent="."]
 visible = false
@@ -489,9 +550,58 @@ margin_top = 187.0
 margin_right = 587.0
 margin_bottom = 486.0
 
+[node name="GameOverScreen" type="Control" parent="."]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = SubResource( 16 )
+
+[node name="ColorRect" type="ColorRect" parent="GameOverScreen"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color( 0, 0, 0, 0.717647 )
+
+[node name="StatsButton" type="Button" parent="GameOverScreen"]
+anchor_left = 0.5
+anchor_right = 0.5
+margin_left = -100.0
+margin_top = 400.0
+margin_right = 100.0
+margin_bottom = 475.0
+text = "View Stats"
+
+[node name="NewGameButton" type="Button" parent="GameOverScreen"]
+margin_left = 860.0
+margin_top = 550.0
+margin_right = 1060.0
+margin_bottom = 625.0
+text = "New Game"
+
+[node name="MainMenuButton" type="Button" parent="GameOverScreen"]
+anchor_left = 0.5
+anchor_right = 0.5
+margin_left = -100.0
+margin_top = 700.0
+margin_right = 100.0
+margin_bottom = 775.0
+text = "Main Menu"
+
+[node name="GameWinnerLabel" type="Label" parent="GameOverScreen"]
+margin_left = 760.0
+margin_top = 200.0
+margin_right = 1160.0
+margin_bottom = 300.0
+custom_fonts/font = SubResource( 17 )
+align = 1
+valign = 1
+
+[connection signal="pressed" from="MainMenuScreen/NewGameButton" to="." method="OnNewGameButtonPressed"]
+[connection signal="pressed" from="MainMenuScreen/AchievementsButton" to="." method="OnAchievementsButtonPressed"]
+[connection signal="pressed" from="MainMenuScreen/StatsButton" to="." method="OnMainMenuStatsButtonPressed"]
+[connection signal="pressed" from="MainMenuScreen/ExitButton" to="." method="OnExitButtonPressed"]
 [connection signal="pressed" from="PauseMenu/ResumeButton" to="." method="OnResumeButtonPressed"]
-[connection signal="pressed" from="PauseMenu/RestartButton" to="." method="OnRestartButtonPressed"]
-[connection signal="pressed" from="PauseMenu/ExitButton" to="." method="OnExitButtonPressed"]
+[connection signal="pressed" from="PauseMenu/NewGameButton" to="." method="OnNewGameButtonPressed"]
+[connection signal="pressed" from="PauseMenu/MainMenuButton" to="." method="OnMainMenuButtonPressed"]
 [connection signal="pressed" from="StatsMenu/SpeedLabel/AddButton" to="." method="OnStatsButtonPressed" binds= [ "increment_speed" ]]
 [connection signal="pressed" from="StatsMenu/SpeedLabel/SubtractButton" to="." method="OnStatsButtonPressed" binds= [ "decrement_speed" ]]
 [connection signal="pressed" from="StatsMenu/StrengthLabel/AddButton" to="." method="OnStatsButtonPressed" binds= [ "increment_strength" ]]
@@ -506,3 +616,6 @@ margin_bottom = 486.0
 [connection signal="pressed" from="StatsMenu/EnduranceLabel/SubtractButton" to="." method="OnStatsButtonPressed" binds= [ "decrement_endurance" ]]
 [connection signal="pressed" from="StatsMenu/ConcealmentLabel/AddButton" to="." method="OnStatsButtonPressed" binds= [ "increment_concealment" ]]
 [connection signal="pressed" from="StatsMenu/ConcealmentLabel/SubtractButton" to="." method="OnStatsButtonPressed" binds= [ "decrement_concealment" ]]
+[connection signal="pressed" from="GameOverScreen/StatsButton" to="." method="OnStatsButtonPressed"]
+[connection signal="pressed" from="GameOverScreen/NewGameButton" to="." method="OnNewGameButtonPressed"]
+[connection signal="pressed" from="GameOverScreen/MainMenuButton" to="." method="OnMainMenuButtonPressed"]
