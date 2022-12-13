@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=2]
+[gd_scene load_steps=30 format=2]
 
 [ext_resource path="res://Main.cs" type="Script" id=1]
 [ext_resource path="res://futura medium bt.ttf" type="DynamicFontData" id=2]
@@ -61,7 +61,7 @@ size = 55
 font_data = ExtResource( 2 )
 
 [sub_resource type="DynamicFont" id=14]
-size = 40
+size = 45
 font_data = ExtResource( 2 )
 
 [sub_resource type="DynamicFont" id=15]
@@ -73,6 +73,17 @@ default_font = SubResource( 15 )
 
 [sub_resource type="DynamicFont" id=17]
 size = 80
+font_data = ExtResource( 2 )
+
+[sub_resource type="DynamicFont" id=20]
+size = 32
+font_data = ExtResource( 2 )
+
+[sub_resource type="Theme" id=21]
+default_font = SubResource( 20 )
+
+[sub_resource type="DynamicFont" id=22]
+size = 45
 font_data = ExtResource( 2 )
 
 [node name="Main" type="Node"]
@@ -550,6 +561,13 @@ margin_top = 187.0
 margin_right = 587.0
 margin_bottom = 486.0
 
+[node name="AdvancedStatsButton" type="Button" parent="StatsMenu"]
+margin_left = 760.0
+margin_top = 975.0
+margin_right = 1160.0
+margin_bottom = 1050.0
+text = "View Advanced Stats Info"
+
 [node name="GameOverScreen" type="Control" parent="."]
 visible = false
 anchor_right = 1.0
@@ -595,6 +613,105 @@ custom_fonts/font = SubResource( 17 )
 align = 1
 valign = 1
 
+[node name="AdvancedStatsScreen" type="Control" parent="."]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = SubResource( 21 )
+
+[node name="ColorRect" type="ColorRect" parent="AdvancedStatsScreen"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color( 0, 0, 0, 0.717647 )
+
+[node name="StatsInfo" type="Control" parent="AdvancedStatsScreen"]
+margin_right = 40.0
+margin_bottom = 40.0
+
+[node name="TitleLabel" type="Label" parent="AdvancedStatsScreen/StatsInfo"]
+margin_left = 660.0
+margin_top = 60.0
+margin_right = 1260.0
+margin_bottom = 119.0
+custom_fonts/font = SubResource( 14 )
+text = "Advanced Stats Information"
+align = 1
+valign = 1
+
+[node name="StatsNamesLabel" type="Label" parent="AdvancedStatsScreen/StatsInfo"]
+margin_left = 90.0
+margin_top = 145.0
+margin_right = 620.0
+margin_bottom = 478.0
+rect_pivot_offset = Vector2( 487, 181 )
+text = "Ability                 Ideal          Actual            Average Actual
+Speed
+Strength
+Intelligence
+Libido
+Sight
+Endurance
+Concealment"
+
+[node name="IdealStatsLabel" type="Label" parent="AdvancedStatsScreen/StatsInfo"]
+margin_left = 367.0
+margin_top = 187.0
+margin_right = 407.0
+margin_bottom = 487.0
+
+[node name="ActualStatsLabel" type="Label" parent="AdvancedStatsScreen/StatsInfo"]
+margin_left = 547.0
+margin_top = 187.0
+margin_right = 587.0
+margin_bottom = 487.0
+
+[node name="AverageStatsLabel" type="Label" parent="AdvancedStatsScreen/StatsInfo"]
+margin_left = 825.0
+margin_top = 187.0
+margin_right = 865.0
+margin_bottom = 487.0
+
+[node name="AveragesInfo" type="Control" parent="AdvancedStatsScreen"]
+margin_right = 40.0
+margin_bottom = 40.0
+
+[node name="AverageTimeAliveLabel" type="Label" parent="AdvancedStatsScreen/AveragesInfo"]
+margin_left = 100.0
+margin_top = 600.0
+margin_right = 200.0
+margin_bottom = 650.0
+text = "Age"
+align = 1
+valign = 1
+
+[node name="AverageDeathAgeLabel" type="Label" parent="AdvancedStatsScreen/AveragesInfo"]
+margin_left = 250.0
+margin_top = 600.0
+margin_right = 450.0
+margin_bottom = 650.0
+text = "Death Age"
+align = 1
+valign = 1
+
+[node name="AverageNumChildrenLabel" type="Label" parent="AdvancedStatsScreen/AveragesInfo"]
+margin_left = 470.0
+margin_top = 600.0
+margin_right = 820.0
+margin_bottom = 650.0
+text = "Number of Children"
+align = 1
+valign = 1
+
+[node name="AveragesTitleLabel" type="Label" parent="AdvancedStatsScreen/AveragesInfo"]
+margin_left = 250.0
+margin_top = 525.0
+margin_right = 450.0
+margin_bottom = 600.0
+custom_fonts/font = SubResource( 22 )
+text = "Averages"
+align = 1
+valign = 1
+
 [connection signal="pressed" from="MainMenuScreen/NewGameButton" to="." method="OnNewGameButtonPressed"]
 [connection signal="pressed" from="MainMenuScreen/AchievementsButton" to="." method="OnAchievementsButtonPressed"]
 [connection signal="pressed" from="MainMenuScreen/StatsButton" to="." method="OnMainMenuStatsButtonPressed"]
@@ -616,6 +733,7 @@ valign = 1
 [connection signal="pressed" from="StatsMenu/EnduranceLabel/SubtractButton" to="." method="OnStatsButtonPressed" binds= [ "decrement_endurance" ]]
 [connection signal="pressed" from="StatsMenu/ConcealmentLabel/AddButton" to="." method="OnStatsButtonPressed" binds= [ "increment_concealment" ]]
 [connection signal="pressed" from="StatsMenu/ConcealmentLabel/SubtractButton" to="." method="OnStatsButtonPressed" binds= [ "decrement_concealment" ]]
+[connection signal="pressed" from="StatsMenu/AdvancedStatsButton" to="." method="OnAdvancedStatsButtonPressed"]
 [connection signal="pressed" from="GameOverScreen/StatsButton" to="." method="OnStatsButtonPressed"]
 [connection signal="pressed" from="GameOverScreen/NewGameButton" to="." method="OnNewGameButtonPressed"]
 [connection signal="pressed" from="GameOverScreen/MainMenuButton" to="." method="OnMainMenuButtonPressed"]

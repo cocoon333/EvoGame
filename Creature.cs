@@ -18,6 +18,8 @@ public class Creature : KinematicBody
 
     public float TimeAlive;
 
+    public int NumChildren;
+
     private Vector3 _velocity = Vector3.Zero;
 
     Main MainObj;
@@ -145,6 +147,10 @@ public class Creature : KinematicBody
                         MainObj.SpawnCreature(Translation, TeamObj);
                         Mate.Abils.SetEnergy(Mate.Abils.GetEnergy() - 60);
                         Abils.SetEnergy(Abils.GetEnergy() - 60);
+
+                        NumChildren++;
+                        Mate.NumChildren++;
+
                         Mate.Mate = null;
                         Mate = null;
                     }

@@ -19,6 +19,8 @@ public class Team : Node
     public int TeamNumber;
     public int CreatureCount;
 
+    public List<Creature> TeamMembers;
+
     public int EvoPoints;
 
     public int TotalBirths;
@@ -26,6 +28,8 @@ public class Team : Node
     public int TotalDeaths;
 
     public int TotalKills;
+
+    float totalDeathAgeTime;
 
     public void Initialize()
     {
@@ -36,6 +40,8 @@ public class Team : Node
         //StatsList = new List<float> { 50f, 50f, 50f, 50f, 50f, 50f, 50f };
         TeamAbilities = new Abilities();
         TeamAbilities.Initialize(new List<float> { 50f, 50f, 50f, 50f, 50f, 50f, 50f });
+        TeamAbilities.Energy = 100;
+        TeamMembers = new List<Creature>();
     }
 
     public List<float> GetStats()
@@ -71,21 +77,51 @@ public class Team : Node
 
         CreatureCount++;
         TotalBirths++;
+        TeamMembers.Add(creature);
 
         if (TotalBirths % 5 == 0) EvoPoints++;
     }
 
-    public void CreatureDeath(Creature blob)
+    public void CreatureDeath(Creature creature)
     {
-        if (blob.DesiredFood != null)
+        if (creature.DesiredFood != null)
         {
-            blob.DesiredFood.CurrentSeekers.Remove(blob);
-            blob.DesiredFood.BeingAte = false;
+            creature.DesiredFood.CurrentSeekers.Remove(creature);
+            creature.DesiredFood.BeingAte = false;
         }
 
-        blob.QueueFree();
+        TeamMembers.Remove(creature);
+        totalDeathAgeTime += creature.TimeAlive;
         CreatureCount--;
         TotalDeaths++;
+        creature.QueueFree();
+    }
+
+    public float GetAverageDeathAge()
+    {
+        return (totalDeathAgeTime / TotalDeaths);
+    }
+
+    public float GetAverageAge()
+    {
+        float totalAge = 0;
+        foreach (Creature creature in TeamMembers)
+        {
+            totalAge += creature.TimeAlive;
+        }
+
+        return (totalAge / CreatureCount);
+    }
+
+    public float GetAverageNumChildren()
+    {
+        float totalChildren = 0;
+        foreach (Creature creature in TeamMembers)
+        {
+            totalChildren += creature.NumChildren;
+        }
+
+        return (totalChildren / CreatureCount);
     }
 
     public String DisplayTeamInfo()

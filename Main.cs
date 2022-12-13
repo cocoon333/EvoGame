@@ -18,7 +18,7 @@ public class Main : Node
 
     Creature SelectedCreature = null;
 
-    List<Team> TeamsList;
+    List<Team> TeamsList = new List<Team>();
 
     int FoodCount = 0;
 
@@ -32,9 +32,25 @@ public class Main : Node
 
     public void NewGame()
     {
-        TeamsList = new List<Team>();
+        foreach (Team team in TeamsList)
+        {
+            team.QueueFree();
+        }
+        TeamsList.Clear();
         FoodCount = 0;
         UpdateCreatureLabel(null);
+        Node foodParent = GetNode<Node>("FoodParent");
+        int foodCount = foodParent.GetChildCount();
+        for (int i = 0; i < foodCount; i++)
+        {
+            Food current = (Food)foodParent.GetChild(i);
+
+            if (!IsNullOrQueued(current))
+            {
+                current.QueueFree();
+            }
+        }
+        
 
         for (int i = 0; i < 40; i++)
         {
@@ -376,9 +392,16 @@ public class Main : Node
 
         if (Input.IsActionJustPressed("exit_menu"))
         {
+
             if (GetNode<Control>("StatsMenu").Visible)
             {
                 ToggleStatsMenu();
+            }
+            else if (GetNode<Control>("AdvancedStatsScreen").Visible)
+            {
+                GetNode<Control>("AdvancedStatsScreen").Visible = false;
+                Control statsMenu = GetNode<Control>("StatsMenu");
+                statsMenu.Visible = true;
             }
             else
             {
@@ -388,7 +411,21 @@ public class Main : Node
 
         if (Input.IsActionJustPressed("toggle_stats_menu"))
         {
-            ToggleStatsMenu();
+            if (GetNode<Control>("MainMenuScreen").Visible)
+            {
+                return;
+            }
+
+            if (GetNode<Control>("AdvancedStatsScreen").Visible)
+            {
+                GetNode<Control>("AdvancedStatsScreen").Visible = false;
+                Control statsMenu = GetNode<Control>("StatsMenu");
+                statsMenu.Visible = true;
+            }
+            else
+            {
+                ToggleStatsMenu();
+            }
         }
     }
 
@@ -423,7 +460,7 @@ public class Main : Node
         creatureLabel.Visible = !creatureLabel.Visible;
         Label scoreLabel = GetNode<Label>("ScoreLabel");
         scoreLabel.Visible = !scoreLabel.Visible;
-        
+
         Control statsMenu = GetNode<Control>("StatsMenu");
         statsMenu.Visible = !statsMenu.Visible;
         GetTree().Paused = !GetTree().Paused;
@@ -438,17 +475,17 @@ public class Main : Node
     {
         // All the code to setup/update the stats menu
         Control statsMenu = GetNode<Control>("StatsMenu");
-        
-        List<String> stats = new List<String> {"Speed", "Strength", "Intelligence", "Libido", "Sight", "Endurance", "Concealment"};
+
+        List<String> stats = new List<String> { "Speed", "Strength", "Intelligence", "Libido", "Sight", "Endurance", "Concealment" };
         List<float> statsList = PlayerTeam.TeamAbilities.GetStats();
-        
+
         for (int i = 0; i < stats.Count; i++)
         {
             Label number = GetNode<Label>("StatsMenu/" + stats[i] + "Label/Number");
             number.Text = statsList[i] + "";
         }
 
-        
+
         Label evoPoints = GetNode<Label>("StatsMenu/EvoPointsLabel");
         evoPoints.Text = "Evolution Points\n" + PlayerTeam.EvoPoints;
 
@@ -468,6 +505,65 @@ public class Main : Node
             modifiedStatsString += (Mathf.Round(modifiedStats[i])) + "\n";
         }
         modifiedStatsLabel.Text = modifiedStatsString;
+    }
+
+    public void OnAdvancedStatsButtonPressed()
+    {
+        Control statsMenu = GetNode<Control>("StatsMenu");
+        statsMenu.Visible = !statsMenu.Visible;
+
+        Control advancedScreen = GetNode<Control>("AdvancedStatsScreen");
+        advancedScreen.Visible = true;
+        UpdateAdvancedStatsScreen();
+    }
+
+    public void UpdateAdvancedStatsScreen()
+    {
+        Control advancedScreen = GetNode<Control>("AdvancedStatsScreen");
+
+        // TODO: This code is same as in UpdateStatsMenu() but slightly different, make this a method later maybe
+        Label idealStats = GetNode<Label>("AdvancedStatsScreen/StatsInfo/IdealStatsLabel");
+        String idealStatsString = "";
+        List<float> statsList = PlayerTeam.TeamAbilities.GetStats();
+        for (int i = 0; i < statsList.Count; i++)
+        {
+            idealStatsString += statsList[i] + "\n";
+        }
+        idealStats.Text = idealStatsString;
+
+        List<float> modifiedStats = PlayerTeam.TeamAbilities.GetModifiedStats();
+        Label modifiedStatsLabel = GetNode<Label>("AdvancedStatsScreen/StatsInfo/ActualStatsLabel");
+        String modifiedStatsString = "";
+        for (int i = 0; i < modifiedStats.Count; i++)
+        {
+            modifiedStatsString += (Mathf.Round(modifiedStats[i])) + "\n";
+        }
+        modifiedStatsLabel.Text = modifiedStatsString;
+
+        // This is the extra code for the advanced information
+        Label averageStatsLabel = GetNode<Label>("AdvancedStatsScreen/StatsInfo/AverageStatsLabel");
+        String averageStatsString = "";
+        List<float> averageStats = new List<float>(new float[statsList.Count]); // array sets all entries to 0 and then copied into list
+
+        foreach (Creature creature in PlayerTeam.TeamMembers)
+        {
+            Abilities abils = creature.Abils;
+            List<float> actualStats = abils.GetModifiedStats();
+            for (int i = 0; i < actualStats.Count; i++)
+            {
+                averageStats[i] += actualStats[i];
+            }
+        }
+
+        for (int i = 0; i < averageStats.Count; i++)
+        {
+            averageStatsString += (Mathf.Round(averageStats[i] / PlayerTeam.CreatureCount)) + "\n";
+        }
+        averageStatsLabel.Text = averageStatsString;
+
+        GetNode<Label>("AdvancedStatsScreen/AveragesInfo/AverageTimeAliveLabel").Text = "Age\n" + Mathf.Round(PlayerTeam.GetAverageAge());
+        GetNode<Label>("AdvancedStatsScreen/AveragesInfo/AverageDeathAgeLabel").Text = "Death Age\n" + Mathf.Round(PlayerTeam.GetAverageDeathAge());
+        GetNode<Label>("AdvancedStatsScreen/AveragesInfo/AverageNumChildrenLabel").Text = "Number of Children\n" + (Mathf.Round(PlayerTeam.GetAverageNumChildren() * 100)/100);
     }
 
     public void TogglePauseMenu()
