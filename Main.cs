@@ -27,7 +27,7 @@ public class Main : Node
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
-        
+
     }
 
     public void NewGame()
@@ -392,6 +392,10 @@ public class Main : Node
 
         if (Input.IsActionJustPressed("exit_menu"))
         {
+            if (GetNode<Control>("MainMenuScreen").Visible)
+            {
+                return;
+            }
 
             if (GetNode<Control>("StatsMenu").Visible)
             {
