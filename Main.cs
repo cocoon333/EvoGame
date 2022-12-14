@@ -44,7 +44,7 @@ public class Main : Node
         {
             food.QueueFree();
         }
-        
+
 
         for (int i = 0; i < 15; i++)
         {
@@ -354,6 +354,11 @@ public class Main : Node
     {
         UpdateCreatureLabel(SelectedCreature);
 
+        if (Input.IsActionJustPressed("pause_game"))
+        {
+            GetTree().Paused = !GetTree().Paused;
+        }
+
         if (Input.IsActionJustPressed("spawn_food"))
         {
             SpawnFood();
@@ -540,7 +545,7 @@ public class Main : Node
 
         GetNode<Label>("AdvancedStatsScreen/AveragesInfo/AverageTimeAliveLabel").Text = "Age\n" + Mathf.Round(PlayerTeam.GetAverageAge());
         GetNode<Label>("AdvancedStatsScreen/AveragesInfo/AverageDeathAgeLabel").Text = "Death Age\n" + Mathf.Round(PlayerTeam.GetAverageDeathAge());
-        GetNode<Label>("AdvancedStatsScreen/AveragesInfo/AverageNumChildrenLabel").Text = "Number of Children\n" + (Mathf.Round(PlayerTeam.GetAverageNumChildren() * 100)/100);
+        GetNode<Label>("AdvancedStatsScreen/AveragesInfo/AverageNumChildrenLabel").Text = "Number of Children\n" + (Mathf.Round(PlayerTeam.GetAverageNumChildren() * 100) / 100);
     }
 
     public void TogglePauseMenu()

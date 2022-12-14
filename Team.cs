@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 public class Team : Node
 {
@@ -58,7 +59,7 @@ public class Team : Node
     public void ChangeStats(int statIndex, int change)
     {
         TeamAbilities.GetStats()[statIndex] += change;
-        
+
         List<float> newStats = TeamAbilities.GetStats();
         newStats[statIndex] += change;
         TeamAbilities.Initialize(newStats);
@@ -104,30 +105,32 @@ public class Team : Node
 
     public float GetAverageAge()
     {
-        float totalAge = 0;
-        foreach (Creature creature in TeamMembers)
-        {
-            totalAge += creature.TimeAlive;
-        }
-
-        return (totalAge / CreatureCount);
+        return (TeamMembers.Sum(creature => creature.TimeAlive) / TeamMembers.Count);
     }
 
     public float GetAverageNumChildren()
     {
-        float totalChildren = 0;
+        GD.Print(TeamMembers.Sum(creature => creature.NumChildren) + "\n");
+        GD.Print(TeamMembers.Count, "\n");
+        int test = 0;
         foreach (Creature creature in TeamMembers)
         {
-            totalChildren += creature.NumChildren;
+            test++;
         }
+        GD.Print(test);
 
-        return (totalChildren / CreatureCount);
+        return (TeamMembers.Sum(creature => creature.NumChildren) / TeamMembers.Count);
+    }
+
+    public float GetAverageKills()
+    {
+        return (TeamMembers.Sum(creature => creature.Kills) / TeamMembers.Count);
     }
 
     public String DisplayTeamInfo()
     {
         String returnString = "";
-        returnString += "Team " + (TeamNumber+1) + "\n";
+        returnString += "Team " + (TeamNumber + 1) + "\n";
         returnString += "Creature Count: " + CreatureCount + "\n";
         returnString += "Evolution Points: " + EvoPoints + "\n";
         returnString += "Total Births: " + TotalBirths + "\n";
