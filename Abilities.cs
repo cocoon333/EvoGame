@@ -14,8 +14,6 @@ public class Abilities : Node
     public float Concealment;
 
     public float Energy;
-    public float Combat; //TODO: pretty sure this is useless
-    public float Metabolism;
 
     public float EatingTime = 2;
     public float EnergyLoss;
@@ -36,9 +34,6 @@ public class Abilities : Node
 
         //Calculate these stats
         Energy = 50;
-        Combat = 0;
-        Metabolism = 0;
-
         EnergyLoss = (100 - GetModifiedEndurance()) / 100f * 5;
     }
 
@@ -54,9 +49,6 @@ public class Abilities : Node
 
         //Calculate these stats
         Energy = 50;
-        Combat = 0;
-        Metabolism = 0;
-
         EnergyLoss = (100 - GetModifiedEndurance()) / 100f * 5;
     }
 
@@ -132,6 +124,10 @@ public class Abilities : Node
     public void SetEnergy(float newEnergy)
     {
         Energy = newEnergy;
+    }
+
+    public void WonFight(float winnerScore, float loserScore) {
+        this.Energy -= (winnerScore - loserScore) * 10;
     }
 
     public Dictionary<String, float> GetAllAbils()

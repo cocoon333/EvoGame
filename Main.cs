@@ -21,6 +21,7 @@ public class Main : Node
     List<Team> TeamsList = new List<Team>();
 
     int FoodCount = 0;
+    List<Food> FoodList = new List<Food>();
 
     Team PlayerTeam;
 
@@ -39,20 +40,13 @@ public class Main : Node
         TeamsList.Clear();
         FoodCount = 0;
         UpdateCreatureLabel(null);
-        Node foodParent = GetNode<Node>("FoodParent");
-        int foodCount = foodParent.GetChildCount();
-        for (int i = 0; i < foodCount; i++)
+        foreach (Food food in FoodList)
         {
-            Food current = (Food)foodParent.GetChild(i);
-
-            if (!IsNullOrQueued(current))
-            {
-                current.QueueFree();
-            }
+            food.QueueFree();
         }
         
 
-        for (int i = 0; i < 40; i++)
+        for (int i = 0; i < 15; i++)
         {
             SpawnFood();
         }
@@ -67,7 +61,7 @@ public class Main : Node
             Node teamParent = GetNode<Node>("TeamParent");
             teamParent.AddChild(team);
 
-            for (int j = 0; j < 50; j++)
+            for (int j = 0; j < 8; j++)
             {
                 SpawnCreature(team);
             }
@@ -119,6 +113,7 @@ public class Main : Node
         foodParent.AddChild(food);
         Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
         food.Initialize(25, (GD.Randf() < 0.2), spawnLoc);
+        FoodList.Add(food);
 
         GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, ++FoodCount);
     }
@@ -131,6 +126,7 @@ public class Main : Node
             seeker.DesiredFood = null;
             seeker.EatingTimeLeft = 0;
         }
+        FoodList.Remove(food);
 
         SpawnFood();
         food.QueueFree();
@@ -174,28 +170,19 @@ public class Main : Node
         String labelText = "";
         foreach (KeyValuePair<String, float> kvp in abils)
         {
-            // This seems like a cleaner way to do it but need to figure out how to make it work
-            // String appendString = ("{0}: {1}", kvp.Key, kvp.Value);
-            // labelText += appendString;
-
             labelText += (kvp.Key + ": " + Mathf.RoundToInt(kvp.Value) + "\n");
         }
         label.Text = labelText;
     }
 
-
     public List<Food> GetAllFoodInSight(Creature creature)
     {
-        Node foodParent = GetNode<Node>("FoodParent");
-        int foodCount = foodParent.GetChildCount();
         List<Food> allFood = new List<Food>();
-        for (int i = 0; i < foodCount; i++)
+        foreach (Food food in FoodList)
         {
-            Food current = (Food)foodParent.GetChild(i);
-
-            if (!IsNullOrQueued(current) && current.Translation.DistanceTo(creature.Translation) < creature.Abils.GetModifiedSight())
+            if (!IsNullOrQueued(food) && food.Translation.DistanceTo(creature.Translation) < creature.Abils.GetModifiedSight())
             {
-                allFood.Add(current);
+                allFood.Add(food);
             }
         }
         return allFood;
@@ -206,30 +193,16 @@ public class Main : Node
         List<Creature> allCreatures = new List<Creature>();
         foreach (Team team in TeamsList)
         {
-            for (int i = 0; i < team.GetChildCount(); i++)
-            {
-                Creature current = (Creature)team.GetChild(i);
-
-                if (!IsNullOrQueued(current) && current.Translation.DistanceTo(creature.Translation) < creature.Abils.GetModifiedSight() && current != creature)
-                {
-                    allCreatures.Add(current);
-                }
-            }
+            allCreatures.AddRange(team.TeamMembers);
         }
+        allCreatures.Remove(creature);
         return allCreatures;
     }
 
     public List<Creature> GetAllTeamMembersInSight(Creature creature)
     {
-        List<Creature> allCreatures = GetAllCreaturesInSight(creature);
-        List<Creature> teamMembers = new List<Creature>();
-        foreach (Creature teamMember in allCreatures)
-        {
-            if (teamMember.TeamObj.TeamNumber == creature.TeamObj.TeamNumber)
-            {
-                teamMembers.Add(teamMember);
-            }
-        }
+        List<Creature> teamMembers = creature.TeamObj.TeamMembers;
+        teamMembers.Remove(creature);
         return teamMembers;
     }
 
@@ -302,7 +275,7 @@ public class Main : Node
         }
     }
 
-    public void OnStatsButtonPressed(String buttonPressed)  // TODO: maybe make it so user isnt always team id 0
+    public void OnStatsButtonPressed(String buttonPressed)
     {
         if (PlayerTeam.EvoPoints <= 0)
         {

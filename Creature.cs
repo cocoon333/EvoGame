@@ -19,6 +19,7 @@ public class Creature : KinematicBody
     public float TimeAlive;
 
     public int NumChildren;
+    public int Kills;
 
     private Vector3 _velocity = Vector3.Zero;
 
@@ -174,7 +175,7 @@ public class Creature : KinematicBody
                         {
                             LookAtFromPosition(Translation, DesiredFood.Translation, Vector3.Up);
                         }
-                        else if (Mate != null)  // TODO: Crash on first line happened cuz of cant access disposed object error, fix eventually
+                        else if (Mate != null)
                         {
                             LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
                             Mate.LookAtFromPosition(Mate.Translation, Translation, Vector3.Up);
@@ -187,7 +188,7 @@ public class Creature : KinematicBody
                     }
                     else if (collision.Collider is Creature && creat.TeamObj.TeamNumber != TeamObj.TeamNumber)
                     {
-                        Fight(creat);
+                        //Fight(creat);
                     }
                 }
             }
@@ -242,10 +243,8 @@ public class Creature : KinematicBody
 
         if (enemy != null)
         {
-
             // this means that the other seeker (the enemy) has already reached this food
             // this blob is the second to arrive to the food and can now determine whether or not a fight occurs
-
             Fight(enemy);
         }
     }
@@ -271,28 +270,14 @@ public class Creature : KinematicBody
             return;
         }
 
-        // right now there is no functionality for a blob to not fight even if they estimate they are stronger, this may be a change to make later
-        if (!WantsToFight(enemy))
+        if (!this.WantsToFight(enemy)) // You don't want to fight the enemy
         {
-            // this is what happens if estimated strength is greater than our strength
+            // this is what happens if their estimated strength is greater than our strength
 
-            // exact speed is greater, or enemy doesnt want to fight, or random small chance to escape
-            if (Abils.GetModifiedSpeed() < enemy.Abils.GetModifiedSpeed() || !enemy.WantsToFight(this) || GD.Randf() < 0.1f)
+            Boolean escaped = TryEscape(this, enemy);
+            if (!escaped)
             {
-                if (DesiredFood != null)
-                {
-                    Blacklist.Add(DesiredFood);
-                    DesiredFood.CurrentSeekers.Remove(this);
-                    DesiredFood = null;
-                    EatingTimeLeft = 0;
-                }
-            }
-            else    // fight happen
-            {
-                Creature loser = GetLoser(enemy);
-                Team winningTeam = (loser == enemy ? TeamObj : enemy.TeamObj);
-                winningTeam.TotalKills++;
-                MainObj.CreatureDeath(loser);
+                KillLoser(enemy); // fight occurs
             }
 
             // if speed > opponent speed
@@ -306,23 +291,51 @@ public class Creature : KinematicBody
         else
         {
             // we think we can take them since supposedly higher strength
-            // cue fighting
-
-            Creature loser = GetLoser(enemy);
-            Team winningTeam = (loser == enemy ? TeamObj : enemy.TeamObj);
-            winningTeam.TotalKills++;
-            MainObj.CreatureDeath(loser);
+            Boolean escaped = TryEscape(enemy, this);
+            if (!escaped)
+            {
+                KillLoser(enemy); // fight occurs
+            }
         }
+    }
+
+    public bool TryEscape(Creature escaper, Creature fighter)
+    // Can the first creature escape from the second
+    {
+        if (escaper.Abils.GetModifiedSpeed() > fighter.Abils.GetModifiedSpeed() || !fighter.WantsToFight(escaper) || GD.Randf() < 0.1f)
+        // exact speed is greater, or enemy doesnt want to fight, or random small chance to escape
+        {
+            if (escaper.DesiredFood != null)
+            {
+                escaper.Blacklist.Add(escaper.DesiredFood);
+                escaper.DesiredFood.CurrentSeekers.Remove(escaper);
+                escaper.DesiredFood = null;
+                escaper.EatingTimeLeft = 0;
+            }
+            return true;
+        }
+        else return false;
+    }
+
+    public void KillLoser(Creature enemy)
+    {
+        // killing mechanic
+        Creature loser = GetLoser(enemy);
+        Creature winner = (loser == enemy ? this : enemy);
+        winner.Kills++;
+        winner.TeamObj.TotalKills++;
+        winner.Abils.WonFight(winner.Abils.GetCombatScore(), loser.Abils.GetCombatScore());
+        MainObj.CreatureDeath(loser);
     }
 
     public Creature GetLoser(Creature enemy)
     {
+        // returns the loser of a fight
         Creature killedCreature = this;
         if (enemy.Abils.GetCombatScore() < Abils.GetCombatScore())   // defender has the slight edge in equal cases
         {
             killedCreature = enemy;
         }
-
         return killedCreature;
     }
 
@@ -330,15 +343,15 @@ public class Creature : KinematicBody
     {
         if (@event is InputEventMouseButton buttonEvent && buttonEvent.Pressed && (ButtonList)buttonEvent.ButtonIndex == ButtonList.Left && buttonEvent.Doubleclick)
         {
-            // do stuff
             MainObj.SelectCreature(this);
         }
     }
 
-    public Creature GetNearestMate()
+    public Creature GetNearestMate() // TODO: This doesnt work as intended sometimes, two blobs dont choose each other despite being close enough
     {
         if (!MainObj.IsNullOrQueued(Mate)) // This shouldnt happen
         {
+            GD.Print("Called GetNearestMate() to look for new mate but Mate is not null or queued");
             LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
             return Mate;
         }
@@ -427,31 +440,6 @@ public class Creature : KinematicBody
             // What to do if no available food within a blobs sight distance
         }
     }
-
-    /*
-    public void LookAtFood()
-    {
-        if (DesiredFood != null && !DesiredFood.IsQueuedForDeletion() && !DesiredFood.BeingAte) return;
-
-        //Vector3 loc = MainObj.GetNearestFoodLocation(this);
-        Food food = MainObj.GetNearestFoodLocation(this);
-        if (food != null)
-        {
-            LookAtFromPosition(Translation, food.Translation, Vector3.Up);
-            DesiredFood = food;
-            if (!food.CurrentSeekers.Contains(this))
-            {
-                food.CurrentSeekers.Add(this);
-            }
-        }
-        else
-        {
-
-            // What to do if no available food within a blobs sight distance
-            //RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));  // right now just have them turn randomly
-        }
-    }
-    */
 
     public void Eat(float delta)    // Assert that food better exist
     {

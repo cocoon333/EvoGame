@@ -8,8 +8,6 @@ public class Food : KinematicBody
     public Boolean Poisonous;
 
     public Boolean BeingAte;
-
-    //public Creature CurrentSeeker;
     public List<Creature> CurrentSeekers = new List<Creature>(2); // Change this if there are more than 2 teams
 
     
