@@ -38,7 +38,6 @@ public class Team : Node
         Rng.Randomize();
         GD.Randomize();
 
-        //StatsList = new List<float> { 50f, 50f, 50f, 50f, 50f, 50f, 50f };
         TeamAbilities = new Abilities();
         TeamAbilities.Initialize(new List<float> { 50f, 50f, 50f, 50f, 50f, 50f, 50f });
         TeamAbilities.Energy = 100;
@@ -95,6 +94,12 @@ public class Team : Node
         totalDeathAgeTime += creature.TimeAlive;
         CreatureCount--;
         TotalDeaths++;
+
+        if (TeamMembers.Count != CreatureCount)
+        {
+            GD.Print(TeamMembers.Count + " " + CreatureCount + "\n");
+        }
+
         creature.QueueFree();
     }
 
@@ -110,14 +115,14 @@ public class Team : Node
 
     public float GetAverageNumChildren()
     {
-        GD.Print(TeamMembers.Sum(creature => creature.NumChildren) + "\n");
-        GD.Print(TeamMembers.Count, "\n");
-        int test = 0;
-        foreach (Creature creature in TeamMembers)
-        {
-            test++;
-        }
-        GD.Print(test);
+        // GD.Print(TeamMembers.Sum(creature => creature.NumChildren) + "\n");
+        GD.Print(TeamMembers.Count + " " + CreatureCount + "\n");
+        // int test = 0;
+        // foreach (Creature creature in TeamMembers)
+        // {
+        //     test++;
+        // }
+        // GD.Print(test);
 
         return (TeamMembers.Sum(creature => creature.NumChildren) / TeamMembers.Count);
     }

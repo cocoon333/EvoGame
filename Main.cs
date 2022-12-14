@@ -42,11 +42,11 @@ public class Main : Node
         UpdateCreatureLabel(null);
         foreach (Food food in FoodList)
         {
-            food.QueueFree();
+            if (!IsNullOrQueued(food)) food.QueueFree();
         }
 
 
-        for (int i = 0; i < 15; i++)
+        for (int i = 0; i < 4; i++)
         {
             SpawnFood();
         }
@@ -61,7 +61,7 @@ public class Main : Node
             Node teamParent = GetNode<Node>("TeamParent");
             teamParent.AddChild(team);
 
-            for (int j = 0; j < 8; j++)
+            for (int j = 0; j < 2; j++)
             {
                 SpawnCreature(team);
             }
