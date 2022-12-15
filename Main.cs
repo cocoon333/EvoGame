@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 public class Main : Node
 {
@@ -46,7 +47,7 @@ public class Main : Node
         }
 
 
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 150; i++)
         {
             SpawnFood();
         }
@@ -61,7 +62,7 @@ public class Main : Node
             Node teamParent = GetNode<Node>("TeamParent");
             teamParent.AddChild(team);
 
-            for (int j = 0; j < 2; j++)
+            for (int j = 0; j < 100; j++)
             {
                 SpawnCreature(team);
             }
@@ -102,7 +103,7 @@ public class Main : Node
 
         if (creature.TeamObj.CreatureCount == 0)
         {
-            GameOver();
+            //GameOver();
         }
     }
 
@@ -191,19 +192,37 @@ public class Main : Node
     public List<Creature> GetAllCreaturesInSight(Creature creature)
     {
         List<Creature> allCreatures = new List<Creature>();
+        List<Creature> allCreaturesTwo = new List<Creature>();
         foreach (Team team in TeamsList)
         {
             allCreatures.AddRange(team.TeamMembers);
         }
-        allCreatures.Remove(creature);
-        return allCreatures;
+
+        foreach (Creature otherCreature in allCreatures)
+        {
+            if (!IsNullOrQueued(otherCreature) && otherCreature.Translation.DistanceTo(creature.Translation) < creature.Abils.GetModifiedSight() && creature != otherCreature)
+            {
+                allCreaturesTwo.Add(otherCreature);
+            }
+        }
+
+        return allCreaturesTwo;
     }
 
     public List<Creature> GetAllTeamMembersInSight(Creature creature)
     {
-        List<Creature> teamMembers = creature.TeamObj.TeamMembers;
-        teamMembers.Remove(creature);
-        return teamMembers;
+        // finds the team members in the sight of a creature
+        List<Creature> teamMembers = new List<Creature>();
+        List<Creature> teamMembersTwo = new List<Creature>();
+        teamMembers.AddRange(creature.TeamObj.TeamMembers);
+        foreach (Creature otherCreature in teamMembers)
+        {
+            if (!IsNullOrQueued(otherCreature) && otherCreature.Translation.DistanceTo(creature.Translation) < creature.Abils.GetModifiedSight() && creature != otherCreature)
+            {
+                teamMembersTwo.Add(otherCreature);
+            }
+        }
+        return teamMembersTwo;
     }
 
     public Boolean IsNullOrQueued(Node node)

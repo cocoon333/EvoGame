@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 public class Team : Node
@@ -42,6 +43,7 @@ public class Team : Node
         TeamAbilities.Initialize(new List<float> { 50f, 50f, 50f, 50f, 50f, 50f, 50f });
         TeamAbilities.Energy = 100;
         TeamMembers = new List<Creature>();
+        Debug.Assert(TeamMembers.Count == 0);
     }
 
     public List<float> GetStats()
@@ -95,11 +97,6 @@ public class Team : Node
         CreatureCount--;
         TotalDeaths++;
 
-        if (TeamMembers.Count != CreatureCount)
-        {
-            GD.Print(TeamMembers.Count + " " + CreatureCount + "\n");
-        }
-
         creature.QueueFree();
     }
 
@@ -115,15 +112,6 @@ public class Team : Node
 
     public float GetAverageNumChildren()
     {
-        // GD.Print(TeamMembers.Sum(creature => creature.NumChildren) + "\n");
-        GD.Print(TeamMembers.Count + " " + CreatureCount + "\n");
-        // int test = 0;
-        // foreach (Creature creature in TeamMembers)
-        // {
-        //     test++;
-        // }
-        // GD.Print(test);
-
         return (TeamMembers.Sum(creature => creature.NumChildren) / TeamMembers.Count);
     }
 

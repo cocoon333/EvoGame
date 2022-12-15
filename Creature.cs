@@ -29,10 +29,16 @@ public class Creature : KinematicBody
 
     public Boolean Selected = false;
 
+    Creature thisCreature;
+
+    public List<Food> VisibleFood;
+    public List<Creature> VisibleTeamMembers;
+    public List<Creature> VisibleEnemies;
+
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
-        return;
+        thisCreature = this;
     }
 
     public void Initialize(Vector3 spawnLoc)
@@ -61,6 +67,9 @@ public class Creature : KinematicBody
             material1.AlbedoColor = color1;
             material2.AlbedoColor = color2;
         }
+
+        SphereShape sphere = (SphereShape)(GetNode<CollisionShape>("SightDetector/CollisionShape")).Shape;
+        sphere.Radius = Abils.GetModifiedSight();
     }
 
     public void UpdateColor()
@@ -93,6 +102,11 @@ public class Creature : KinematicBody
 
     public override void _PhysicsProcess(float delta)
     {
+        if (IsQueuedForDeletion())
+        {
+            return;
+        }
+
         TimeAlive += delta;
 
         Abils.Energy -= (Abils.EnergyLoss * delta);
@@ -145,15 +159,17 @@ public class Creature : KinematicBody
 
                     if (Translation.DistanceTo(Mate.Translation) < 3)
                     {
-                        MainObj.SpawnCreature(Translation, TeamObj);
+                        Mate.Mate = null;
+
                         Mate.Abils.SetEnergy(Mate.Abils.GetEnergy() - 60);
                         Abils.SetEnergy(Abils.GetEnergy() - 60);
 
                         NumChildren++;
                         Mate.NumChildren++;
 
-                        Mate.Mate = null;
                         Mate = null;
+
+                        MainObj.SpawnCreature(Translation, TeamObj);
                     }
                 }
             }
@@ -186,7 +202,7 @@ public class Creature : KinematicBody
                         }
                         break;
                     }
-                    else if (collision.Collider is Creature && creat.TeamObj.TeamNumber != TeamObj.TeamNumber)
+                    else if (collision.Collider is Creature && creat.TeamObj != TeamObj)
                     {
                         //Fight(creat);
                     }
@@ -231,7 +247,7 @@ public class Creature : KinematicBody
             {
                 if (creature != this)
                 {
-                    if (creature.TeamObj.TeamNumber == TeamObj.TeamNumber) { GD.Print("Friendly fire has occured"); }
+                    if (creature.TeamObj == TeamObj) { GD.Print("Friendly fire has occured"); }
                     enemy = creature;
                     break;
                 }
@@ -397,7 +413,7 @@ public class Creature : KinematicBody
                 Boolean isAllyCloser = false;
                 foreach (Creature seeker in seekers)
                 {
-                    if (!MainObj.IsNullOrQueued(seeker) && seeker.TeamObj.TeamNumber == TeamObj.TeamNumber)
+                    if (!MainObj.IsNullOrQueued(seeker) && seeker.TeamObj == TeamObj)
                     {
                         float timeAlly = (seeker.Translation.DistanceTo(food.Translation)) / seeker.Abils.GetModifiedSpeed();
                         if (timeToFood > timeAlly || seeker.EatingTimeLeft > 0) // if u r eating already, u are "closer"
@@ -420,7 +436,7 @@ public class Creature : KinematicBody
             List<Creature> seekers = closestFood.CurrentSeekers;
             foreach (Creature ally in seekers)
             {
-                if (!MainObj.IsNullOrQueued(ally) && ally.TeamObj.TeamNumber == TeamObj.TeamNumber)
+                if (!MainObj.IsNullOrQueued(ally) && ally.TeamObj == TeamObj)
                 {
                     ally.DesiredFood = null;
                     seekers.Remove(ally);    // concurrent modification exception just isnt a thing apparently
@@ -446,5 +462,49 @@ public class Creature : KinematicBody
         if (DesiredFood == null) GD.Print(EatingTimeLeft);  // This should never happen
         Abils.Energy += (DesiredFood.Replenishment * (DesiredFood.Poisonous ? -1 : 1) * delta) / Abils.EatingTime;
         Abils.Energy = Math.Min(Abils.Energy, Abils.ENERGY_MAX); // Energy capped at 150
+    }
+
+    public void OnSightDetectorBodyEntered(Node node)
+    {
+        if (MainObj.IsNullOrQueued(node)) return;
+
+        // add Node to list
+        if (node is Food food)
+        {
+            VisibleFood.Add(food);
+        }
+        else if (node is Creature creature)
+        {
+            if (creature.TeamObj == TeamObj)
+            {
+                VisibleTeamMembers.Add(creature);
+            }
+            else
+            {
+                VisibleEnemies.Add(creature);
+            }
+        }
+
+    }
+
+    public void OnSightDetectorBodyExited(Node node)
+    {
+        if (MainObj.IsNullOrQueued(node)) GD.Print("removing null or queued item big L");
+        if (node is Food food)
+        {
+            VisibleFood.Remove(food);
+        }
+        else if (node is Creature creature)
+        {
+            if (creature.TeamObj == TeamObj)
+            {
+                VisibleTeamMembers.Remove(creature);
+            }
+            else
+            {
+                VisibleEnemies.Remove(creature);
+            }
+        }
+
     }
 }
