@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=2]
+[gd_scene load_steps=12 format=2]
 
 [ext_resource path="res://Creature.cs" type="Script" id=1]
 [ext_resource path="res://Abilities.cs" type="Script" id=2]
@@ -31,6 +31,10 @@ height = 0.8
 [sub_resource type="SpatialMaterial" id=8]
 resource_local_to_scene = true
 albedo_color = Color( 0, 0, 0, 1 )
+
+[sub_resource type="CylinderShape" id=9]
+height = 0.001
+radius = 2.739
 
 [node name="Creature" type="KinematicBody" groups=["blobs"]]
 collision_mask = 5
@@ -66,5 +70,15 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55, 0 )
 mesh = SubResource( 7 )
 material/0 = SubResource( 8 )
 
+[node name="SightDetector" type="Area" parent="."]
+collision_layer = 0
+collision_mask = 3
+monitorable = false
+
+[node name="CollisionShape" type="CollisionShape" parent="SightDetector"]
+shape = SubResource( 9 )
+
 [connection signal="body_entered" from="FoodDetector" to="." method="OnFoodDetectorBodyEntered"]
 [connection signal="input_event" from="FoodDetector" to="." method="OnFoodDetectorInputEvent"]
+[connection signal="body_entered" from="SightDetector" to="." method="OnSightDetectorBodyEntered"]
+[connection signal="body_exited" from="SightDetector" to="." method="OnSightDetectorBodyExited"]

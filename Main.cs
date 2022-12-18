@@ -179,9 +179,10 @@ public class Main : Node
     public List<Food> GetAllFoodInSight(Creature creature)
     {
         List<Food> allFood = new List<Food>();
+        float sightSquared = Mathf.Pow(creature.Abils.GetModifiedSight(), 2);
         foreach (Food food in FoodList)
         {
-            if (!IsNullOrQueued(food) && food.Translation.DistanceTo(creature.Translation) < creature.Abils.GetModifiedSight())
+            if (!IsNullOrQueued(food) && food.Translation.DistanceSquaredTo(creature.Translation) < sightSquared)
             {
                 allFood.Add(food);
             }
@@ -198,9 +199,11 @@ public class Main : Node
             allCreatures.AddRange(team.TeamMembers);
         }
 
+        float sightSquared = Mathf.Pow(creature.Abils.GetModifiedSight(), 2);
+
         foreach (Creature otherCreature in allCreatures)
         {
-            if (!IsNullOrQueued(otherCreature) && otherCreature.Translation.DistanceTo(creature.Translation) < creature.Abils.GetModifiedSight() && creature != otherCreature)
+            if (!IsNullOrQueued(otherCreature) && otherCreature.Translation.DistanceSquaredTo(creature.Translation) < sightSquared && creature != otherCreature)
             {
                 allCreaturesTwo.Add(otherCreature);
             }
@@ -215,9 +218,10 @@ public class Main : Node
         List<Creature> teamMembers = new List<Creature>();
         List<Creature> teamMembersTwo = new List<Creature>();
         teamMembers.AddRange(creature.TeamObj.TeamMembers);
+        float sightSquared = Mathf.Pow(creature.Abils.GetModifiedSight(), 2);
         foreach (Creature otherCreature in teamMembers)
         {
-            if (!IsNullOrQueued(otherCreature) && otherCreature.Translation.DistanceTo(creature.Translation) < creature.Abils.GetModifiedSight() && creature != otherCreature)
+            if (!IsNullOrQueued(otherCreature) && otherCreature.Translation.DistanceSquaredTo(creature.Translation) < sightSquared && creature != otherCreature)
             {
                 teamMembersTwo.Add(otherCreature);
             }
