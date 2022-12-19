@@ -10,9 +10,14 @@ public class Food : StaticBody
     public Boolean BeingAte;
     public List<Creature> CurrentSeekers = new List<Creature>(2); // Change this if there are more than 2 teams
 
+    SpatialMaterial PoisonousColor = new SpatialMaterial();
+
 
     // Called when the node enters the scene tree for the first time.
-
+    public override void _Ready()
+    {
+        PoisonousColor.AlbedoColor = new Color((175 / 256.0f), 0, 0);
+    }
     public void Initialize(int replenishment, Boolean poisonous, Vector3 spawnLoc)
     {
         Replenishment = replenishment;
@@ -20,14 +25,8 @@ public class Food : StaticBody
 
         if (Poisonous)
         {
-            // TODO: in the future, have two SpatialMaterial static objects defined
-            // one for red and one for green and then materials dont need to be local to scene
-            // maybe it saves memory
             MeshInstance meshInst = GetNode<MeshInstance>("MeshInstance");
-            SpatialMaterial material = (SpatialMaterial)meshInst.GetActiveMaterial(0);
-            Color color = material.AlbedoColor;
-            color = new Color((175 / 256.0f), 0, 0, color.a);
-            material.AlbedoColor = color;
+            meshInst.MaterialOverride = PoisonousColor;
         }
 
         if (spawnLoc == null)

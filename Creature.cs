@@ -53,21 +53,11 @@ public class Creature : KinematicBody
 
         cacheTime = GD.Randf() / MainObj.TicksPerSecond;
 
-        if (TeamObj.TeamNumber == 1)
-        {
-            MeshInstance hat1 = GetNode<MeshInstance>("Hat1");
-            SpatialMaterial material1 = (SpatialMaterial)hat1.GetActiveMaterial(0);
-            Color color1 = material1.AlbedoColor;
-
-            MeshInstance hat2 = GetNode<MeshInstance>("Hat2");
-            SpatialMaterial material2 = (SpatialMaterial)hat2.GetActiveMaterial(0);
-            Color color2 = material2.AlbedoColor;
-            color1.r = color1.g = color1.b = color2.r = color2.g = color2.b = 1;
-
-            material1.AlbedoColor = color1;
-            material2.AlbedoColor = color2;
-        }
-
+        
+        MeshInstance hat1 = GetNode<MeshInstance>("Hat1");
+        MeshInstance hat2 = GetNode<MeshInstance>("Hat2");
+        hat1.MaterialOverride = TeamObj.TeamColor;
+        hat2.MaterialOverride = TeamObj.TeamColor;
     }
 
     public void UpdateColor()
@@ -176,6 +166,12 @@ public class Creature : KinematicBody
                 else
                 {
                     LookAtClosestFood();
+
+                    if (DesiredFood != null && this.Translation.DistanceSquaredTo(DesiredFood.Translation) < 5)
+                    {
+                        // just over distance of 2 (food and creature have radius 1) to be safe
+                        StartEatingFood();
+                    }
                 }
             }
             else
@@ -241,14 +237,14 @@ public class Creature : KinematicBody
         return canMate;
     }
 
-    public void OnFoodDetectorBodyEntered(Node body)
+    public void StartEatingFood()
     {
-        if (!(body is Food food) || food != DesiredFood) return;
+        if (DesiredFood == null) GD.Print("Started eating food but desired food was null");
 
         Creature enemy = null;
-        if (food.BeingAte)
+        if (DesiredFood.BeingAte)
         {
-            foreach (Creature creature in food.CurrentSeekers)
+            foreach (Creature creature in DesiredFood.CurrentSeekers)
             {
                 if (creature != this)
                 {
@@ -259,7 +255,7 @@ public class Creature : KinematicBody
             }
         }
 
-        food.BeingAte = true;
+        DesiredFood.BeingAte = true;
         EatingTimeLeft = Abils.EatingTime;
 
         if (enemy != null)

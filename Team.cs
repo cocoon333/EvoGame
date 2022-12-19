@@ -32,6 +32,7 @@ public class Team : Node
     public int TotalKills;
 
     float totalDeathAgeTime;
+    public SpatialMaterial TeamColor;
 
     public void Initialize()
     {
@@ -44,6 +45,9 @@ public class Team : Node
         TeamAbilities.Energy = 100;
         TeamMembers = new List<Creature>();
         Debug.Assert(TeamMembers.Count == 0);
+
+        TeamColor = new SpatialMaterial();
+        TeamColor.AlbedoColor = new Color(TeamNumber, TeamNumber, TeamNumber); // this only works for team 0 and 1, black and white
     }
 
     public List<float> GetStats()

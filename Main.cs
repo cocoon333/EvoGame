@@ -48,6 +48,7 @@ public class Main : Node
         {
             if (!IsNullOrQueued(food)) food.QueueFree();
         }
+        FoodList.Clear();
 
 
         for (int i = 0; i < 250; i++)
