@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 public class Creature : KinematicBody
 {
@@ -23,15 +24,13 @@ public class Creature : KinematicBody
 
     private Vector3 _velocity = Vector3.Zero;
 
+    float cacheTime;
+
     Main MainObj;
     SpatialMaterial Material;
     List<Food> Blacklist = new List<Food>();
 
     public Boolean Selected = false;
-
-    public List<Food> VisibleFood = new List<Food>();
-    public List<Creature> VisibleTeamMembers = new List<Creature>();
-    public List<Creature> VisibleEnemies = new List<Creature>();
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
@@ -41,6 +40,7 @@ public class Creature : KinematicBody
 
     public void Initialize(Vector3 spawnLoc)
     {
+
         Translation = spawnLoc;
         Abils = GetNode<Abilities>("Abilities");
         TeamObj = (Team)GetParent();
@@ -50,6 +50,8 @@ public class Creature : KinematicBody
 
         MeshInstance meshInst = GetNode<MeshInstance>("MeshInstance");
         Material = (SpatialMaterial)meshInst.GetActiveMaterial(0);
+
+        cacheTime = GD.Randf() / MainObj.TicksPerSecond;
 
         if (TeamObj.TeamNumber == 1)
         {
@@ -66,8 +68,6 @@ public class Creature : KinematicBody
             material2.AlbedoColor = color2;
         }
 
-        CylinderShape cylinder = (CylinderShape)(GetNode<CollisionShape>("SightDetector/CollisionShape")).Shape;
-        cylinder.Radius = Abils.GetModifiedSight();
     }
 
     public void UpdateColor()
@@ -129,50 +129,58 @@ public class Creature : KinematicBody
 
             _velocity = MoveAndSlide(_velocity);
 
-            if (CanMate())
+            if (cacheTime > (1 / MainObj.TicksPerSecond))
             {
-                if (DesiredFood != null)
+                cacheTime -= (1 / MainObj.TicksPerSecond);
+                if (CanMate())
                 {
-                    DesiredFood.BeingAte = false;
-                    DesiredFood.CurrentSeekers.Remove(this);
-                    DesiredFood = null;
-                }
-
-                if (MainObj.IsNullOrQueued(Mate))
-                {
-                    Mate = GetNearestMate();
-
-                    if (Mate != null)
+                    if (DesiredFood != null)
                     {
-                        Mate.Mate = this;
+                        DesiredFood.BeingAte = false;
+                        DesiredFood.CurrentSeekers.Remove(this);
+                        DesiredFood = null;
+                    }
 
+                    if (MainObj.IsNullOrQueued(Mate))
+                    {
+                        Mate = GetNearestMate();
+
+                        if (Mate != null)
+                        {
+                            Mate.Mate = this;
+
+                            LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
+                            Mate.LookAtFromPosition(Mate.Translation, Translation, Vector3.Up);
+                        }
+                    }
+                    else
+                    {
                         LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
                         Mate.LookAtFromPosition(Mate.Translation, Translation, Vector3.Up);
+
+                        if (Translation.DistanceSquaredTo(Mate.Translation) < 9)
+                        {
+                            Mate.Abils.SetEnergy(Mate.Abils.GetEnergy() - 60);
+                            Abils.SetEnergy(Abils.GetEnergy() - 60);
+
+                            NumChildren++;
+                            Mate.NumChildren++;
+
+                            Mate.Mate = null;
+                            Mate = null;
+
+                            MainObj.SpawnCreature(Translation, TeamObj);
+                        }
                     }
                 }
                 else
                 {
-                    LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
-                    Mate.LookAtFromPosition(Mate.Translation, Translation, Vector3.Up);
-
-                    if (Translation.DistanceTo(Mate.Translation) < 3)
-                    {
-                        Mate.Abils.SetEnergy(Mate.Abils.GetEnergy() - 60);
-                        Abils.SetEnergy(Abils.GetEnergy() - 60);
-
-                        NumChildren++;
-                        Mate.NumChildren++;
-
-                        Mate.Mate = null;
-                        Mate = null;
-
-                        MainObj.SpawnCreature(Translation, TeamObj);
-                    }
+                    LookAtClosestFood();
                 }
             }
             else
             {
-                LookAtClosestFood();
+                cacheTime += delta;
             }
 
 
@@ -369,16 +377,16 @@ public class Creature : KinematicBody
             return Mate;
         }
 
-        //List<Creature> teamMembers = MainObj.GetAllTeamMembersInSight(this);
+        List<Creature> visibleTeamMembers = MainObj.GetAllTeamMembersInSight(this);
         Creature closestMate = null;
         float closestDistance = 1000000;
 
-        foreach (Creature teamMember in VisibleTeamMembers)
+        foreach (Creature teamMember in visibleTeamMembers)
         {
             if (MainObj.IsNullOrQueued(teamMember) || !teamMember.CanMate() || !MainObj.IsNullOrQueued(teamMember.Mate)) continue;
 
-            float distance = Translation.DistanceTo(teamMember.Translation);
-            if (distance < closestDistance && distance < teamMember.Abils.GetModifiedSight())
+            float distance = Translation.DistanceSquaredTo(teamMember.Translation);
+            if (distance < closestDistance && distance < Math.Pow(teamMember.Abils.GetModifiedSight(), 2))
             {
                 closestMate = teamMember;
                 closestDistance = distance;
@@ -392,16 +400,16 @@ public class Creature : KinematicBody
     {
         if (!MainObj.IsNullOrQueued(DesiredFood)) return;
 
-        //List<Food> allFood = MainObj.GetAllFoodInSight(this);
+        List<Food> visibleFood = MainObj.GetAllFoodInSight(this);
 
         float shortestTime = 1000000;
         Food closestFood = null;
 
-        foreach (Food food in VisibleFood)
+        foreach (Food food in visibleFood)
         {
             if (Blacklist.Contains(food)) continue;
 
-            float distance = Translation.DistanceTo(food.Translation);
+            float distance = Translation.DistanceSquaredTo(food.Translation);
             float timeToFood = distance / Abils.GetModifiedSpeed();
 
             if (timeToFood < shortestTime)
@@ -412,7 +420,7 @@ public class Creature : KinematicBody
                 {
                     if (!MainObj.IsNullOrQueued(seeker) && seeker.TeamObj == TeamObj)
                     {
-                        float timeAlly = (seeker.Translation.DistanceTo(food.Translation)) / seeker.Abils.GetModifiedSpeed();
+                        float timeAlly = (seeker.Translation.DistanceSquaredTo(food.Translation)) / seeker.Abils.GetModifiedSpeed();
                         if (timeToFood > timeAlly || seeker.EatingTimeLeft > 0) // if u r eating already, u are "closer"
                         {
                             isAllyCloser = true;
@@ -456,53 +464,9 @@ public class Creature : KinematicBody
 
     public void Eat(float delta)    // Assert that food better exist
     {
-        if (DesiredFood == null) GD.Print(EatingTimeLeft);  // This should never happen
+        Debug.Assert(DesiredFood != null);
         Abils.Energy += (DesiredFood.Replenishment * (DesiredFood.Poisonous ? -1 : 1) * delta) / Abils.EatingTime;
         Abils.Energy = Math.Min(Abils.Energy, Abils.ENERGY_MAX); // Energy capped at 150
     }
 
-    public void OnSightDetectorBodyEntered(Node node)
-    {
-        if (MainObj.IsNullOrQueued(node)) return;
-
-        // add Node to list
-        if (node is Food food)
-        {
-            VisibleFood.Add(food);
-        }
-        else if (node is Creature creature)
-        {
-            if (creature.TeamObj == TeamObj)
-            {
-                if (creature != this) VisibleTeamMembers.Add(creature);
-            }
-            else
-            {
-                VisibleEnemies.Add(creature);
-            }
-        }
-
-    }
-
-    public void OnSightDetectorBodyExited(Node node)
-    {
-        if (node == null) GD.Print("removing null item big L");
-
-        if (node is Food food)
-        {
-            VisibleFood.Remove(food);
-        }
-        else if (node is Creature creature)
-        {
-            if (creature.TeamObj == TeamObj)
-            {
-                VisibleTeamMembers.Remove(creature);
-            }
-            else
-            {
-                VisibleEnemies.Remove(creature);
-            }
-        }
-
-    }
 }

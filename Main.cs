@@ -17,12 +17,15 @@ public class Main : Node
 
     public Boolean Dragging = false;
 
+
     Creature SelectedCreature = null;
 
     List<Team> TeamsList = new List<Team>();
 
     int FoodCount = 0;
     List<Food> FoodList = new List<Food>();
+
+    public int TicksPerSecond = 10;
 
     Team PlayerTeam;
 
@@ -47,12 +50,12 @@ public class Main : Node
         }
 
 
-        for (int i = 0; i < 150; i++)
+        for (int i = 0; i < 250; i++)
         {
             SpawnFood();
         }
 
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < 1; i++)
         {
             Team team = (Team)TeamScene.Instance();
             team.TeamNumber = i;
@@ -62,7 +65,7 @@ public class Main : Node
             Node teamParent = GetNode<Node>("TeamParent");
             teamParent.AddChild(team);
 
-            for (int j = 0; j < 100; j++)
+            for (int j = 0; j < 350; j++)
             {
                 SpawnCreature(team);
             }
