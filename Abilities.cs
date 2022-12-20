@@ -21,6 +21,9 @@ public class Abilities : Node
     public float ENERGY_MAX = 150;
 
     public float ENERGY_MODIFIER = 0.2f;
+
+    public float Hydration;
+    public float HydrationLoss;
     public void Initialize(float speed, float strength, float intelligence, float libido, float sight, float endurance, float concealment)
     {
         //TODO: might be useless and should delete in the future but keeping it for now
@@ -34,7 +37,9 @@ public class Abilities : Node
 
         //Calculate these stats
         Energy = 50;
+        Hydration = 50;
         EnergyLoss = (100 - GetModifiedEndurance()) / 100f * 5;
+        HydrationLoss = (100 - GetModifiedEndurance()) / 100f * 5;
     }
 
     public void Initialize(List<float> stats)

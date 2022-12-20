@@ -26,6 +26,8 @@ public class Creature : KinematicBody
 
     float cacheTime;
 
+    bool inWater;
+
     Main MainObj;
     SpatialMaterial Material;
     List<Food> Blacklist = new List<Food>();
@@ -98,8 +100,9 @@ public class Creature : KinematicBody
         TimeAlive += delta;
 
         Abils.Energy -= (Abils.EnergyLoss * delta);
+        Abils.Hydration -= (Abils.HydrationLoss* delta);
 
-        if (Abils.Energy <= 0)
+        if (Abils.Energy <= 0 || Abils.Hydration <= 0)
         {
             // TODO: make it so health depletes rapidly when energy is 0
             // blob is dead
@@ -107,7 +110,10 @@ public class Creature : KinematicBody
             return;
         }
 
-        if (EatingTimeLeft <= 0)
+        if (DesiredFood == null && this.inWater && this.Abils.Hydration != 150) {
+            Drink(delta);
+        }
+        else if (EatingTimeLeft <= 0)
         {
             _velocity = Vector3.Forward * Abils.GetModifiedSpeed() / 2;
             _velocity = _velocity.Rotated(Vector3.Up, Rotation.y);
@@ -165,12 +171,18 @@ public class Creature : KinematicBody
                 }
                 else
                 {
-                    LookAtClosestFood();
+                    if (Abils.Energy < Abils.Hydration) { // TODO: more detailed calculation in the future for which will run out first
+                        LookAtClosestFood();
+                    } else {
+                        LookAtClosestWater();
+                    }
 
-                    if (DesiredFood != null && this.Translation.DistanceSquaredTo(DesiredFood.Translation) < 5)
+                    if (DesiredFood != null && this.Translation.DistanceSquaredTo(DesiredFood.Translation) < 4.1)
                     {
                         // just over distance of 2 (food and creature have radius 1) to be safe
                         StartEatingFood();
+                    } else if (this.inWater) { // TODO: temporary boolean for in water or not, may change into some method or different variable later
+                        StartDrinkingWater();
                     }
                 }
             }
@@ -264,6 +276,12 @@ public class Creature : KinematicBody
             // this blob is the second to arrive to the food and can now determine whether or not a fight occurs
             Fight(enemy);
         }
+    }
+
+    public void StartDrinkingWater() {
+        DesiredFood = null;
+        Creature enemy = null;
+        // if creature is drinking same water with enemy go for a fight?
     }
 
     public Boolean WantsToFight(Creature enemy)
@@ -463,6 +481,10 @@ public class Creature : KinematicBody
         Debug.Assert(DesiredFood != null);
         Abils.Energy += (DesiredFood.Replenishment * (DesiredFood.Poisonous ? -1 : 1) * delta) / Abils.EatingTime;
         Abils.Energy = Math.Min(Abils.Energy, Abils.ENERGY_MAX); // Energy capped at 150
+    }
+
+    public void Drink(float delta) {
+        Abils.Hydration += 
     }
 
 }
