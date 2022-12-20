@@ -27,6 +27,7 @@ public class Creature : KinematicBody
     float cacheTime;
 
     bool inWater;
+    const int WATER_REPLENISHMENT = 40;
 
     Main MainObj;
     SpatialMaterial Material;
@@ -55,7 +56,7 @@ public class Creature : KinematicBody
 
         cacheTime = GD.Randf() / MainObj.TicksPerSecond;
 
-        
+
         MeshInstance hat1 = GetNode<MeshInstance>("Hat1");
         MeshInstance hat2 = GetNode<MeshInstance>("Hat2");
         hat1.MaterialOverride = TeamObj.TeamColor;
@@ -100,7 +101,7 @@ public class Creature : KinematicBody
         TimeAlive += delta;
 
         Abils.Energy -= (Abils.EnergyLoss * delta);
-        Abils.Hydration -= (Abils.HydrationLoss* delta);
+        Abils.Hydration -= (Abils.HydrationLoss * delta);
 
         if (Abils.Energy <= 0 || Abils.Hydration <= 0)
         {
@@ -110,7 +111,8 @@ public class Creature : KinematicBody
             return;
         }
 
-        if (DesiredFood == null && this.inWater && this.Abils.Hydration != 150) {
+        if (DesiredFood == null && this.inWater && this.Abils.Hydration != 150)
+        {
             Drink(delta);
         }
         else if (EatingTimeLeft <= 0)
@@ -171,9 +173,12 @@ public class Creature : KinematicBody
                 }
                 else
                 {
-                    if (Abils.Energy < Abils.Hydration) { // TODO: more detailed calculation in the future for which will run out first
+                    if (Abils.Energy < Abils.Hydration)
+                    { // TODO: more detailed calculation in the future for which will run out first
                         LookAtClosestFood();
-                    } else {
+                    }
+                    else
+                    {
                         LookAtClosestWater();
                     }
 
@@ -181,7 +186,9 @@ public class Creature : KinematicBody
                     {
                         // just over distance of 2 (food and creature have radius 1) to be safe
                         StartEatingFood();
-                    } else if (this.inWater) { // TODO: temporary boolean for in water or not, may change into some method or different variable later
+                    }
+                    else if (this.inWater)
+                    { // TODO: temporary boolean for in water or not, may change into some method or different variable later
                         StartDrinkingWater();
                     }
                 }
@@ -278,7 +285,8 @@ public class Creature : KinematicBody
         }
     }
 
-    public void StartDrinkingWater() {
+    public void StartDrinkingWater()
+    {
         DesiredFood = null;
         Creature enemy = null;
         // if creature is drinking same water with enemy go for a fight?
@@ -476,6 +484,12 @@ public class Creature : KinematicBody
         }
     }
 
+
+    public void LookAtClosestWater()
+    {
+        // finds and looks at closest water tile
+    }
+
     public void Eat(float delta)    // Assert that food better exist
     {
         Debug.Assert(DesiredFood != null);
@@ -483,8 +497,9 @@ public class Creature : KinematicBody
         Abils.Energy = Math.Min(Abils.Energy, Abils.ENERGY_MAX); // Energy capped at 150
     }
 
-    public void Drink(float delta) {
-        Abils.Hydration += 
+    public void Drink(float delta)
+    {
+        Abils.Hydration += WATER_REPLENISHMENT * delta;
     }
 
 }
