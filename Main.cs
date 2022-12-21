@@ -236,11 +236,14 @@ public class Main : Node
     public Boolean IsInWater(Creature creature)
     {
         MeshInstance ground = GetNode<MeshInstance>("ArenaNodes/Ground/MeshInstance");
-        ShaderMaterial shader = (ShaderMaterial)ground.GetActiveMaterial(0);    
+        ShaderMaterial shader = (ShaderMaterial)ground.GetActiveMaterial(0);
         NoiseTexture noise = (NoiseTexture)shader.GetShaderParam("noise");
         OpenSimplexNoise openNoise = noise.Noise;
+        float height = openNoise.GetNoise2d(creature.Translation.x / 100 + 0.5f, creature.Translation.z / 100 + 0.5f);
+        GD.Print(openNoise.GetNoise2d(512, 513));
+        /*
         Vector2 vector = new Vector2((creature.Translation.x / 100.0f) + 0.5f, (creature.Translation.z / 100.0f) + 0.5f);
-        float height = 20 * ((openNoise.GetNoise2dv(vector) + 1) / 2.0f);
+        float height = 20 * ((openNoise.GetNoise2dv(vector).x + 1) / 2.0f);
         noise.GetData().Lock();
         float height2 = 20 * noise.GetData().GetPixelv(vector).r;
         noise.GetData().Unlock();
@@ -248,10 +251,12 @@ public class Main : Node
         {
             GD.Print(height + " " + height2);
         }
+        */
 
         float waterlevel = (float)shader.GetShaderParam("waterlevel");
+        Debug.Assert(openNoise.Seed == 0);
 
-        return (height < waterlevel);
+        return (height < 0);
 
     }
 
