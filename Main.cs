@@ -66,7 +66,7 @@ public class Main : Node
             Node teamParent = GetNode<Node>("TeamParent");
             teamParent.AddChild(team);
 
-            for (int j = 0; j < 350; j++)
+            for (int j = 0; j < 100; j++)
             {
                 SpawnCreature(team);
             }
@@ -231,6 +231,28 @@ public class Main : Node
             }
         }
         return teamMembersTwo;
+    }
+
+    public Boolean IsInWater(Creature creature)
+    {
+        MeshInstance ground = GetNode<MeshInstance>("ArenaNodes/Ground/MeshInstance");
+        ShaderMaterial shader = (ShaderMaterial)ground.GetActiveMaterial(0);    
+        NoiseTexture noise = (NoiseTexture)shader.GetShaderParam("noise");
+        OpenSimplexNoise openNoise = noise.Noise;
+        Vector2 vector = new Vector2((creature.Translation.x / 100.0f) + 0.5f, (creature.Translation.z / 100.0f) + 0.5f);
+        float height = 20 * ((openNoise.GetNoise2dv(vector) + 1) / 2.0f);
+        noise.GetData().Lock();
+        float height2 = 20 * noise.GetData().GetPixelv(vector).r;
+        noise.GetData().Unlock();
+        if (height != height2)
+        {
+            GD.Print(height + " " + height2);
+        }
+
+        float waterlevel = (float)shader.GetShaderParam("waterlevel");
+
+        return (height < waterlevel);
+
     }
 
     public Boolean IsNullOrQueued(Node node)

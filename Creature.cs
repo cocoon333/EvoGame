@@ -26,7 +26,6 @@ public class Creature : KinematicBody
 
     float cacheTime;
 
-    bool inWater;
     const int WATER_REPLENISHMENT = 40;
 
     Main MainObj;
@@ -66,7 +65,12 @@ public class Creature : KinematicBody
     public void UpdateColor()
     {
         Color color = Material.AlbedoColor;
-        if (Selected)
+
+        if (MainObj.IsInWater(this))
+        {
+            color = new Color(1, 1, 1, color.a);
+        }
+        else if (Selected)
         {
             color = new Color(1, (68 / 256.0f), (51 / 256.0f), color.a);
         }
@@ -111,7 +115,7 @@ public class Creature : KinematicBody
             return;
         }
 
-        if (DesiredFood == null && this.inWater && this.Abils.Hydration != 150)
+        if (DesiredFood == null && this.MainObj.IsInWater(this) && this.Abils.Hydration <= 150)
         {
             Drink(delta);
         }
@@ -187,7 +191,7 @@ public class Creature : KinematicBody
                         // just over distance of 2 (food and creature have radius 1) to be safe
                         StartEatingFood();
                     }
-                    else if (this.inWater)
+                    else if (this.MainObj.IsInWater(this) && DesiredFood == null)
                     { // TODO: temporary boolean for in water or not, may change into some method or different variable later
                         StartDrinkingWater();
                     }
@@ -287,8 +291,6 @@ public class Creature : KinematicBody
 
     public void StartDrinkingWater()
     {
-        DesiredFood = null;
-        Creature enemy = null;
         // if creature is drinking same water with enemy go for a fight?
     }
 

@@ -26,20 +26,8 @@ public class Abilities : Node
     public float HydrationLoss;
     public void Initialize(float speed, float strength, float intelligence, float libido, float sight, float endurance, float concealment)
     {
-        //TODO: might be useless and should delete in the future but keeping it for now
-        Speed = speed;
-        Strength = strength;
-        Intelligence = intelligence;
-        Libido = libido;
-        Sight = sight;
-        Endurance = endurance;
-        Concealment = concealment;
-
-        //Calculate these stats
-        Energy = 50;
-        Hydration = 50;
-        EnergyLoss = (100 - GetModifiedEndurance()) / 100f * 5;
-        HydrationLoss = (100 - GetModifiedEndurance()) / 100f * 5;
+        List<float> stats = new List<float>{speed, strength, intelligence, libido, sight, endurance, concealment};
+        Initialize(stats);
     }
 
     public void Initialize(List<float> stats)
@@ -54,7 +42,11 @@ public class Abilities : Node
 
         //Calculate these stats
         Energy = 50;
+        Hydration = 1000;
         EnergyLoss = (100 - GetModifiedEndurance()) / 100f * 5;
+        //HydrationLoss = (100 - GetModifiedEndurance()) / 100f * 5;
+        // TODO: Change hydration loss to actually exist once water is implemented
+        HydrationLoss = 0;
     }
 
     public float GetModifiedStat(float mainStat, float inverseStat)
