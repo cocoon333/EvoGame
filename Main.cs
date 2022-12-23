@@ -94,7 +94,7 @@ public class Main : Node
 
     public void SpawnCreature(Team team)
     {
-        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
+        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 10f, (float)GD.RandRange(-95, 95));
         SpawnCreature(spawnLoc, team);
     }
 
@@ -239,8 +239,8 @@ public class Main : Node
         ShaderMaterial shader = (ShaderMaterial)ground.GetActiveMaterial(0);
         NoiseTexture noise = (NoiseTexture)shader.GetShaderParam("noise");
         OpenSimplexNoise openNoise = noise.Noise;
-        float height = openNoise.GetNoise2d(creature.Translation.x / 100 + 0.5f, creature.Translation.z / 100 + 0.5f);
-        GD.Print(openNoise.GetNoise2d(512, 513));
+        float height = openNoise.GetNoise2d(creature.Translation.x, creature.Translation.z) * 10;
+        //GD.Print(openNoise.GetNoise2d(-512, 513));
         /*
         Vector2 vector = new Vector2((creature.Translation.x / 100.0f) + 0.5f, (creature.Translation.z / 100.0f) + 0.5f);
         float height = 20 * ((openNoise.GetNoise2dv(vector).x + 1) / 2.0f);
@@ -256,7 +256,7 @@ public class Main : Node
         float waterlevel = (float)shader.GetShaderParam("waterlevel");
         Debug.Assert(openNoise.Seed == 0);
 
-        return (height < 0);
+        return (height < waterlevel);
 
     }
 

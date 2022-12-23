@@ -76,7 +76,6 @@ public class Team : Node
         AddChild(creature);
 
         Abilities abils = (Abilities)creature.GetNode<Node>("Abilities");
-        float stats = (float)GD.RandRange(45, 50);
         abils.Initialize(GetStats());
 
         creature.Initialize(location);
