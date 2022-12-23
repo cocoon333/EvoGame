@@ -31,13 +31,13 @@ varying float y_position;
 void vertex()
 {
 	tex_position = VERTEX.xz;
-	float height = 10.0f*texture(noise, tex_position).x;
+	float height = texture(noise, (tex_position / 100.0) + 0.5).x;
 	
 	//y_position = VERTEX.y;
 	y_position = height;
-	VERTEX.y += height;
-	VERTEX.y = max(VERTEX.y, 3);
-	VERTEX.y -= 3.0f;
+	//VERTEX.y += height;
+	//VERTEX.y = max(VERTEX.y, 3);
+	//VERTEX.y -= 3.0f;
 }
 
 void fragment()
@@ -45,6 +45,8 @@ void fragment()
 	NORMALMAP = texture(normalmap, tex_position).xyz;
 	//METALLIC = 0.0;
   	//ROUGHNESS = 1.0;
+	
+	//ALBEDO = vec3(y_position, y_position, y_position); // grayscale noise map floor
 	
 	if (y_position <= waterlevel)
 	{
@@ -71,7 +73,7 @@ noise = SubResource( 29 )
 
 [sub_resource type="ShaderMaterial" id=24]
 shader = SubResource( 23 )
-shader_param/waterlevel = 4.0
+shader_param/waterlevel = 0.5
 shader_param/noise = SubResource( 27 )
 shader_param/normalmap = SubResource( 30 )
 
@@ -201,13 +203,16 @@ collision_mask = 0
 shape = SubResource( 1 )
 
 [node name="MeshInstance" type="MeshInstance" parent="ArenaNodes/Ground"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0 )
 mesh = SubResource( 25 )
 
 [node name="CollisionShape2" type="CollisionShape" parent="ArenaNodes/Ground"]
+visible = false
 shape = SubResource( 31 )
+disabled = true
 
 [node name="DirectionalLight" type="DirectionalLight" parent="ArenaNodes"]
-transform = Transform( 1, 0, 0, 0, 0.965926, 0.258819, 0, -0.258819, 0.965926, 0, 46, 53 )
+transform = Transform( 1, 0, 0, 0, -0.258819, 0.965926, 0, -0.965926, -0.258819, 0, 54, 42 )
 shadow_enabled = true
 directional_shadow_max_distance = 400.0
 

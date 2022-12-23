@@ -51,7 +51,7 @@ public class Main : Node
         FoodList.Clear();
 
 
-        for (int i = 0; i < 250; i++)
+        for (int i = 0; i < 200; i++)
         {
             SpawnFood();
         }
@@ -66,7 +66,7 @@ public class Main : Node
             Node teamParent = GetNode<Node>("TeamParent");
             teamParent.AddChild(team);
 
-            for (int j = 0; j < 100; j++)
+            for (int j = 0; j < 200; j++)
             {
                 SpawnCreature(team);
             }
@@ -94,7 +94,7 @@ public class Main : Node
 
     public void SpawnCreature(Team team)
     {
-        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 10f, (float)GD.RandRange(-95, 95));
+        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 2f, (float)GD.RandRange(-95, 95));
         SpawnCreature(spawnLoc, team);
     }
 
@@ -233,30 +233,22 @@ public class Main : Node
         return teamMembersTwo;
     }
 
-    public Boolean IsInWater(Creature creature)
+    public Boolean IsInWater(Vector3 location)
     {
         MeshInstance ground = GetNode<MeshInstance>("ArenaNodes/Ground/MeshInstance");
         ShaderMaterial shader = (ShaderMaterial)ground.GetActiveMaterial(0);
         NoiseTexture noise = (NoiseTexture)shader.GetShaderParam("noise");
         OpenSimplexNoise openNoise = noise.Noise;
-        float height = openNoise.GetNoise2d(creature.Translation.x, creature.Translation.z) * 10;
-        //GD.Print(openNoise.GetNoise2d(-512, 513));
-        /*
-        Vector2 vector = new Vector2((creature.Translation.x / 100.0f) + 0.5f, (creature.Translation.z / 100.0f) + 0.5f);
-        float height = 20 * ((openNoise.GetNoise2dv(vector).x + 1) / 2.0f);
-        noise.GetData().Lock();
-        float height2 = 20 * noise.GetData().GetPixelv(vector).r;
-        noise.GetData().Unlock();
-        if (height != height2)
-        {
-            GD.Print(height + " " + height2);
-        }
-        */
+        
+
+        Vector2 vector = new Vector2(((location.x / 200.0f) + 0.5f) * 512f, ((location.z / 200.0f) + 0.5f) * 512f);
+        float height = (openNoise.GetNoise2dv(vector) / 2.0f) + 0.5f;
+        
+        //GD.Print(location.ToString() + " Noise value " + height);
 
         float waterlevel = (float)shader.GetShaderParam("waterlevel");
-        Debug.Assert(openNoise.Seed == 0);
 
-        return (height < waterlevel);
+        return (height <= waterlevel*0.9f);
 
     }
 

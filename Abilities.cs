@@ -42,11 +42,9 @@ public class Abilities : Node
 
         //Calculate these stats
         Energy = 50;
-        Hydration = 1000;
+        Hydration = 50;
         EnergyLoss = (100 - GetModifiedEndurance()) / 100f * 5;
-        //HydrationLoss = (100 - GetModifiedEndurance()) / 100f * 5;
-        // TODO: Change hydration loss to actually exist once water is implemented
-        HydrationLoss = 0;
+        HydrationLoss = (100 - GetModifiedEndurance()) / 100f * 5;
     }
 
     public float GetModifiedStat(float mainStat, float inverseStat)
