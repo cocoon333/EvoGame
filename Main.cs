@@ -25,8 +25,6 @@ public class Main : Node
     int FoodCount = 0;
     List<Food> FoodList = new List<Food>();
 
-    public int TicksPerSecond = 10;
-
     Team PlayerTeam;
 
     // Called when the node enters the scene tree for the first time.

@@ -24,8 +24,6 @@ public class Creature : KinematicBody
 
     private Vector3 _velocity = Vector3.Zero;
 
-    float cacheTime;
-
     const int WATER_REPLENISHMENT = 20;
 
     Main MainObj;
@@ -53,8 +51,6 @@ public class Creature : KinematicBody
         MeshInstance meshInst = GetNode<MeshInstance>("MeshInstance");
         Material = (SpatialMaterial)meshInst.GetActiveMaterial(0);
 
-        cacheTime = GD.Randf() / MainObj.TicksPerSecond;
-
 
         MeshInstance hat1 = GetNode<MeshInstance>("Hat1");
         MeshInstance hat2 = GetNode<MeshInstance>("Hat2");
@@ -70,7 +66,7 @@ public class Creature : KinematicBody
         // {
         //     color = new Color(1, 1, 1, color.a);
         // }
-        
+
         if (Selected)
         {
             color = new Color(1, (68 / 256.0f), (51 / 256.0f), color.a);
@@ -132,75 +128,67 @@ public class Creature : KinematicBody
 
             _velocity = MoveAndSlide(_velocity);
 
-            if (cacheTime > (1 / MainObj.TicksPerSecond))
+            if (CanMate())
             {
-                cacheTime -= (1 / MainObj.TicksPerSecond);
-                if (CanMate())
+                if (DesiredFood != null)
                 {
-                    if (DesiredFood != null)
-                    {
-                        DesiredFood.BeingAte = false;
-                        DesiredFood.CurrentSeekers.Remove(this);
-                        DesiredFood = null;
-                    }
+                    DesiredFood.BeingAte = false;
+                    DesiredFood.CurrentSeekers.Remove(this);
+                    DesiredFood = null;
+                }
 
-                    if (MainObj.IsNullOrQueued(Mate))
-                    {
-                        Mate = GetNearestMate();
+                if (MainObj.IsNullOrQueued(Mate))
+                {
+                    Mate = GetNearestMate();
 
-                        if (Mate != null)
-                        {
-                            Mate.Mate = this;
-
-                            LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
-                            Mate.LookAtFromPosition(Mate.Translation, Translation, Vector3.Up);
-                        }
-                    }
-                    else
+                    if (Mate != null)
                     {
+                        Mate.Mate = this;
+
                         LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
                         Mate.LookAtFromPosition(Mate.Translation, Translation, Vector3.Up);
-
-                        if (Translation.DistanceSquaredTo(Mate.Translation) < 9)
-                        {
-                            Mate.Abils.SetEnergy(Mate.Abils.GetEnergy() - 60);
-                            Abils.SetEnergy(Abils.GetEnergy() - 60);
-
-                            NumChildren++;
-                            Mate.NumChildren++;
-
-                            Mate.Mate = null;
-                            Mate = null;
-
-                            MainObj.SpawnCreature(Translation, TeamObj);
-                        }
                     }
                 }
                 else
                 {
-                    if (Abils.Energy < Abils.Hydration)
-                    { // TODO: more detailed calculation in the future for which will run out first
-                        LookAtClosestFood();
-                    }
-                    else
-                    {
-                        LookAtClosestWater();
-                    }
+                    LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
+                    Mate.LookAtFromPosition(Mate.Translation, Translation, Vector3.Up);
 
-                    if (DesiredFood != null && this.Translation.DistanceSquaredTo(DesiredFood.Translation) < 4.1)
+                    if (Translation.DistanceSquaredTo(Mate.Translation) < 9)
                     {
-                        // just over distance of 2 (food and creature have radius 1) to be safe
-                        StartEatingFood();
-                    }
-                    else if (this.MainObj.IsInWater(this.Translation) && DesiredFood == null)
-                    { // TODO: temporary boolean for in water or not, may change into some method or different variable later
-                        StartDrinkingWater();
+                        Mate.Abils.SetEnergy(Mate.Abils.GetEnergy() - 60);
+                        Abils.SetEnergy(Abils.GetEnergy() - 60);
+
+                        NumChildren++;
+                        Mate.NumChildren++;
+
+                        Mate.Mate = null;
+                        Mate = null;
+
+                        MainObj.SpawnCreature(Translation, TeamObj);
                     }
                 }
             }
             else
             {
-                cacheTime += delta;
+                if (Abils.Energy <= Abils.Hydration)
+                { // TODO: more detailed calculation in the future for which will run out first
+                    LookAtClosestFood();
+                }
+                else
+                {
+                    LookAtClosestWater();
+                }
+
+                if (DesiredFood != null && this.Translation.DistanceSquaredTo(DesiredFood.Translation) < 4.1)
+                {
+                    // just over distance of 2 (food and creature have radius 1) to be safe
+                    StartEatingFood();
+                }
+                else if (this.MainObj.IsInWater(this.Translation) && DesiredFood == null)
+                { // TODO: temporary boolean for in water or not, may change into some method or different variable later
+                    StartDrinkingWater();
+                }
             }
 
 
@@ -504,5 +492,4 @@ public class Creature : KinematicBody
     {
         Abils.Hydration += WATER_REPLENISHMENT * delta;
     }
-
 }
