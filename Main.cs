@@ -23,7 +23,7 @@ public class Main : Node
     int FoodCount = 0;
     List<Food> FoodList = new List<Food>();
 
-    List<Vector3> WaterLocations = new List<Vector3>();
+    public List<List<int>> MapArray = new List<List<int>>();
 
     Team PlayerTeam;
 
@@ -35,6 +35,16 @@ public class Main : Node
 
     public void NewGame()
     {
+        for (int i = 0; i <= 200; i++)
+        {
+            MapArray.Add(new List<int>(512));
+            for (int j = 0; j <= 200; j++) // Not sure if this is necessary but maybe need to initialize all to 0s
+            {
+                MapArray[i].Add(0);
+            }
+        }
+        GenerateMap();
+
         foreach (Team team in TeamsList)
         {
             team.QueueFree();
@@ -48,9 +58,6 @@ public class Main : Node
             if (!IsNullOrQueued(food)) food.QueueFree();
         }
         FoodList.Clear();
-
-        WaterLocations.Clear();
-        WaterLocations = GenerateWaterLocations();
 
 
         for (int i = 0; i < 200; i++)
@@ -87,27 +94,19 @@ public class Main : Node
         scoreLabel.Visible = true;
     }
 
-    public List<Vector3> GenerateWaterLocations()
+    public void GenerateMap()
     {
-        List<Vector3> waterList = new List<Vector3>();
         for (int i = -100; i <= 100; i++)
         {
             for (int j = -100; j <= 100; j++)
             {
                 Vector3 location = new Vector3(i, 2, j);
-                if (IsInWater(location))
+                if (IsInWater(location, false)) // this explicitly does not exclude beaches in the MapArray
                 {
-                    waterList.Add(location); // this adds every pixel of water to the list not just beaches
+                    MapArray[i + 100][j + 100] = 1;
                 }
             }
         }
-
-        return waterList;
-    }
-
-    public List<Vector3> GetWaterLocations()
-    {
-        return WaterLocations;
     }
 
     public void SpawnCreature(Vector3 location, Team team)
@@ -132,7 +131,7 @@ public class Main : Node
 
         if (creature.TeamObj.CreatureCount == 0)
         {
-            //GameOver();
+            GameOver();
         }
     }
 
@@ -142,7 +141,11 @@ public class Main : Node
         Node foodParent = GetNode<Node>("FoodParent");
         foodParent.AddChild(food);
         Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
-        food.Initialize(25, (GD.Randf() < 0.2), spawnLoc);
+        while (IsInWater(spawnLoc, true))
+        {
+            spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
+        }
+        food.Initialize(25, (GD.Randf() < 0.2f), spawnLoc);
         FoodList.Add(food);
 
         GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, ++FoodCount);
@@ -258,22 +261,22 @@ public class Main : Node
         return teamMembersTwo;
     }
 
-    public Boolean IsInWater(Vector3 location)
+    public Boolean IsInWater(Vector3 location, Boolean includeBeaches)
     {
         MeshInstance ground = GetNode<MeshInstance>("ArenaNodes/Ground/MeshInstance");
         ShaderMaterial shader = (ShaderMaterial)ground.GetActiveMaterial(0);
         NoiseTexture noise = (NoiseTexture)shader.GetShaderParam("noise");
         OpenSimplexNoise openNoise = noise.Noise;
-        
 
-        Vector2 vector = new Vector2(((location.x / 100.0f) + 0.5f) * 512f, ((location.z / 100.0f) + 0.5f) * 512f);
+
+        Vector2 vector = new Vector2(((location.x / 200.0f) + 0.5f) * 512f, ((location.z / 200.0f) + 0.5f) * 512f);
         float height = (openNoise.GetNoise2dv(vector) / 2.0f) + 0.5f;
-        
+
         //GD.Print(location.ToString() + " Noise value " + height);
 
         float waterlevel = (float)shader.GetShaderParam("waterlevel");
-
-        return (height <= waterlevel*0.9f);
+        if (!includeBeaches) waterlevel *= 0.9f;
+        return (height <= waterlevel);
 
     }
 

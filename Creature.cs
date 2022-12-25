@@ -31,6 +31,7 @@ public class Creature : KinematicBody
     List<Food> Blacklist = new List<Food>();
 
     public Vector3 DesiredWater = Vector3.Zero;
+    public Boolean Drinking = false;
 
     public Boolean Selected = false;
 
@@ -63,12 +64,6 @@ public class Creature : KinematicBody
     public void UpdateColor()
     {
         Color color = Material.AlbedoColor;
-
-        // if (MainObj.IsInWater(this))
-        // {
-        //     color = new Color(1, 1, 1, color.a);
-        // }
-
         if (Selected)
         {
             color = new Color(1, (68 / 256.0f), (51 / 256.0f), color.a);
@@ -114,17 +109,18 @@ public class Creature : KinematicBody
             return;
         }
 
-        if (EatingTimeLeft <= 0)
+        if (EatingTimeLeft <= 0 && !Drinking)
         {
             _velocity = Vector3.Forward * Abils.GetModifiedSpeed() / 2;
+            if(MainObj.IsInWater(Translation, true))
+            {
+                _velocity *= 0.5f;
+            }
             _velocity = _velocity.Rotated(Vector3.Up, Rotation.y);
-
-            var direction = Vector3.Zero;
-
             // Vertical velocity
             _velocity.y -= FallAcceleration * delta;
-
             _velocity = MoveAndSlide(_velocity);
+
 
             if (CanMate())
             {
@@ -169,26 +165,26 @@ public class Creature : KinematicBody
             }
             else
             {
-                if (Abils.Energy <= Abils.Hydration)
-                { // TODO: more detailed calculation in the future for which will run out first
+                if (DesiredFood != null && Translation.DistanceSquaredTo(DesiredFood.Translation) < 4.1)
+                {
+                    // just over distance of 2 (food and creature have radius 1) to be safe
+                    StartEatingFood();
+                }
+                else if (MainObj.IsInWater(Translation, false) && DesiredFood == null && !DesiredWater.IsEqualApprox(Vector3.Zero) && Abils.Hydration < 100 && Translation.DistanceSquaredTo(DesiredWater) < 4.1)
+                {
+                    Drinking = true;
+                }
+
+                if (DesiredFood != null || (DesiredWater.IsEqualApprox(Vector3.Zero) && Abils.Energy <= Abils.Hydration))
+                {   // TODO: more detailed calculation in the future for which will run out first
+                    // currently this is either if u have a desired food OR no desired water and less saturation (TODO: implement saturation) than hydration
                     LookAtClosestFood();
                 }
                 else
                 {
                     LookAtClosestWater();
                 }
-
-                if (DesiredFood != null && Translation.DistanceSquaredTo(DesiredFood.Translation) < 4.1)
-                {
-                    // just over distance of 2 (food and creature have radius 1) to be safe
-                    StartEatingFood();
-                }
-                else if (MainObj.IsInWater(Translation) && DesiredFood == null && DesiredWater != Vector3.Zero && Abils.Hydration < 100 && Translation.DistanceSquaredTo(DesiredWater) < 4.1)
-                {
-                    Drink(delta);
-                }
             }
-
 
             for (int i = 0; i < GetSlideCount(); i++)
             {
@@ -218,6 +214,15 @@ public class Creature : KinematicBody
                         //Fight(creat);
                     }
                 }
+            }
+        }
+        else if (Drinking)
+        {
+            Drink(delta);
+            if (Abils.Hydration >= 100) // TODO: Define a hydration max
+            {
+                DesiredWater = Vector3.Zero;
+                Drinking = false;
             }
         }
         else
@@ -476,28 +481,54 @@ public class Creature : KinematicBody
 
     public void LookAtClosestWater()
     {
-        if (DesiredWater != Vector3.Zero)
-        {
-            LookAtFromPosition(Translation, DesiredWater, Vector3.Up);
-        }
+        if (!DesiredWater.IsEqualApprox(Vector3.Zero)) return;
 
-        List<Vector3> allWater = MainObj.GetWaterLocations();
+        List<List<int>> mapArray = MainObj.MapArray;
+        int distance = 0;
+        Boolean waterFound = false;
+        int x = Mathf.RoundToInt(Translation.x) + 100;
+        int z = Mathf.RoundToInt(Translation.z) + 100;
         Vector3 closestWater = Vector3.Zero;
-        float closestDistance = 1000000;
-        foreach (Vector3 water in allWater)
+        while (!waterFound)
         {
-            float sightSquared = Mathf.Pow(this.Abils.GetModifiedSight(), 2);
-            float distance = water.DistanceSquaredTo(this.Translation);
-            if (distance <= sightSquared && distance < closestDistance)
+            for (int i = 0; i < 8; i++)
             {
-                closestWater = water;
-                closestDistance = distance;
+                // this is a mess of rules that covers all 8 directions but only makes sense if u expand them for each case
+                // dont touch or everything might break
+                // simplified it a bit, still sucks tho
+
+                if (i < 3) x += distance;
+                else if (i < 6) x -= distance;
+
+                if (i != 0 && i != 5)
+                {
+                    if (i % 2 == 0) z -= distance;
+                    else z += distance;
+                }
+
+                if (x >= mapArray.Count || x < 0 || z < 0 || z >= mapArray[x].Count) continue;
+
+                if (mapArray[x][z] == 1)
+                {
+                    Vector3 tempVector = new Vector3(x-100, Translation.y, z-100);
+                    if (tempVector.DistanceSquaredTo(Translation) <= Mathf.Pow(Abils.GetModifiedSight(), 2))
+                    {
+                        waterFound = true;
+                        closestWater = tempVector;
+                        break;
+                    }
+                }
+            }
+            distance++;
+            if (distance >= Abils.GetModifiedSight())
+            {
+                break;
             }
         }
 
-        if (closestWater == Vector3.Zero) // TODO: this is a very hacky workaround b/c Vector3 is a nonnullable type
+        if (!closestWater.IsEqualApprox(Vector3.Zero)) // TODO: this is a very hacky workaround b/c Vector3 is a nonnullable type
         {
-            closestWater.y = this.Translation.y; // make it so they keep looking forward instead of throwing themselves up or down
+            closestWater.y = Translation.y; // make it so they keep looking forward instead of throwing themselves up or down
             DesiredWater = closestWater;
             LookAtFromPosition(Translation, DesiredWater, Vector3.Up);
         }
@@ -505,7 +536,7 @@ public class Creature : KinematicBody
         {
             // do nothing if cant find any water
         }
-        
+
     }
 
     public void Eat(float delta)    // Assert that food better exist
