@@ -30,6 +30,8 @@ public class Creature : KinematicBody
     SpatialMaterial Material;
     List<Food> Blacklist = new List<Food>();
 
+    public Vector3 DesiredWater = Vector3.Zero;
+
     public Boolean Selected = false;
 
     // Called when the node enters the scene tree for the first time.
@@ -112,11 +114,7 @@ public class Creature : KinematicBody
             return;
         }
 
-        if (DesiredFood == null && this.MainObj.IsInWater(this.Translation) && this.Abils.Hydration <= 100)
-        {
-            Drink(delta);
-        }
-        else if (EatingTimeLeft <= 0)
+        if (EatingTimeLeft <= 0)
         {
             _velocity = Vector3.Forward * Abils.GetModifiedSpeed() / 2;
             _velocity = _velocity.Rotated(Vector3.Up, Rotation.y);
@@ -180,14 +178,14 @@ public class Creature : KinematicBody
                     LookAtClosestWater();
                 }
 
-                if (DesiredFood != null && this.Translation.DistanceSquaredTo(DesiredFood.Translation) < 4.1)
+                if (DesiredFood != null && Translation.DistanceSquaredTo(DesiredFood.Translation) < 4.1)
                 {
                     // just over distance of 2 (food and creature have radius 1) to be safe
                     StartEatingFood();
                 }
-                else if (this.MainObj.IsInWater(this.Translation) && DesiredFood == null)
-                { // TODO: temporary boolean for in water or not, may change into some method or different variable later
-                    StartDrinkingWater();
+                else if (MainObj.IsInWater(Translation) && DesiredFood == null && DesiredWater != Vector3.Zero && Abils.Hydration < 100 && Translation.DistanceSquaredTo(DesiredWater) < 4.1)
+                {
+                    Drink(delta);
                 }
             }
 
@@ -478,7 +476,36 @@ public class Creature : KinematicBody
 
     public void LookAtClosestWater()
     {
-        // finds and looks at closest water tile
+        if (DesiredWater != Vector3.Zero)
+        {
+            LookAtFromPosition(Translation, DesiredWater, Vector3.Up);
+        }
+
+        List<Vector3> allWater = MainObj.GetWaterLocations();
+        Vector3 closestWater = Vector3.Zero;
+        float closestDistance = 1000000;
+        foreach (Vector3 water in allWater)
+        {
+            float sightSquared = Mathf.Pow(this.Abils.GetModifiedSight(), 2);
+            float distance = water.DistanceSquaredTo(this.Translation);
+            if (distance <= sightSquared && distance < closestDistance)
+            {
+                closestWater = water;
+                closestDistance = distance;
+            }
+        }
+
+        if (closestWater == Vector3.Zero) // TODO: this is a very hacky workaround b/c Vector3 is a nonnullable type
+        {
+            closestWater.y = this.Translation.y; // make it so they keep looking forward instead of throwing themselves up or down
+            DesiredWater = closestWater;
+            LookAtFromPosition(Translation, DesiredWater, Vector3.Up);
+        }
+        else
+        {
+            // do nothing if cant find any water
+        }
+        
     }
 
     public void Eat(float delta)    // Assert that food better exist
