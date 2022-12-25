@@ -23,8 +23,6 @@ public class Main : Node
     int FoodCount = 0;
     List<Food> FoodList = new List<Food>();
 
-    public List<List<int>> MapArray = new List<List<int>>();
-
     Team PlayerTeam;
 
     // Called when the node enters the scene tree for the first time.
@@ -35,16 +33,6 @@ public class Main : Node
 
     public void NewGame()
     {
-        for (int i = 0; i <= 200; i++)
-        {
-            MapArray.Add(new List<int>(512));
-            for (int j = 0; j <= 200; j++) // Not sure if this is necessary but maybe need to initialize all to 0s
-            {
-                MapArray[i].Add(0);
-            }
-        }
-        GenerateMap();
-
         foreach (Team team in TeamsList)
         {
             team.QueueFree();
@@ -75,7 +63,7 @@ public class Main : Node
             Node teamParent = GetNode<Node>("TeamParent");
             teamParent.AddChild(team);
 
-            for (int j = 0; j < 400; j++)
+            for (int j = 0; j < 350; j++)
             {
                 SpawnCreature(team);
             }
@@ -92,21 +80,6 @@ public class Main : Node
         creatureLabel.Visible = true;
         Label scoreLabel = GetNode<Label>("ScoreLabel");
         scoreLabel.Visible = true;
-    }
-
-    public void GenerateMap()
-    {
-        for (int i = -100; i <= 100; i++)
-        {
-            for (int j = -100; j <= 100; j++)
-            {
-                Vector3 location = new Vector3(i, 2, j);
-                if (IsInWater(location, false)) // this explicitly does not exclude beaches in the MapArray
-                {
-                    MapArray[i + 100][j + 100] = 1;
-                }
-            }
-        }
     }
 
     public void SpawnCreature(Vector3 location, Team team)

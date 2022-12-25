@@ -470,11 +470,10 @@ public class Creature : KinematicBody
     {
         if (!DesiredWater.IsEqualApprox(Vector3.Zero)) return;
 
-        List<List<int>> mapArray = MainObj.MapArray;
         int distance = 0;
         Boolean waterFound = false;
-        int x = Mathf.RoundToInt(Translation.x) + 100;
-        int z = Mathf.RoundToInt(Translation.z) + 100;
+        float x = Translation.x;
+        float z = Translation.z;
         Vector3 closestWater = Vector3.Zero;
         while (!waterFound)
         {
@@ -493,11 +492,11 @@ public class Creature : KinematicBody
                     else z += distance;
                 }
 
-                if (x >= mapArray.Count || x < 0 || z < 0 || z >= mapArray[x].Count) continue;
+                if (x > 100 || x < -100 || z < -100 || z > 100) continue;
 
-                if (mapArray[x][z] == 1)
+                if (MainObj.IsInWater(new Vector3(x, Translation.y, z), false))
                 {
-                    Vector3 tempVector = new Vector3(x-100, Translation.y, z-100);
+                    Vector3 tempVector = new Vector3(x, Translation.y, z);
                     if (tempVector.DistanceSquaredTo(Translation) <= Mathf.Pow(Abils.GetModifiedSight(), 2))
                     {
                         waterFound = true;
@@ -517,7 +516,15 @@ public class Creature : KinematicBody
         {
             closestWater.y = Translation.y; // make it so they keep looking forward instead of throwing themselves up or down
             DesiredWater = closestWater;
-            LookAtFromPosition(Translation, DesiredWater, Vector3.Up);
+            if (Translation.IsEqualApprox(DesiredWater))
+            {
+                // TODO: Fix this
+                GD.Print("Water position is the same as current position -- In Creature.LookAtClosestWater()");
+            }
+            else
+            {
+                LookAtFromPosition(Translation, DesiredWater, Vector3.Up);
+            }
         }
         else
         {
