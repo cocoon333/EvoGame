@@ -60,7 +60,7 @@ public class Main : Node
         FoodList.Clear();
 
 
-        for (int i = 0; i < 200; i++)
+        for (int i = 0; i < 300; i++)
         {
             SpawnFood();
         }
@@ -75,7 +75,7 @@ public class Main : Node
             Node teamParent = GetNode<Node>("TeamParent");
             teamParent.AddChild(team);
 
-            for (int j = 0; j < 200; j++)
+            for (int j = 0; j < 400; j++)
             {
                 SpawnCreature(team);
             }

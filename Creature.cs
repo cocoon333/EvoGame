@@ -27,7 +27,6 @@ public class Creature : KinematicBody
     const int WATER_REPLENISHMENT = 20;
 
     Main MainObj;
-    SpatialMaterial Material;
     List<Food> Blacklist = new List<Food>();
 
     public Vector3 DesiredWater = Vector3.Zero;
@@ -51,10 +50,6 @@ public class Creature : KinematicBody
         Node teamParent = TeamObj.GetParent();
         MainObj = (Main)teamParent.GetParent();
 
-        MeshInstance meshInst = GetNode<MeshInstance>("MeshInstance");
-        Material = (SpatialMaterial)meshInst.GetActiveMaterial(0);
-
-
         MeshInstance hat1 = GetNode<MeshInstance>("Hat1");
         MeshInstance hat2 = GetNode<MeshInstance>("Hat2");
         hat1.MaterialOverride = TeamObj.TeamColor;
@@ -63,22 +58,14 @@ public class Creature : KinematicBody
 
     public void UpdateColor()
     {
-        Color color = Material.AlbedoColor;
-        if (Selected)
-        {
-            color = new Color(1, (68 / 256.0f), (51 / 256.0f), color.a);
-        }
-        else if (CanMate())
-        {
-            color = new Color(1, 0, 0.5f, color.a);
-        }
-        else
-        {
-            color.r = 0;
-            color.g = Abils.Energy / 100f;
-            color.b = (100 - Abils.Energy) / 100f;
-        }
-        Material.AlbedoColor = color;
+        MeshInstance meshInst = GetNode<MeshInstance>("BodyMesh");
+        ShaderMaterial shader = (ShaderMaterial)meshInst.GetActiveMaterial(0);
+        shader.SetShaderParam("energy", Abils.Energy);
+        int state = 0;
+        if (Selected) state = 3;
+        else if (CanMate()) state = 1;
+        else if (Drinking) state = 2;
+        shader.SetShaderParam("state", state);
     }
 
     public override void _Process(float delta)
