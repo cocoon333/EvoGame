@@ -71,12 +71,25 @@ public class Creature : KinematicBody
     {
         MeshInstance meshInst = GetNode<MeshInstance>("BodyMesh");
         ShaderMaterial shader = (ShaderMaterial)meshInst.GetActiveMaterial(0);
-        shader.SetShaderParam("energy", Abils.GetEnergy());
-        int state = 0;
-        if (Selected) state = 3;
-        else if (State is StatesEnum.LookingForMate || State is StatesEnum.PathingToMate) state = 1;
-        else if (State is StatesEnum.Drinking) state = 2;
-        shader.SetShaderParam("state", state);
+        Vector3 colorVector;
+
+        if (State is StatesEnum.LookingForMate || State is StatesEnum.PathingToMate)
+        {
+            colorVector = new Vector3(1.0f, 0.0f, 0.5f);
+        }
+        else if (State is StatesEnum.Drinking)
+        {
+            colorVector = new Vector3(1.0f, 1.0f, 1.0f);
+        }
+        else if (Selected)
+        {
+            colorVector = new Vector3(1.0f, (170.0f/ 256.0f), (29.0f / 256.0f));
+        }
+        else
+        {
+            colorVector = new Vector3(0f, Abils.GetEnergy() / 100.0f, (100.0f - Abils.GetEnergy()) / 100.0f);
+        }
+        shader.SetShaderParam("colorVector", colorVector);
     }
 
     public override void _Process(float delta)
@@ -129,10 +142,6 @@ public class Creature : KinematicBody
                 EatingTimeLeft = 0;
                 MainObj.EatFood(DesiredFood);
                 State = StatesEnum.Nothing;
-                if (CanMate())
-                {
-                    State = StatesEnum.LookingForMate;
-                }
             }
         }
         else if (State is StatesEnum.Drinking)
@@ -144,10 +153,6 @@ public class Creature : KinematicBody
             {
                 DesiredWater = null;
                 State = StatesEnum.Nothing;
-                if (CanMate())
-                {
-                    State = StatesEnum.LookingForMate;
-                }
             }
         }
         else
@@ -167,7 +172,7 @@ public class Creature : KinematicBody
                 if (MainObj.IsNullOrQueued(Mate))
                 {
                     Mate = null;
-                    State = StatesEnum.LookingForMate; // if they cannot mate anymore, in the next if block CanMate() is called
+                    State = StatesEnum.Nothing;
                 }
                 else
                 {
@@ -176,10 +181,12 @@ public class Creature : KinematicBody
 
                     if (Translation.DistanceSquaredTo(Mate.Translation) < 9)
                     {
-                        Mate.Abils.SetSaturation(Mate.Abils.GetSaturation() - 30);
-                        Mate.Abils.SetHydration(Mate.Abils.GetHydration() - 30);
-                        Abils.SetSaturation(Abils.GetSaturation() - 30);
-                        Abils.SetHydration(Abils.GetHydration() - 30);
+                        //GD.Print("Saturation: " + Abils.GetSaturation() + " Hydration: " + Abils.GetHydration() + " Energy: " + Abils.GetEnergy());
+
+                        Mate.Abils.SetSaturation(Mate.Abils.GetSaturation() - 50);
+                        Mate.Abils.SetHydration(Mate.Abils.GetHydration() - 50);
+                        Abils.SetSaturation(Abils.GetSaturation() - 50);
+                        Abils.SetHydration(Abils.GetHydration() - 50);
 
                         if (Abils.GetSaturation() < 0 || Abils.GetHydration() < 0)
                         {

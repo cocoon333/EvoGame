@@ -13,7 +13,6 @@ public class Abilities : Node
     float Endurance;
     float Concealment;
 
-    float Energy;
     public float ENERGY_MAX = 150;
 
     public float EatingTime = 2;
@@ -50,7 +49,6 @@ public class Abilities : Node
         Hydration = 50;
         SaturationLoss = (100 - GetModifiedEndurance()) / 100f * 5;
         HydrationLoss = (100 - GetModifiedEndurance()) / 100f * 5;
-        Energy = (Saturation + Hydration) / 2;
     }
 
     public float GetModifiedStat(float mainStat, float inverseStat)
@@ -58,7 +56,7 @@ public class Abilities : Node
         float offset = (-Mathf.Pow((inverseStat - 50) / 15, 3));
         offset = Mathf.Min(offset, 0);
         float finalStat = mainStat + offset;
-        finalStat *= 1.0f - ENERGY_MODIFIER * ((ENERGY_MAX - Energy) / ENERGY_MAX);
+        finalStat *= 1.0f - ENERGY_MODIFIER * ((ENERGY_MAX - GetEnergy()) / ENERGY_MAX);
         return finalStat;
     }
 
@@ -164,7 +162,7 @@ public class Abilities : Node
         allAbils.Add("Sight", GetModifiedSight());
         allAbils.Add("Endurance", GetModifiedEndurance());
         allAbils.Add("Concealment", GetModifiedConcealment());
-        allAbils.Add("Energy", Energy);
+        allAbils.Add("Energy", GetEnergy());
         allAbils.Add("Saturation", Saturation);
         allAbils.Add("SaturationLoss", SaturationLoss);
         allAbils.Add("Hydration", Hydration);

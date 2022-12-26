@@ -8,34 +8,17 @@
 [sub_resource type="Shader" id=8]
 code = "shader_type spatial;
 
-uniform float energy;
-uniform int state;
+uniform vec3 colorVector;
 
 void fragment()
 {
-	if (state == 0)
-	{
-		ALBEDO = vec3(0, energy/100.0, (100.0 - energy)/100.0);
-	}
-	else if (state == 1)
-	{
-		ALBEDO = vec3(1.0, 0.0, 0.5f);
-	}
-	else if (state == 2)
-	{
-		ALBEDO = vec3(1.0, 1.0, 1.0);
-	}
-	else if (state == 3)
-	{
-		ALBEDO = vec3(1.0, (170.0 / 256.0), (29.0 / 256.0));
-	}
+	ALBEDO = colorVector;
 }"
 
 [sub_resource type="ShaderMaterial" id=9]
 resource_local_to_scene = true
 shader = SubResource( 8 )
-shader_param/energy = null
-shader_param/state = null
+shader_param/colorVector = null
 
 [sub_resource type="CapsuleMesh" id=2]
 resource_local_to_scene = true
