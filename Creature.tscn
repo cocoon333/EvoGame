@@ -27,7 +27,7 @@ void fragment()
 	}
 	else if (state == 3)
 	{
-		ALBEDO = vec3(1.0, (68.0 / 256.0), (51.0 / 256.0));
+		ALBEDO = vec3(1.0, (170.0 / 256.0), (29.0 / 256.0));
 	}
 }"
 
@@ -72,3 +72,5 @@ mesh = SubResource( 5 )
 [node name="Hat2" type="MeshInstance" parent="."]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55, 0 )
 mesh = SubResource( 7 )
+
+[connection signal="input_event" from="." to="." method="OnCreatureInputEvent"]

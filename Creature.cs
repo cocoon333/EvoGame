@@ -71,7 +71,7 @@ public class Creature : KinematicBody
     {
         MeshInstance meshInst = GetNode<MeshInstance>("BodyMesh");
         ShaderMaterial shader = (ShaderMaterial)meshInst.GetActiveMaterial(0);
-        shader.SetShaderParam("energy", Abils.Energy);
+        shader.SetShaderParam("energy", Abils.GetEnergy());
         int state = 0;
         if (Selected) state = 3;
         else if (State is StatesEnum.LookingForMate || State is StatesEnum.PathingToMate) state = 1;
@@ -81,14 +81,23 @@ public class Creature : KinematicBody
 
     public override void _Process(float delta)
     {
-        if (Abils.Energy > 0) // temporary so energy isnt negative and screwing with color
+        if (Abils.GetEnergy() > 0) // temporary so energy isnt negative and screwing with color
         {
             UpdateColor();
         }
     }
 
+    public void OnCreatureInputEvent(object camera, object @event, Vector3 position, Vector3 normal, int shape_idx)
+    {
+        if (@event is InputEventMouseButton buttonEvent && buttonEvent.Pressed && (ButtonList)buttonEvent.ButtonIndex == ButtonList.Left && buttonEvent.Doubleclick)
+        {
+            MainObj.SelectCreature(this);
+        }
+    }
+
     public override void _PhysicsProcess(float delta)
     {
+
         if (IsQueuedForDeletion())
         {
             return;
@@ -96,14 +105,15 @@ public class Creature : KinematicBody
 
         TimeAlive += delta;
 
-        Abils.Saturation -= (Abils.SaturationLoss * delta);
-        Abils.Hydration -= (Abils.HydrationLoss * delta);
-        Abils.Energy = (Abils.Saturation + Abils.Hydration) / 2;
+        Abils.SetSaturation(Abils.GetSaturation() - Abils.GetSaturationLoss() * delta);
+        Abils.SetHydration(Abils.GetHydration() - Abils.GetHydrationLoss() * delta);
 
-        if (Abils.Saturation <= 0 || Abils.Hydration <= 0)
+        if (Abils.GetSaturation() <= 0 || Abils.GetHydration() <= 0)
         {
             // TODO: make it so health depletes rapidly when energy is 0
-            // blob is dead
+            // blob is dead, thanks who guessed
+            if (Abils.GetSaturation() < 0) TeamObj.StarvationDeaths++;
+            else TeamObj.DehydrationDeaths++;
             MainObj.CreatureDeath(this);
             return;
         }
@@ -114,7 +124,6 @@ public class Creature : KinematicBody
             // Decrement eating time, replenish energy, and then consume food if finished
             EatingTimeLeft -= delta;
             Eat(delta);
-            Abils.Energy = (Abils.Saturation + Abils.Hydration) / 2;
             if (EatingTimeLeft <= 0)
             {
                 EatingTimeLeft = 0;
@@ -131,8 +140,7 @@ public class Creature : KinematicBody
             // Creature is drinking
             // replenish hydration and stop drinking if over hydration max
             Drink(delta);
-            Abils.Energy = (Abils.Saturation + Abils.Hydration) / 2;
-            if (Abils.Hydration >= Abils.HYDRATION_MAX) // TODO: Define a hydration max
+            if (Abils.GetHydration() >= Abils.HYDRATION_MAX) // TODO: Define a hydration max
             {
                 DesiredWater = null;
                 State = StatesEnum.Nothing;
@@ -168,10 +176,15 @@ public class Creature : KinematicBody
 
                     if (Translation.DistanceSquaredTo(Mate.Translation) < 9)
                     {
-                        Mate.Abils.Saturation -= 50;
-                        Mate.Abils.Hydration -= 50;
-                        Abils.Saturation -= 50;
-                        Abils.Hydration -= 50;
+                        Mate.Abils.SetSaturation(Mate.Abils.GetSaturation() - 50);
+                        Mate.Abils.SetHydration(Mate.Abils.GetHydration() - 50);
+                        Abils.SetSaturation(Abils.GetSaturation() - 50);
+                        Abils.SetHydration(Abils.GetHydration() - 50);
+
+                        if (Abils.GetSaturation() < 0 || Abils.GetHydration() < 0)
+                        {
+                            GD.Print("Truly a bruh moment occurred, died by breeding");
+                        }
 
                         NumChildren++;
                         Mate.NumChildren++;
@@ -204,6 +217,10 @@ public class Creature : KinematicBody
                         State = StatesEnum.PathingToMate;
                         Mate.State = StatesEnum.PathingToMate;
                     }
+                }
+                else
+                {
+                    State = StatesEnum.Nothing;
                 }
             }
             else if (State is StatesEnum.PathingToFood)
@@ -239,7 +256,7 @@ public class Creature : KinematicBody
                 }
                 else
                 {
-                    if ((Abils.Saturation / Abils.SaturationLoss) <= (Abils.Hydration / Abils.HydrationLoss))
+                    if ((Abils.GetSaturation() / Abils.GetSaturationLoss()) <= (Abils.GetHydration() / Abils.GetHydrationLoss()))
                     {
                         LookAtClosestFood();
                         if (DesiredFood != null) State = StatesEnum.PathingToFood;
@@ -259,7 +276,23 @@ public class Creature : KinematicBody
                 {
                     if (!(collision.Collider is Creature creat && creat != this))
                     {
-                        if (State is StatesEnum.Nothing) RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));
+                        if (State is StatesEnum.PathingToFood)
+                        {
+                            //LookAtFromPosition(Translation, DesiredFood.Translation, Vector3.Up);
+                        }
+                        else if (State is StatesEnum.PathingToWater)
+                        {
+                            //LookAtFromPosition(Translation, DesiredWater.Location, Vector3.Up);
+                        }
+                        else if (State is StatesEnum.PathingToMate)
+                        {
+                            //LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
+                            //Mate.LookAtFromPosition(Mate.Translation, Translation, Vector3.Up);
+                        }
+                        else
+                        {
+                            RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));
+                        }
                         break;
                     }
                     else if (collision.Collider is Creature && creat.TeamObj != TeamObj)
@@ -277,11 +310,11 @@ public class Creature : KinematicBody
     {
         Boolean canMate = false;
         float libido = Abils.GetModifiedLibido();
-        float energy = Abils.Energy;
+        float energy = Abils.GetEnergy();
 
         // TODO: make energy - libido relationship curved
         // true if Mate already exists or all of the following are true: No desired food, alive for 20+ seconds, and energy is less than 150 minus libido
-        if (Mate != null || (DesiredFood == null && TimeAlive > 20 && (energy > (150 - libido)))) canMate = true;
+        if (Mate != null || (DesiredFood == null && DesiredWater == null && TimeAlive > 20 && (energy > (150 - libido)))) canMate = true;
 
         return canMate;
     }
@@ -397,6 +430,7 @@ public class Creature : KinematicBody
         winner.TeamObj.TotalKills++;
         winner.Abils.WonFight(winner.Abils.GetCombatScore(), loser.Abils.GetCombatScore());
         MainObj.CreatureDeath(loser);
+        loser.TeamObj.FightDeaths++;
     }
 
     public Creature GetLoser(Creature enemy)
@@ -410,14 +444,6 @@ public class Creature : KinematicBody
         return killedCreature;
     }
 
-    // TODO: Cant select creatures because FoodDetector area node was deleted
-    public void OnFoodDetectorInputEvent(object camera, object @event, Vector3 position, Vector3 normal, int shape_idx)
-    {
-        if (@event is InputEventMouseButton buttonEvent && buttonEvent.Pressed && (ButtonList)buttonEvent.ButtonIndex == ButtonList.Left && buttonEvent.Doubleclick)
-        {
-            MainObj.SelectCreature(this);
-        }
-    }
 
     public Creature GetNearestMate() // TODO: This doesnt work as intended sometimes, two blobs dont choose each other despite being close enough
     {
@@ -533,8 +559,7 @@ public class Creature : KinematicBody
 
         int distance = 0;
         Boolean waterFound = false;
-        float x = Translation.x;
-        float z = Translation.z;
+
         Water closestWater = null;
         while (!waterFound)
         {
@@ -543,6 +568,10 @@ public class Creature : KinematicBody
                 // this is a mess of rules that covers all 8 directions but only makes sense if u expand them for each case
                 // dont touch or everything might break
                 // simplified it a bit, still sucks tho
+                // kdtree coming soon to an indie game that might fail near you
+
+                float x = Translation.x;
+                float z = Translation.z;
 
                 if (i < 3) x += distance;
                 else if (i < 6) x -= distance;
@@ -592,14 +621,12 @@ public class Creature : KinematicBody
     public void Eat(float delta)    // Assert that food better exist
     {
         Debug.Assert(DesiredFood != null);
-        Abils.Saturation += (DesiredFood.Replenishment * (DesiredFood.Poisonous ? -1 : 1) * delta) / Abils.EatingTime;
-        Abils.Saturation = Math.Min(Abils.Saturation, Abils.SATURATION_MAX); // Energy capped at 150
+        Abils.SetSaturation(Mathf.Min(Abils.GetSaturation() + (DesiredFood.Replenishment * (DesiredFood.Poisonous ? -1 : 1) * delta) / Abils.EatingTime, Abils.SATURATION_MAX));
     }
 
     public void Drink(float delta)
     {
-        Abils.Hydration += WATER_REPLENISHMENT * delta;
-        Abils.Hydration = Math.Min(Abils.Hydration, Abils.HYDRATION_MAX); // Energy capped at 150
+        Abils.SetHydration(Math.Min(Abils.GetHydration() + WATER_REPLENISHMENT * delta, Abils.HYDRATION_MAX));
     }
 
     class Water

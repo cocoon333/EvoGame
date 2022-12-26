@@ -28,6 +28,9 @@ public class Team : Node
     public int TotalBirths;
 
     public int TotalDeaths;
+    public int StarvationDeaths;
+    public int FightDeaths;
+    public int DehydrationDeaths;
 
     public int TotalKills;
 
@@ -42,7 +45,8 @@ public class Team : Node
 
         TeamAbilities = new Abilities();
         TeamAbilities.Initialize(new List<float> { 50f, 50f, 50f, 50f, 50f, 50f, 50f });
-        TeamAbilities.Energy = 100;
+        TeamAbilities.SetSaturation(100);
+        TeamAbilities.SetHydration(100);
         TeamMembers = new List<Creature>();
         Debug.Assert(TeamMembers.Count == 0);
 
@@ -130,8 +134,11 @@ public class Team : Node
         returnString += "Creature Count: " + CreatureCount + "\n";
         returnString += "Evolution Points: " + EvoPoints + "\n";
         returnString += "Total Births: " + TotalBirths + "\n";
-        returnString += "Total Deaths: " + TotalDeaths + "\n";
         returnString += "Total Kills: " + TotalKills + "\n";
+        returnString += "Total Deaths: " + TotalDeaths + "\n";
+        returnString += "\tStarvation Deaths: " + StarvationDeaths + "\n";
+        returnString += "\tDehydration Deaths: " + DehydrationDeaths + "\n";
+        returnString += "\tFighting Deaths: " + FightDeaths + "\n";
 
         return returnString;
     }

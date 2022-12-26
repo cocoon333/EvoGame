@@ -73,7 +73,7 @@ noise = SubResource( 29 )
 
 [sub_resource type="ShaderMaterial" id=24]
 shader = SubResource( 23 )
-shader_param/waterlevel = 0.5
+shader_param/waterlevel = 0.4
 shader_param/noise = SubResource( 27 )
 shader_param/normalmap = SubResource( 30 )
 

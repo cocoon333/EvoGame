@@ -5,15 +5,15 @@ using System.Collections.Generic;
 
 public class Abilities : Node
 {
-    public float Speed;
-    public float Strength;
-    public float Intelligence;
-    public float Libido;
-    public float Sight;
-    public float Endurance;
-    public float Concealment;
+    float Speed;
+    float Strength;
+    float Intelligence;
+    float Libido;
+    float Sight;
+    float Endurance;
+    float Concealment;
 
-    public float Energy;
+    float Energy;
     public float ENERGY_MAX = 150;
 
     public float EatingTime = 2;
@@ -22,15 +22,16 @@ public class Abilities : Node
 
     public float ENERGY_MODIFIER = 0.2f;
 
-    public float Saturation;
-    public float SaturationLoss;
+    float Saturation;
+    float SaturationLoss;
 
-    public float Hydration;
-    public float HydrationLoss;
+    float Hydration;
+    float HydrationLoss;
+    float ENERGY_DIFF_MODIFIER = 10;
     public float HYDRATION_MAX = 150;
     public void Initialize(float speed, float strength, float intelligence, float libido, float sight, float endurance, float concealment)
     {
-        List<float> stats = new List<float>{speed, strength, intelligence, libido, sight, endurance, concealment};
+        List<float> stats = new List<float> { speed, strength, intelligence, libido, sight, endurance, concealment };
         Initialize(stats);
     }
 
@@ -116,9 +117,38 @@ public class Abilities : Node
         return Concealment;
     }
 
+    public float GetSaturation()
+    {
+        return Saturation;
+    }
+    public void SetSaturation(float saturation)
+    {
+        Saturation = saturation;
+    }
+    public float GetSaturationLoss()
+    {
+        return SaturationLoss;
+    }
+    public float GetHydration()
+    {
+        return Hydration;
+    }
+    public void SetHydration(float hydration)
+    {
+        Hydration = hydration;
+    }
+    public float GetHydrationLoss()
+    {
+        return HydrationLoss;
+    }
+    public float GetEnergy()
+    {
+        return ((GetSaturation() + GetHydration()) / 2) - (Mathf.Abs(GetSaturation() - GetHydration())) / ENERGY_DIFF_MODIFIER;
+    }
 
 
-    public void WonFight(float winnerScore, float loserScore) {
+    public void WonFight(float winnerScore, float loserScore)
+    {
         this.Saturation -= (winnerScore - loserScore) * 10;
         this.Hydration -= (winnerScore - loserScore) * 10;
     }
@@ -134,19 +164,22 @@ public class Abilities : Node
         allAbils.Add("Sight", GetModifiedSight());
         allAbils.Add("Endurance", GetModifiedEndurance());
         allAbils.Add("Concealment", GetModifiedConcealment());
-        //allAbils.Add("Energy", Energy);
-        //allAbils.Add("EnergyLoss", EnergyLoss);
+        allAbils.Add("Energy", Energy);
+        allAbils.Add("Saturation", Saturation);
+        allAbils.Add("SaturationLoss", SaturationLoss);
+        allAbils.Add("Hydration", Hydration);
+        allAbils.Add("HydrationLoss", HydrationLoss);
 
         return allAbils;
     }
 
     public List<float> GetModifiedStats()
     {
-        return new List<float> {GetModifiedSpeed(), GetModifiedStrength(), GetModifiedIntelligence(), GetModifiedLibido(), GetModifiedSight(), GetModifiedEndurance(), GetModifiedConcealment()};
+        return new List<float> { GetModifiedSpeed(), GetModifiedStrength(), GetModifiedIntelligence(), GetModifiedLibido(), GetModifiedSight(), GetModifiedEndurance(), GetModifiedConcealment() };
     }
 
     public List<float> GetStats()
     {
-        return new List<float> {Speed, Strength, Intelligence, Libido, Sight, Endurance, Concealment};
+        return new List<float> { Speed, Strength, Intelligence, Libido, Sight, Endurance, Concealment };
     }
 }

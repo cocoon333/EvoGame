@@ -48,7 +48,7 @@ public class Main : Node
         FoodList.Clear();
 
 
-        for (int i = 0; i < 300; i++)
+        for (int i = 0; i < 200; i++)
         {
             SpawnFood();
         }
@@ -63,7 +63,7 @@ public class Main : Node
             Node teamParent = GetNode<Node>("TeamParent");
             teamParent.AddChild(team);
 
-            for (int j = 0; j < 350; j++)
+            for (int j = 0; j < 200; j++)
             {
                 SpawnCreature(team);
             }
@@ -118,7 +118,7 @@ public class Main : Node
         {
             spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
         }
-        food.Initialize(25, (GD.Randf() < 0.2f), spawnLoc);
+        food.Initialize(50, (GD.Randf() < 0.2f), spawnLoc);
         FoodList.Add(food);
 
         GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, ++FoodCount);
