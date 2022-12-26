@@ -176,10 +176,10 @@ public class Creature : KinematicBody
 
                     if (Translation.DistanceSquaredTo(Mate.Translation) < 9)
                     {
-                        Mate.Abils.SetSaturation(Mate.Abils.GetSaturation() - 50);
-                        Mate.Abils.SetHydration(Mate.Abils.GetHydration() - 50);
-                        Abils.SetSaturation(Abils.GetSaturation() - 50);
-                        Abils.SetHydration(Abils.GetHydration() - 50);
+                        Mate.Abils.SetSaturation(Mate.Abils.GetSaturation() - 30);
+                        Mate.Abils.SetHydration(Mate.Abils.GetHydration() - 30);
+                        Abils.SetSaturation(Abils.GetSaturation() - 30);
+                        Abils.SetHydration(Abils.GetHydration() - 30);
 
                         if (Abils.GetSaturation() < 0 || Abils.GetHydration() < 0)
                         {
@@ -308,15 +308,15 @@ public class Creature : KinematicBody
     // somewhat sorted but still kinda sucks tbh
     public Boolean CanMate()
     {
-        Boolean canMate = false;
         float libido = Abils.GetModifiedLibido();
         float energy = Abils.GetEnergy();
 
-        // TODO: make energy - libido relationship curved
-        // true if Mate already exists or all of the following are true: No desired food, alive for 20+ seconds, and energy is less than 150 minus libido
-        if (Mate != null || (DesiredFood == null && DesiredWater == null && TimeAlive > 20 && (energy > (150 - libido)))) canMate = true;
+        if (Mate != null) return true;
+        if (!(State is StatesEnum.Nothing || State is StatesEnum.LookingForMate || State is StatesEnum.PathingToMate)) return false;
 
-        return canMate;
+        // TODO: make energy libido relationship curved
+        if (TimeAlive > 20 && energy > (150 - libido)) return true;
+        return false;
     }
 
     public void StartEatingFood()
@@ -346,11 +346,6 @@ public class Creature : KinematicBody
             // this blob is the second to arrive to the food and can now determine whether or not a fight occurs
             Fight(enemy);
         }
-    }
-
-    public void StartDrinkingWater()
-    {
-        // TODO: if creature is drinking same water with enemy go for a fight?
     }
 
     public Boolean WantsToFight(Creature enemy)
@@ -477,7 +472,7 @@ public class Creature : KinematicBody
     {
         if (!MainObj.IsNullOrQueued(DesiredFood))
         {
-            if (Translation.IsEqualApprox(DesiredFood.Translation))
+            if (!Translation.IsEqualApprox(DesiredFood.Translation))
                 LookAtFromPosition(Translation, DesiredFood.Translation, Vector3.Up);
             return;
         }
@@ -545,11 +540,12 @@ public class Creature : KinematicBody
         }
     }
 
-
     public void LookAtClosestWater()
     {
         if (DesiredWater != null)
         {
+            if (DesiredWater.Location.y != Translation.y) DesiredWater.Location.y = Translation.y;
+
             if (!Translation.IsEqualApprox(DesiredWater.Location))
             {
                 LookAtFromPosition(Translation, DesiredWater.Location, Vector3.Up);

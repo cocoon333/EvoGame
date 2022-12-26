@@ -143,7 +143,7 @@ public class Abilities : Node
     }
     public float GetEnergy()
     {
-        return ((GetSaturation() + GetHydration()) / 2) - (Mathf.Abs(GetSaturation() - GetHydration())) / ENERGY_DIFF_MODIFIER;
+        return ((GetSaturation() + GetHydration()) / 2) - ((Mathf.Abs(GetSaturation() - GetHydration()) / ENERGY_DIFF_MODIFIER));
     }
 
 
