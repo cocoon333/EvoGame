@@ -14,16 +14,20 @@ public class Abilities : Node
     public float Concealment;
 
     public float Energy;
+    public float ENERGY_MAX = 150;
 
     public float EatingTime = 2;
-    public float EnergyLoss;
 
-    public float ENERGY_MAX = 150;
+    public float SATURATION_MAX = 150;
 
     public float ENERGY_MODIFIER = 0.2f;
 
+    public float Saturation;
+    public float SaturationLoss;
+
     public float Hydration;
     public float HydrationLoss;
+    public float HYDRATION_MAX = 150;
     public void Initialize(float speed, float strength, float intelligence, float libido, float sight, float endurance, float concealment)
     {
         List<float> stats = new List<float>{speed, strength, intelligence, libido, sight, endurance, concealment};
@@ -41,10 +45,11 @@ public class Abilities : Node
         Concealment = stats[6];
 
         //Calculate these stats
-        Energy = 50;
+        Saturation = 50;
         Hydration = 50;
-        EnergyLoss = (100 - GetModifiedEndurance()) / 100f * 5;
+        SaturationLoss = (100 - GetModifiedEndurance()) / 100f * 5;
         HydrationLoss = (100 - GetModifiedEndurance()) / 100f * 5;
+        Energy = (Saturation + Hydration) / 2;
     }
 
     public float GetModifiedStat(float mainStat, float inverseStat)
@@ -111,18 +116,11 @@ public class Abilities : Node
         return Concealment;
     }
 
-    public float GetEnergy()
-    {
-        return Energy;
-    }
 
-    public void SetEnergy(float newEnergy)
-    {
-        Energy = newEnergy;
-    }
 
     public void WonFight(float winnerScore, float loserScore) {
-        this.Energy -= (winnerScore - loserScore) * 10;
+        this.Saturation -= (winnerScore - loserScore) * 10;
+        this.Hydration -= (winnerScore - loserScore) * 10;
     }
 
     public Dictionary<String, float> GetAllAbils()
@@ -136,8 +134,8 @@ public class Abilities : Node
         allAbils.Add("Sight", GetModifiedSight());
         allAbils.Add("Endurance", GetModifiedEndurance());
         allAbils.Add("Concealment", GetModifiedConcealment());
-        allAbils.Add("Energy", Energy);
-        allAbils.Add("EnergyLoss", EnergyLoss);
+        //allAbils.Add("Energy", Energy);
+        //allAbils.Add("EnergyLoss", EnergyLoss);
 
         return allAbils;
     }

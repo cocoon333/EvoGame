@@ -13,8 +13,6 @@ public class Creature : KinematicBody
 
     public Creature Mate;
 
-    //public int Team;
-
     public Team TeamObj;
 
     public float TimeAlive;
@@ -29,10 +27,23 @@ public class Creature : KinematicBody
     Main MainObj;
     List<Food> Blacklist = new List<Food>();
 
-    public Vector3 DesiredWater = Vector3.Zero;
-    public Boolean Drinking = false;
+    //public Vector3 DesiredWater = Vector3.Zero;
 
+    Water DesiredWater = null;
     public Boolean Selected = false;
+
+    enum StatesEnum
+    {
+        Eating,
+        Drinking,
+        PathingToFood, // these 4 names feel pretty verbose, should change at some point
+        PathingToWater,
+        LookingForMate,
+        PathingToMate,
+        Nothing, // dont like this name for doing nothing, should change at some point
+        Fighting // potentially also add a Fleeing state alongside Fighting
+    }
+    StatesEnum State = StatesEnum.Nothing;
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
@@ -42,7 +53,6 @@ public class Creature : KinematicBody
 
     public void Initialize(Vector3 spawnLoc)
     {
-
         Translation = spawnLoc;
         Abils = GetNode<Abilities>("Abilities");
         TeamObj = (Team)GetParent();
@@ -54,6 +64,7 @@ public class Creature : KinematicBody
         MeshInstance hat2 = GetNode<MeshInstance>("Hat2");
         hat1.MaterialOverride = TeamObj.TeamColor;
         hat2.MaterialOverride = TeamObj.TeamColor;
+
     }
 
     public void UpdateColor()
@@ -63,8 +74,8 @@ public class Creature : KinematicBody
         shader.SetShaderParam("energy", Abils.Energy);
         int state = 0;
         if (Selected) state = 3;
-        else if (CanMate()) state = 1;
-        else if (Drinking) state = 2;
+        else if (State is StatesEnum.LookingForMate || State is StatesEnum.PathingToMate) state = 1;
+        else if (State is StatesEnum.Drinking) state = 2;
         shader.SetShaderParam("state", state);
     }
 
@@ -85,10 +96,11 @@ public class Creature : KinematicBody
 
         TimeAlive += delta;
 
-        Abils.Energy -= (Abils.EnergyLoss * delta);
+        Abils.Saturation -= (Abils.SaturationLoss * delta);
         Abils.Hydration -= (Abils.HydrationLoss * delta);
+        Abils.Energy = (Abils.Saturation + Abils.Hydration) / 2;
 
-        if (Abils.Energy <= 0 || Abils.Hydration <= 0)
+        if (Abils.Saturation <= 0 || Abils.Hydration <= 0)
         {
             // TODO: make it so health depletes rapidly when energy is 0
             // blob is dead
@@ -96,10 +108,44 @@ public class Creature : KinematicBody
             return;
         }
 
-        if (EatingTimeLeft <= 0 && !Drinking)
+        if (State is StatesEnum.Eating)
+        {
+            // Creature is eating
+            // Decrement eating time, replenish energy, and then consume food if finished
+            EatingTimeLeft -= delta;
+            Eat(delta);
+            Abils.Energy = (Abils.Saturation + Abils.Hydration) / 2;
+            if (EatingTimeLeft <= 0)
+            {
+                EatingTimeLeft = 0;
+                MainObj.EatFood(DesiredFood);
+                State = StatesEnum.Nothing;
+                if (CanMate())
+                {
+                    State = StatesEnum.LookingForMate;
+                }
+            }
+        }
+        else if (State is StatesEnum.Drinking)
+        {
+            // Creature is drinking
+            // replenish hydration and stop drinking if over hydration max
+            Drink(delta);
+            Abils.Energy = (Abils.Saturation + Abils.Hydration) / 2;
+            if (Abils.Hydration >= Abils.HYDRATION_MAX) // TODO: Define a hydration max
+            {
+                DesiredWater = null;
+                State = StatesEnum.Nothing;
+                if (CanMate())
+                {
+                    State = StatesEnum.LookingForMate;
+                }
+            }
+        }
+        else
         {
             _velocity = Vector3.Forward * Abils.GetModifiedSpeed() / 2;
-            if(MainObj.IsInWater(Translation, true))
+            if (MainObj.IsInWater(Translation, true))
             {
                 _velocity *= 0.5f;
             }
@@ -108,27 +154,12 @@ public class Creature : KinematicBody
             _velocity.y -= FallAcceleration * delta;
             _velocity = MoveAndSlide(_velocity);
 
-
-            if (CanMate())
+            if (State is StatesEnum.PathingToMate)
             {
-                if (DesiredFood != null)
-                {
-                    DesiredFood.BeingAte = false;
-                    DesiredFood.CurrentSeekers.Remove(this);
-                    DesiredFood = null;
-                }
-
                 if (MainObj.IsNullOrQueued(Mate))
                 {
-                    Mate = GetNearestMate();
-
-                    if (Mate != null)
-                    {
-                        Mate.Mate = this;
-
-                        LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
-                        Mate.LookAtFromPosition(Mate.Translation, Translation, Vector3.Up);
-                    }
+                    Mate = null;
+                    State = StatesEnum.LookingForMate; // if they cannot mate anymore, in the next if block CanMate() is called
                 }
                 else
                 {
@@ -137,11 +168,16 @@ public class Creature : KinematicBody
 
                     if (Translation.DistanceSquaredTo(Mate.Translation) < 9)
                     {
-                        Mate.Abils.SetEnergy(Mate.Abils.GetEnergy() - 60);
-                        Abils.SetEnergy(Abils.GetEnergy() - 60);
+                        Mate.Abils.Saturation -= 50;
+                        Mate.Abils.Hydration -= 50;
+                        Abils.Saturation -= 50;
+                        Abils.Hydration -= 50;
 
                         NumChildren++;
                         Mate.NumChildren++;
+
+                        Mate.State = StatesEnum.Nothing;
+                        State = StatesEnum.Nothing;
 
                         Mate.Mate = null;
                         Mate = null;
@@ -150,26 +186,69 @@ public class Creature : KinematicBody
                     }
                 }
             }
-            else
+            else if (State is StatesEnum.LookingForMate)
             {
-                if (DesiredFood != null && Translation.DistanceSquaredTo(DesiredFood.Translation) < 4.1)
+                if (CanMate())
                 {
-                    // just over distance of 2 (food and creature have radius 1) to be safe
+                    if (DesiredFood != null) // this shouldnt happen ideally
+                    {
+                        DesiredFood.BeingAte = false;
+                        DesiredFood.CurrentSeekers.Remove(this);
+                        DesiredFood = null;
+                    }
+
+                    Mate = GetNearestMate();
+                    if (Mate != null)
+                    {
+                        Mate.Mate = this;
+                        State = StatesEnum.PathingToMate;
+                        Mate.State = StatesEnum.PathingToMate;
+                    }
+                }
+            }
+            else if (State is StatesEnum.PathingToFood)
+            {
+                LookAtClosestFood();
+                if (DesiredFood is null) // this shouldnt happen really
+                {
+                    State = StatesEnum.Nothing;
+                }
+                else if (Translation.DistanceSquaredTo(DesiredFood.Translation) < 4.1)
+                {
+                    State = StatesEnum.Eating;
                     StartEatingFood();
                 }
-                else if (MainObj.IsInWater(Translation, false) && DesiredFood == null && !DesiredWater.IsEqualApprox(Vector3.Zero) && Abils.Hydration < 100 && Translation.DistanceSquaredTo(DesiredWater) < 4.1)
+            }
+            else if (State is StatesEnum.PathingToWater)
+            {
+                LookAtClosestWater(); // keep this so it can continue recalculating to closer water
+                if (DesiredWater is null) // this shouldnt happen pretty sure
                 {
-                    Drinking = true;
+                    State = StatesEnum.Nothing;
                 }
-
-                if (DesiredFood != null || (DesiredWater.IsEqualApprox(Vector3.Zero) && Abils.Energy <= Abils.Hydration))
-                {   // TODO: more detailed calculation in the future for which will run out first
-                    // currently this is either if u have a desired food OR no desired water and less saturation (TODO: implement saturation) than hydration
-                    LookAtClosestFood();
+                else if (MainObj.IsInWater(Translation, false) && Translation.DistanceSquaredTo(DesiredWater.Location) < 4.1)
+                {
+                    State = StatesEnum.Drinking;
+                }
+            }
+            else if (State is StatesEnum.Nothing)
+            {
+                if (CanMate())
+                {
+                    State = StatesEnum.LookingForMate;
                 }
                 else
                 {
-                    LookAtClosestWater();
+                    if ((Abils.Saturation / Abils.SaturationLoss) <= (Abils.Hydration / Abils.HydrationLoss))
+                    {
+                        LookAtClosestFood();
+                        if (DesiredFood != null) State = StatesEnum.PathingToFood;
+                    }
+                    else
+                    {
+                        LookAtClosestWater();
+                        if (DesiredWater != null) State = StatesEnum.PathingToWater;
+                    }
                 }
             }
 
@@ -180,20 +259,7 @@ public class Creature : KinematicBody
                 {
                     if (!(collision.Collider is Creature creat && creat != this))
                     {
-                        //if (DesiredFood != null) GD.Print(DesiredFood.Translation, " ", EatingTimeLeft);
-                        if (!MainObj.IsNullOrQueued(DesiredFood))
-                        {
-                            LookAtFromPosition(Translation, DesiredFood.Translation, Vector3.Up);
-                        }
-                        else if (Mate != null)
-                        {
-                            LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
-                            Mate.LookAtFromPosition(Mate.Translation, Translation, Vector3.Up);
-                        }
-                        else
-                        {
-                            RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));
-                        }
+                        if (State is StatesEnum.Nothing) RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));
                         break;
                     }
                     else if (collision.Collider is Creature && creat.TeamObj != TeamObj)
@@ -201,25 +267,6 @@ public class Creature : KinematicBody
                         //Fight(creat);
                     }
                 }
-            }
-        }
-        else if (Drinking)
-        {
-            Drink(delta);
-            if (Abils.Hydration >= 100) // TODO: Define a hydration max
-            {
-                DesiredWater = Vector3.Zero;
-                Drinking = false;
-            }
-        }
-        else
-        {
-            EatingTimeLeft -= delta;
-            Eat(delta);
-            if (EatingTimeLeft <= 0)
-            {
-                EatingTimeLeft = 0;
-                MainObj.EatFood(DesiredFood);
             }
         }
     }
@@ -230,7 +277,7 @@ public class Creature : KinematicBody
     {
         Boolean canMate = false;
         float libido = Abils.GetModifiedLibido();
-        float energy = Abils.GetEnergy();
+        float energy = Abils.Energy;
 
         // TODO: make energy - libido relationship curved
         // true if Mate already exists or all of the following are true: No desired food, alive for 20+ seconds, and energy is less than 150 minus libido
@@ -270,7 +317,7 @@ public class Creature : KinematicBody
 
     public void StartDrinkingWater()
     {
-        // if creature is drinking same water with enemy go for a fight?
+        // TODO: if creature is drinking same water with enemy go for a fight?
     }
 
     public Boolean WantsToFight(Creature enemy)
@@ -363,6 +410,7 @@ public class Creature : KinematicBody
         return killedCreature;
     }
 
+    // TODO: Cant select creatures because FoodDetector area node was deleted
     public void OnFoodDetectorInputEvent(object camera, object @event, Vector3 position, Vector3 normal, int shape_idx)
     {
         if (@event is InputEventMouseButton buttonEvent && buttonEvent.Pressed && (ButtonList)buttonEvent.ButtonIndex == ButtonList.Left && buttonEvent.Doubleclick)
@@ -386,7 +434,7 @@ public class Creature : KinematicBody
 
         foreach (Creature teamMember in visibleTeamMembers)
         {
-            if (MainObj.IsNullOrQueued(teamMember) || !teamMember.CanMate() || !MainObj.IsNullOrQueued(teamMember.Mate)) continue;
+            if (MainObj.IsNullOrQueued(teamMember) || !(State is StatesEnum.LookingForMate)) continue;
 
             float distance = Translation.DistanceSquaredTo(teamMember.Translation);
             if (distance < closestDistance && distance < Math.Pow(teamMember.Abils.GetModifiedSight(), 2))
@@ -401,7 +449,12 @@ public class Creature : KinematicBody
 
     public void LookAtClosestFood()
     {
-        if (!MainObj.IsNullOrQueued(DesiredFood)) return;
+        if (!MainObj.IsNullOrQueued(DesiredFood))
+        {
+            if (Translation.IsEqualApprox(DesiredFood.Translation))
+                LookAtFromPosition(Translation, DesiredFood.Translation, Vector3.Up);
+            return;
+        }
 
         List<Food> visibleFood = MainObj.GetAllFoodInSight(this);
 
@@ -447,6 +500,7 @@ public class Creature : KinematicBody
                 if (!MainObj.IsNullOrQueued(ally) && ally.TeamObj == TeamObj)
                 {
                     ally.DesiredFood = null;
+                    ally.State = StatesEnum.Nothing;
                     seekers.Remove(ally);    // concurrent modification exception just isnt a thing apparently
                     break;
                 }
@@ -468,13 +522,20 @@ public class Creature : KinematicBody
 
     public void LookAtClosestWater()
     {
-        if (!DesiredWater.IsEqualApprox(Vector3.Zero)) return;
+        if (DesiredWater != null)
+        {
+            if (!Translation.IsEqualApprox(DesiredWater.Location))
+            {
+                LookAtFromPosition(Translation, DesiredWater.Location, Vector3.Up);
+            }
+            return;
+        }
 
         int distance = 0;
         Boolean waterFound = false;
         float x = Translation.x;
         float z = Translation.z;
-        Vector3 closestWater = Vector3.Zero;
+        Water closestWater = null;
         while (!waterFound)
         {
             for (int i = 0; i < 8; i++)
@@ -500,11 +561,12 @@ public class Creature : KinematicBody
                     if (tempVector.DistanceSquaredTo(Translation) <= Mathf.Pow(Abils.GetModifiedSight(), 2))
                     {
                         waterFound = true;
-                        closestWater = tempVector;
+                        closestWater = new Water(tempVector);
                         break;
                     }
                 }
             }
+
             distance++;
             if (distance >= Abils.GetModifiedSight())
             {
@@ -512,36 +574,40 @@ public class Creature : KinematicBody
             }
         }
 
-        if (!closestWater.IsEqualApprox(Vector3.Zero)) // TODO: this is a very hacky workaround b/c Vector3 is a nonnullable type
+        if (closestWater != null)
         {
-            closestWater.y = Translation.y; // make it so they keep looking forward instead of throwing themselves up or down
+            closestWater.Location.y = Translation.y;
             DesiredWater = closestWater;
-            if (Translation.IsEqualApprox(DesiredWater))
+            if (!Translation.IsEqualApprox(DesiredWater.Location))
             {
-                // TODO: Fix this
-                GD.Print("Water position is the same as current position -- In Creature.LookAtClosestWater()");
-            }
-            else
-            {
-                LookAtFromPosition(Translation, DesiredWater, Vector3.Up);
+                LookAtFromPosition(Translation, DesiredWater.Location, Vector3.Up);
             }
         }
         else
         {
             // do nothing if cant find any water
         }
-
     }
 
     public void Eat(float delta)    // Assert that food better exist
     {
         Debug.Assert(DesiredFood != null);
-        Abils.Energy += (DesiredFood.Replenishment * (DesiredFood.Poisonous ? -1 : 1) * delta) / Abils.EatingTime;
-        Abils.Energy = Math.Min(Abils.Energy, Abils.ENERGY_MAX); // Energy capped at 150
+        Abils.Saturation += (DesiredFood.Replenishment * (DesiredFood.Poisonous ? -1 : 1) * delta) / Abils.EatingTime;
+        Abils.Saturation = Math.Min(Abils.Saturation, Abils.SATURATION_MAX); // Energy capped at 150
     }
 
     public void Drink(float delta)
     {
         Abils.Hydration += WATER_REPLENISHMENT * delta;
+        Abils.Hydration = Math.Min(Abils.Hydration, Abils.HYDRATION_MAX); // Energy capped at 150
+    }
+
+    class Water
+    {
+        public Vector3 Location;
+        public Water(Vector3 location)
+        {
+            Location = location;
+        }
     }
 }
