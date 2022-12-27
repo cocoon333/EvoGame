@@ -84,7 +84,7 @@ public class Creature : KinematicBody
         }
         else if (Selected)
         {
-            colorVector = new Vector3(1.0f, (170.0f/ 256.0f), (29.0f / 256.0f));
+            colorVector = new Vector3(1.0f, (170.0f / 256.0f), (29.0f / 256.0f));
         }
         else
         {
@@ -418,7 +418,7 @@ public class Creature : KinematicBody
     {
         // killing mechanic
         Creature loser = GetLoser(enemy);
-        loser.State = StatesEnum.Nothing; // this was added as a desperate last ditch attempt to solve a bug, i dont think its needed but might as well keep
+        loser.State = StatesEnum.Nothing;
         Creature winner = (loser == enemy ? this : enemy);
         winner.Kills++;
         winner.TeamObj.TotalKills++;
@@ -485,17 +485,17 @@ public class Creature : KinematicBody
         {
             if (Blacklist.Contains(food)) continue;
 
+            if (food.Poisonous)
+            {
+                float sightFraction = 1 - (Translation.DistanceTo(food.Translation) / Abils.GetModifiedSight());
+                float avoidChance = (Abils.GetModifiedIntelligence() * sightFraction) / 100.0f;
+                if (GD.Randf() <= avoidChance) continue; // poisoned food avoided
+            }
+
             float timeToFood = CalculateTimeToLocation(food.Translation);
 
             if (timeToFood < shortestTime)
             {
-                if (food.Poisonous)
-                {
-                    float sightFraction = 1 - (Translation.DistanceTo(food.Translation) / Abils.GetModifiedSight());
-                    float avoidChance = (Abils.GetModifiedIntelligence()*sightFraction)/100.0f;
-                    if (GD.Randf() <= avoidChance) continue; // poisoned food avoided
-                }
-
                 List<Creature> seekers = food.CurrentSeekers;
                 Boolean isAllyCloser = false;
                 foreach (Creature seeker in seekers)
@@ -543,6 +543,26 @@ public class Creature : KinematicBody
         {
             // What to do if no available food within a blobs sight distance
         }
+    }
+
+    public float CalculateTimeToLocation(Vector3 target)
+    {
+        Vector3 directedUnitVector = (target - Translation).Normalized();
+        float distance = Translation.DistanceTo(target);
+        float weightedDistance = 0;
+        int increment = 5;
+        for (int i = 0; i < distance; i += increment)
+        {
+            Vector3 sampleLocation = Translation + i * directedUnitVector;
+            Boolean isWater = MainObj.IsInWater(target, 1.0f);
+            weightedDistance += increment;
+            if (isWater)
+            {
+                weightedDistance += (1 / WATER_MOVEMENT_SPEED) - increment;
+            }
+        }
+        float time = (weightedDistance / Abils.GetModifiedSpeed());
+        return time;
     }
 
     public void LookAtClosestWater()
@@ -617,26 +637,6 @@ public class Creature : KinematicBody
         {
             // do nothing if cant find any water
         }
-    }
-
-    public float CalculateTimeToLocation(Vector3 target)
-    {
-        Vector3 directedUnitVector = (target - Translation).Normalized();
-        float distanceSquared = Translation.DistanceSquaredTo(target);
-        float weightedDistance = 0;
-        int increment = 5;
-        for (int i = 0; (i*i) < distanceSquared; i += increment)
-        {
-            Vector3 sampleLocation = Translation + i*directedUnitVector;
-            Boolean isWater = MainObj.IsInWater(target, 1.0f);
-            weightedDistance += increment;
-            if (isWater)
-            {
-                weightedDistance += (1 / WATER_MOVEMENT_SPEED) - increment;
-            }
-        }
-        float time = (weightedDistance / Abils.GetModifiedSpeed());
-        return time;
     }
 
     public void Eat(float delta)    // Assert that food better exist

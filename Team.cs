@@ -52,6 +52,10 @@ public class Team : Node
 
         TeamColor = new SpatialMaterial();
         TeamColor.AlbedoColor = new Color(TeamNumber, TeamNumber, TeamNumber); // this only works for team 0 and 1, black and white
+        if (TeamNumber == 2)
+        {
+            TeamColor.AlbedoColor = new Color(0.5f, 0.5f, 0.5f);
+        }
     }
 
     public List<float> GetStats()

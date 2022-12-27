@@ -26,6 +26,9 @@ public class Main : Node
 
     Team PlayerTeam;
 
+    OpenSimplexNoise NoiseTexture;
+    float WaterLevel;
+
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
@@ -48,13 +51,19 @@ public class Main : Node
         }
         FoodList.Clear();
 
+        MeshInstance ground = GetNode<MeshInstance>("ArenaNodes/Ground/MeshInstance");
+        ShaderMaterial shader = (ShaderMaterial)ground.GetActiveMaterial(0);
+        NoiseTexture noise = (NoiseTexture)shader.GetShaderParam("noise");
+        NoiseTexture = noise.Noise;
+        WaterLevel = (float)shader.GetShaderParam("waterlevel");
 
-        for (int i = 0; i < 200; i++)
+
+        for (int i = 0; i < 150; i++)
         {
             SpawnFood();
         }
 
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < 3; i++)
         {
             Team team = (Team)TeamScene.Instance();
             team.TeamNumber = i;
@@ -64,7 +73,7 @@ public class Main : Node
             Node teamParent = GetNode<Node>("TeamParent");
             teamParent.AddChild(team);
 
-            for (int j = 0; j < 100; j++)
+            for (int j = 0; j < 50; j++)
             {
                 SpawnCreature(team);
             }
@@ -98,14 +107,25 @@ public class Main : Node
 
     public void CreatureDeath(Creature creature)
     {
-        Team team = creature.TeamObj;
-        team.CreatureDeath(creature);
+        creature.TeamObj.CreatureDeath(creature);
 
         GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, FoodCount);
 
-        if (creature.TeamObj.CreatureCount == 0)
+        if (creature.TeamObj == PlayerTeam && PlayerTeam.CreatureCount == 0)
         {
             GameOver();
+        }
+        else
+        {
+            int aliveTeams = 0;
+            foreach (Team team in TeamsList)
+            {
+                if (team.CreatureCount != 0)
+                {
+                    aliveTeams++;
+                }
+            }
+            if (aliveTeams <= 1) GameOver();
         }
     }
 
@@ -238,21 +258,9 @@ public class Main : Node
 
     public Boolean IsInWater(Vector3 location, float waterLevelMultiplier)
     {
-        MeshInstance ground = GetNode<MeshInstance>("ArenaNodes/Ground/MeshInstance");
-        ShaderMaterial shader = (ShaderMaterial)ground.GetActiveMaterial(0);
-        NoiseTexture noise = (NoiseTexture)shader.GetShaderParam("noise");
-        OpenSimplexNoise openNoise = noise.Noise;
-
-
         Vector2 vector = new Vector2(((location.x / 200.0f) + 0.5f) * 512f, ((location.z / 200.0f) + 0.5f) * 512f);
-        float height = (openNoise.GetNoise2dv(vector) / 2.0f) + 0.5f;
-
-        //GD.Print(location.ToString() + " Noise value " + height);
-
-        float waterlevel = (float)shader.GetShaderParam("waterlevel");
-        waterlevel *= waterLevelMultiplier;
-        return (height <= waterlevel);
-
+        float height = (NoiseTexture.GetNoise2dv(vector) / 2.0f) + 0.5f;
+        return (height <= (WaterLevel*waterLevelMultiplier));
     }
 
     public Boolean IsNullOrQueued(Node node)
