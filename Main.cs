@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 public class Main : Node
 {
@@ -114,7 +115,7 @@ public class Main : Node
         Node foodParent = GetNode<Node>("FoodParent");
         foodParent.AddChild(food);
         Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
-        while (IsInWater(spawnLoc, true))
+        while (IsInWater(spawnLoc, 1.0f))
         {
             spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
         }
@@ -131,6 +132,7 @@ public class Main : Node
         {
             seeker.DesiredFood = null;
             seeker.EatingTimeLeft = 0;
+            seeker.State = Creature.StatesEnum.Nothing;
         }
         FoodList.Remove(food);
 
@@ -234,7 +236,7 @@ public class Main : Node
         return teamMembersTwo;
     }
 
-    public Boolean IsInWater(Vector3 location, Boolean includeBeaches)
+    public Boolean IsInWater(Vector3 location, float waterLevelMultiplier)
     {
         MeshInstance ground = GetNode<MeshInstance>("ArenaNodes/Ground/MeshInstance");
         ShaderMaterial shader = (ShaderMaterial)ground.GetActiveMaterial(0);
@@ -248,7 +250,7 @@ public class Main : Node
         //GD.Print(location.ToString() + " Noise value " + height);
 
         float waterlevel = (float)shader.GetShaderParam("waterlevel");
-        if (!includeBeaches) waterlevel *= 0.9f;
+        waterlevel *= waterLevelMultiplier;
         return (height <= waterlevel);
 
     }

@@ -23,6 +23,7 @@ public class Creature : KinematicBody
     private Vector3 _velocity = Vector3.Zero;
 
     const int WATER_REPLENISHMENT = 20;
+    const float WATER_MOVEMENT_SPEED = 0.5f;
 
     Main MainObj;
     List<Food> Blacklist = new List<Food>();
@@ -32,7 +33,7 @@ public class Creature : KinematicBody
     Water DesiredWater = null;
     public Boolean Selected = false;
 
-    enum StatesEnum
+    public enum StatesEnum
     {
         Eating,
         Drinking,
@@ -43,7 +44,7 @@ public class Creature : KinematicBody
         Nothing, // dont like this name for doing nothing, should change at some point
         Fighting // potentially also add a Fleeing state alongside Fighting
     }
-    StatesEnum State = StatesEnum.Nothing;
+    public StatesEnum State = StatesEnum.Nothing;
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
@@ -135,19 +136,21 @@ public class Creature : KinematicBody
         {
             // Creature is eating
             // Decrement eating time, replenish energy, and then consume food if finished
+            Debug.Assert(DesiredFood != null);
             EatingTimeLeft -= delta;
             Eat(delta);
             if (EatingTimeLeft <= 0)
             {
                 EatingTimeLeft = 0;
                 MainObj.EatFood(DesiredFood);
-                State = StatesEnum.Nothing;
+                // State = StatesEnum.Nothing; // this happens in the above method automatically
             }
         }
         else if (State is StatesEnum.Drinking)
         {
             // Creature is drinking
             // replenish hydration and stop drinking if over hydration max
+            Debug.Assert(DesiredWater != null);
             Drink(delta);
             if (Abils.GetHydration() >= Abils.HYDRATION_MAX || Abils.GetHydration() > Abils.GetSaturation())
             {
@@ -158,9 +161,9 @@ public class Creature : KinematicBody
         else
         {
             _velocity = Vector3.Forward * Abils.GetModifiedSpeed() / 2;
-            if (MainObj.IsInWater(Translation, true))
+            if (MainObj.IsInWater(Translation, 0.9f))
             {
-                _velocity *= 0.5f;
+                _velocity *= WATER_MOVEMENT_SPEED;
             }
             _velocity = _velocity.Rotated(Vector3.Up, Rotation.y);
             // Vertical velocity
@@ -243,7 +246,7 @@ public class Creature : KinematicBody
                 {
                     State = StatesEnum.Nothing;
                 }
-                else if (MainObj.IsInWater(Translation, false) && Translation.DistanceSquaredTo(DesiredWater.Location) < 4.1)
+                else if (MainObj.IsInWater(Translation, 0.9f) && Translation.DistanceSquaredTo(DesiredWater.Location) < 4.1)
                 {
                     State = StatesEnum.Drinking;
                 }
@@ -321,7 +324,8 @@ public class Creature : KinematicBody
 
     public void StartEatingFood()
     {
-        if (DesiredFood == null) GD.Print("Started eating food but desired food was null");
+        Debug.Assert(DesiredFood != null);
+        //if (DesiredFood == null) GD.Print("Started eating food but desired food was null");
 
         Creature enemy = null;
         if (DesiredFood.BeingAte)
@@ -330,7 +334,8 @@ public class Creature : KinematicBody
             {
                 if (creature != this)
                 {
-                    if (creature.TeamObj == TeamObj) { GD.Print("Friendly fire has occured"); }
+                    Debug.Assert(creature.TeamObj != this.TeamObj);
+                    //if (creature.TeamObj == TeamObj) { GD.Print("Friendly fire has occured"); }
                     enemy = creature;
                     break;
                 }
@@ -378,14 +383,6 @@ public class Creature : KinematicBody
             {
                 KillLoser(enemy); // fight occurs
             }
-
-            // if speed > opponent speed
-            //  ez dub get away
-            // else run number
-            //  greater than threshold -> getaway
-            //  less than threshold -> check if opponent wants to fight/chase
-            // if false or small chance you escape anyways -> getaway
-            // else (true) -> fight
         }
         else
         {
@@ -421,6 +418,7 @@ public class Creature : KinematicBody
     {
         // killing mechanic
         Creature loser = GetLoser(enemy);
+        loser.State = StatesEnum.Nothing; // this was added as a desperate last ditch attempt to solve a bug, i dont think its needed but might as well keep
         Creature winner = (loser == enemy ? this : enemy);
         winner.Kills++;
         winner.TeamObj.TotalKills++;
@@ -487,11 +485,17 @@ public class Creature : KinematicBody
         {
             if (Blacklist.Contains(food)) continue;
 
-            float distance = Translation.DistanceSquaredTo(food.Translation);
-            float timeToFood = distance / Abils.GetModifiedSpeed();
+            float timeToFood = CalculateTimeToLocation(food.Translation);
 
             if (timeToFood < shortestTime)
             {
+                if (food.Poisonous)
+                {
+                    float sightFraction = 1 - (Translation.DistanceTo(food.Translation) / Abils.GetModifiedSight());
+                    float avoidChance = (Abils.GetModifiedIntelligence()*sightFraction)/100.0f;
+                    if (GD.Randf() <= avoidChance) continue; // poisoned food avoided
+                }
+
                 List<Creature> seekers = food.CurrentSeekers;
                 Boolean isAllyCloser = false;
                 foreach (Creature seeker in seekers)
@@ -581,7 +585,7 @@ public class Creature : KinematicBody
 
                 if (x > 97 || x < -97 || z < -97 || z > 97) continue;
 
-                if (MainObj.IsInWater(new Vector3(x, Translation.y, z), false))
+                if (MainObj.IsInWater(new Vector3(x, Translation.y, z), 0.9f))
                 {
                     Vector3 tempVector = new Vector3(x, Translation.y, z);
                     if (tempVector.DistanceSquaredTo(Translation) <= Mathf.Pow(Abils.GetModifiedSight(), 2))
@@ -615,9 +619,28 @@ public class Creature : KinematicBody
         }
     }
 
+    public float CalculateTimeToLocation(Vector3 target)
+    {
+        Vector3 directedUnitVector = (target - Translation).Normalized();
+        float distanceSquared = Translation.DistanceSquaredTo(target);
+        float weightedDistance = 0;
+        int increment = 5;
+        for (int i = 0; (i*i) < distanceSquared; i += increment)
+        {
+            Vector3 sampleLocation = Translation + i*directedUnitVector;
+            Boolean isWater = MainObj.IsInWater(target, 1.0f);
+            weightedDistance += increment;
+            if (isWater)
+            {
+                weightedDistance += (1 / WATER_MOVEMENT_SPEED) - increment;
+            }
+        }
+        float time = (weightedDistance / Abils.GetModifiedSpeed());
+        return time;
+    }
+
     public void Eat(float delta)    // Assert that food better exist
     {
-        Debug.Assert(DesiredFood != null);
         Abils.SetSaturation(Mathf.Min(Abils.GetSaturation() + (DesiredFood.Replenishment * (DesiredFood.Poisonous ? -0.25f : 1) * delta) / Abils.EatingTime, Abils.SATURATION_MAX));
     }
 
