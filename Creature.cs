@@ -149,7 +149,7 @@ public class Creature : KinematicBody
             // Creature is drinking
             // replenish hydration and stop drinking if over hydration max
             Drink(delta);
-            if (Abils.GetHydration() >= Abils.HYDRATION_MAX) // TODO: Define a hydration max
+            if (Abils.GetHydration() >= Abils.HYDRATION_MAX || Abils.GetHydration() > Abils.GetSaturation())
             {
                 DesiredWater = null;
                 State = StatesEnum.Nothing;
@@ -181,17 +181,10 @@ public class Creature : KinematicBody
 
                     if (Translation.DistanceSquaredTo(Mate.Translation) < 9)
                     {
-                        //GD.Print("Saturation: " + Abils.GetSaturation() + " Hydration: " + Abils.GetHydration() + " Energy: " + Abils.GetEnergy());
-
                         Mate.Abils.SetSaturation(Mate.Abils.GetSaturation() - 50);
                         Mate.Abils.SetHydration(Mate.Abils.GetHydration() - 50);
                         Abils.SetSaturation(Abils.GetSaturation() - 50);
                         Abils.SetHydration(Abils.GetHydration() - 50);
-
-                        if (Abils.GetSaturation() < 0 || Abils.GetHydration() < 0)
-                        {
-                            GD.Print("Truly a bruh moment occurred, died by breeding");
-                        }
 
                         NumChildren++;
                         Mate.NumChildren++;
@@ -417,6 +410,7 @@ public class Creature : KinematicBody
                 escaper.DesiredFood.CurrentSeekers.Remove(escaper);
                 escaper.DesiredFood = null;
                 escaper.EatingTimeLeft = 0;
+                escaper.State = StatesEnum.Nothing;
             }
             return true;
         }
@@ -462,7 +456,7 @@ public class Creature : KinematicBody
 
         foreach (Creature teamMember in visibleTeamMembers)
         {
-            if (MainObj.IsNullOrQueued(teamMember) || !(State is StatesEnum.LookingForMate)) continue;
+            if (MainObj.IsNullOrQueued(teamMember) || !(teamMember.State is StatesEnum.LookingForMate)) continue;
 
             float distance = Translation.DistanceSquaredTo(teamMember.Translation);
             if (distance < closestDistance && distance < Math.Pow(teamMember.Abils.GetModifiedSight(), 2))
@@ -585,7 +579,7 @@ public class Creature : KinematicBody
                     else z += distance;
                 }
 
-                if (x > 100 || x < -100 || z < -100 || z > 100) continue;
+                if (x > 97 || x < -97 || z < -97 || z > 97) continue;
 
                 if (MainObj.IsInWater(new Vector3(x, Translation.y, z), false))
                 {
@@ -624,7 +618,7 @@ public class Creature : KinematicBody
     public void Eat(float delta)    // Assert that food better exist
     {
         Debug.Assert(DesiredFood != null);
-        Abils.SetSaturation(Mathf.Min(Abils.GetSaturation() + (DesiredFood.Replenishment * (DesiredFood.Poisonous ? -1 : 1) * delta) / Abils.EatingTime, Abils.SATURATION_MAX));
+        Abils.SetSaturation(Mathf.Min(Abils.GetSaturation() + (DesiredFood.Replenishment * (DesiredFood.Poisonous ? -0.25f : 1) * delta) / Abils.EatingTime, Abils.SATURATION_MAX));
     }
 
     public void Drink(float delta)

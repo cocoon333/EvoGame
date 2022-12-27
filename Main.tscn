@@ -60,10 +60,10 @@ void fragment()
 	}
 }"
 
-[sub_resource type="OpenSimplexNoise" id=28]
+[sub_resource type="OpenSimplexNoise" id=31]
 
 [sub_resource type="NoiseTexture" id=27]
-noise = SubResource( 28 )
+noise = SubResource( 31 )
 
 [sub_resource type="OpenSimplexNoise" id=29]
 
@@ -73,7 +73,7 @@ noise = SubResource( 29 )
 
 [sub_resource type="ShaderMaterial" id=24]
 shader = SubResource( 23 )
-shader_param/waterlevel = 0.4
+shader_param/waterlevel = 0.45
 shader_param/noise = SubResource( 27 )
 shader_param/normalmap = SubResource( 30 )
 

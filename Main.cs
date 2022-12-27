@@ -53,7 +53,7 @@ public class Main : Node
             SpawnFood();
         }
 
-        for (int i = 0; i < 1; i++)
+        for (int i = 0; i < 2; i++)
         {
             Team team = (Team)TeamScene.Instance();
             team.TeamNumber = i;
@@ -63,7 +63,7 @@ public class Main : Node
             Node teamParent = GetNode<Node>("TeamParent");
             teamParent.AddChild(team);
 
-            for (int j = 0; j < 200; j++)
+            for (int j = 0; j < 100; j++)
             {
                 SpawnCreature(team);
             }
@@ -335,7 +335,7 @@ public class Main : Node
 
         if (buttonPressed == "increment_speed")
         {
-            ChangeStat(PlayerTeam, 0, 1); // TODO: magic number L, 0 for team id and 1 for increment value
+            ChangeStat(PlayerTeam, 0, 1); // TODO: magic number L, 0 for stat id and 1 for increment value
         }
         else if (buttonPressed == "decrement_speed")
         {
