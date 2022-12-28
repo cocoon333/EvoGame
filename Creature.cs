@@ -22,7 +22,7 @@ public class Creature : KinematicBody
 
     private Vector3 _velocity = Vector3.Zero;
 
-    const int WATER_REPLENISHMENT = 20;
+    const int WATER_REPLENISHMENT = 10;
     const float WATER_MOVEMENT_SPEED = 0.5f;
 
     Main MainObj;
@@ -151,11 +151,19 @@ public class Creature : KinematicBody
             // Creature is drinking
             // replenish hydration and stop drinking if over hydration max
             Debug.Assert(DesiredWater != null);
-            Drink(delta);
-            if (Abils.GetHydration() >= Abils.HYDRATION_MAX || Abils.GetHydration() > Abils.GetSaturation())
+            if (!MainObj.IsInWater(Translation, 0.9f))
             {
                 DesiredWater = null;
                 State = StatesEnum.Nothing;
+            }
+            else
+            {
+                Drink(delta);
+                if (Abils.GetHydration() >= Abils.HYDRATION_MAX || Abils.GetHydration() > Abils.GetSaturation())
+                {
+                    DesiredWater = null;
+                    State = StatesEnum.Nothing;
+                }
             }
         }
         else
@@ -489,7 +497,11 @@ public class Creature : KinematicBody
             {
                 float sightFraction = 1 - (Translation.DistanceTo(food.Translation) / Abils.GetModifiedSight());
                 float avoidChance = (Abils.GetModifiedIntelligence() * sightFraction) / 100.0f;
-                if (GD.Randf() <= avoidChance) continue; // poisoned food avoided
+                if (GD.Randf() <= avoidChance)
+                {
+                    Blacklist.Add(food);
+                    continue;
+                }
             }
 
             float timeToFood = CalculateTimeToLocation(food.Translation);
@@ -550,8 +562,9 @@ public class Creature : KinematicBody
         Vector3 directedUnitVector = (target - Translation).Normalized();
         float distance = Translation.DistanceTo(target);
         float weightedDistance = 0;
-        int increment = 5;
-        for (int i = 0; i < distance; i += increment)
+        //float increment = 5; // sample every 5 distance units along line
+        float increment = distance / 10; // 10 sample locations
+        for (float i = 0; i <= distance; i += increment)
         {
             Vector3 sampleLocation = Translation + i * directedUnitVector;
             Boolean isWater = MainObj.IsInWater(target, 1.0f);
@@ -567,7 +580,7 @@ public class Creature : KinematicBody
 
     public void LookAtClosestWater()
     {
-        if (DesiredWater != null)
+        if (DesiredWater != null && MainObj.IsInWater(DesiredWater.Location, 0.9f))
         {
             if (DesiredWater.Location.y != Translation.y) DesiredWater.Location.y = Translation.y;
 
@@ -641,7 +654,7 @@ public class Creature : KinematicBody
 
     public void Eat(float delta)    // Assert that food better exist
     {
-        Abils.SetSaturation(Mathf.Min(Abils.GetSaturation() + (DesiredFood.Replenishment * (DesiredFood.Poisonous ? -0.25f : 1) * delta) / Abils.EatingTime, Abils.SATURATION_MAX));
+        Abils.SetSaturation(Mathf.Min(Abils.GetSaturation() + (DesiredFood.Replenishment * (DesiredFood.Poisonous ? -1 : 1) * delta) / Abils.EatingTime, Abils.SATURATION_MAX));
     }
 
     public void Drink(float delta)

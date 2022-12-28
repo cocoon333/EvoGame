@@ -48,11 +48,15 @@ void fragment()
 	
 	//ALBEDO = vec3(y_position, y_position, y_position); // grayscale noise map floor
 	
-	if (y_position <= waterlevel)
+	if (y_position <= waterlevel*0.9)
 	{
 		ALBEDO = vec3(0, 0, 1);
 		METALLIC = 0.0;
 		ROUGHNESS = 0.01;
+	}
+	else if (y_position <= waterlevel)
+	{
+		ALBEDO = vec3(205.0/256.0, 170.0/256.0, 0);
 	}
 	else
 	{
@@ -204,7 +208,7 @@ transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0 )
 mesh = SubResource( 25 )
 
 [node name="DirectionalLight" type="DirectionalLight" parent="ArenaNodes"]
-transform = Transform( 1, 0, 0, 0, -0.258819, 0.965926, 0, -0.965926, -0.258819, 0, 54, 42 )
+transform = Transform( 1, 0, 0, 0, 5.96046e-08, 1, 0, -1, 5.96046e-08, 0, 54, 42 )
 shadow_enabled = true
 directional_shadow_max_distance = 400.0
 

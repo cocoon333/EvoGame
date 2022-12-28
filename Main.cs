@@ -63,7 +63,7 @@ public class Main : Node
             SpawnFood();
         }
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < 1; i++)
         {
             Team team = (Team)TeamScene.Instance();
             team.TeamNumber = i;
@@ -73,7 +73,7 @@ public class Main : Node
             Node teamParent = GetNode<Node>("TeamParent");
             teamParent.AddChild(team);
 
-            for (int j = 0; j < 50; j++)
+            for (int j = 0; j < 200; j++)
             {
                 SpawnCreature(team);
             }
@@ -94,6 +94,18 @@ public class Main : Node
 
     public void SpawnCreature(Vector3 location, Team team)
     {
+        // Drought mod code
+        /*
+        if (team.TotalBirths >= 200)
+        {
+            MeshInstance ground = GetNode<MeshInstance>("ArenaNodes/Ground/MeshInstance");
+            ShaderMaterial shader = (ShaderMaterial)ground.GetActiveMaterial(0);
+            WaterLevel -= 0.01f;
+            GD.Print(WaterLevel);
+            shader.SetShaderParam("waterlevel", WaterLevel);
+        }
+        */
+
         team.SpawnCreature(location);
 
         GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, FoodCount);
@@ -111,6 +123,7 @@ public class Main : Node
 
         GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, FoodCount);
 
+        /*
         if (creature.TeamObj == PlayerTeam && PlayerTeam.CreatureCount == 0)
         {
             GameOver();
@@ -127,6 +140,7 @@ public class Main : Node
             }
             if (aliveTeams <= 1) GameOver();
         }
+        */
     }
 
     public void SpawnFood()
@@ -139,7 +153,7 @@ public class Main : Node
         {
             spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
         }
-        food.Initialize(50, (GD.Randf() < 0.2f), spawnLoc);
+        food.Initialize(25, (GD.Randf() < 0.2f), spawnLoc);
         FoodList.Add(food);
 
         GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, ++FoodCount);
@@ -260,7 +274,7 @@ public class Main : Node
     {
         Vector2 vector = new Vector2(((location.x / 200.0f) + 0.5f) * 512f, ((location.z / 200.0f) + 0.5f) * 512f);
         float height = (NoiseTexture.GetNoise2dv(vector) / 2.0f) + 0.5f;
-        return (height <= (WaterLevel*waterLevelMultiplier));
+        return (height <= (WaterLevel * waterLevelMultiplier));
     }
 
     public Boolean IsNullOrQueued(Node node)
