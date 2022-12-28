@@ -58,12 +58,12 @@ public class Main : Node
         WaterLevel = (float)shader.GetShaderParam("waterlevel");
 
 
-        for (int i = 0; i < 150; i++)
+        for (int i = 0; i < 200; i++)
         {
             SpawnFood();
         }
 
-        for (int i = 0; i < 1; i++)
+        for (int i = 0; i < 2; i++)
         {
             Team team = (Team)TeamScene.Instance();
             team.TeamNumber = i;
@@ -73,7 +73,7 @@ public class Main : Node
             Node teamParent = GetNode<Node>("TeamParent");
             teamParent.AddChild(team);
 
-            for (int j = 0; j < 200; j++)
+            for (int j = 0; j < 100; j++)
             {
                 SpawnCreature(team);
             }
@@ -123,22 +123,23 @@ public class Main : Node
 
         GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, FoodCount);
 
+        // game winning code commented out
         /*
-        if (creature.TeamObj == PlayerTeam && PlayerTeam.CreatureCount == 0)
+        if (creature.TeamObj.CreatureCount == 0)
         {
-            GameOver();
-        }
-        else
-        {
-            int aliveTeams = 0;
-            foreach (Team team in TeamsList)
+            if (creature.TeamObj == PlayerTeam) GameOver();
+            else
             {
-                if (team.CreatureCount != 0)
+                int aliveTeams = 0;
+                foreach (Team team in TeamsList)
                 {
-                    aliveTeams++;
+                    if (team.CreatureCount != 0)
+                    {
+                        aliveTeams++;
+                    }
                 }
+                if (aliveTeams <= 1) GameOver();
             }
-            if (aliveTeams <= 1) GameOver();
         }
         */
     }

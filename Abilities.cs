@@ -147,8 +147,9 @@ public class Abilities : Node
 
     public void WonFight(float winnerScore, float loserScore)
     {
-        this.Saturation -= (winnerScore - loserScore) * 10;
-        this.Hydration -= (winnerScore - loserScore) * 10;
+        // TODO: change this to something better
+        this.Saturation -= (1/(winnerScore - loserScore)) * 15;
+        this.Hydration -= (1/(winnerScore - loserScore)) * 15;
     }
 
     public Dictionary<String, float> GetAllAbils()

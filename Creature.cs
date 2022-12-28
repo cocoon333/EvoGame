@@ -308,7 +308,7 @@ public class Creature : KinematicBody
                     }
                     else if (collision.Collider is Creature && creat.TeamObj != TeamObj)
                     {
-                        //Fight(creat);
+                        //TryFight(creat);
                     }
                 }
             }
@@ -342,8 +342,8 @@ public class Creature : KinematicBody
             {
                 if (creature != this)
                 {
-                    Debug.Assert(creature.TeamObj != this.TeamObj);
-                    //if (creature.TeamObj == TeamObj) { GD.Print("Friendly fire has occured"); }
+                    Debug.Assert(creature.TeamObj != this.TeamObj); // TODO: This failed once, check on this (two teams present)
+                    if (creature.TeamObj == TeamObj) { GD.Print("Friendly fire has occured"); }
                     enemy = creature;
                     break;
                 }
@@ -357,7 +357,7 @@ public class Creature : KinematicBody
         {
             // this means that the other seeker (the enemy) has already reached this food
             // this blob is the second to arrive to the food and can now determine whether or not a fight occurs
-            Fight(enemy);
+            TryFight(enemy);
         }
     }
 
@@ -375,38 +375,39 @@ public class Creature : KinematicBody
         return (estimatedEnemyCombatScore < combatScore);
     }
 
-    public void Fight(Creature enemy)
+    public void TryFight(Creature enemy)
     {
         if (MainObj.IsNullOrQueued(enemy) || MainObj.IsNullOrQueued(this)) // enemy already dead
         {
             return;
         }
 
-        if (!this.WantsToFight(enemy)) // You don't want to fight the enemy
+        Boolean wantsToFight = this.WantsToFight(enemy);
+        if (!wantsToFight) // You don't want to fight the enemy
         {
             // this is what happens if their estimated strength is greater than our strength
 
-            Boolean escaped = TryEscape(this, enemy);
+            Boolean escaped = TryEscape(this, enemy, wantsToFight);
             if (!escaped)
             {
-                KillLoser(enemy); // fight occurs
+                Fight(enemy); // fight occurs
             }
         }
         else
         {
             // we think we can take them since supposedly higher strength
-            Boolean escaped = TryEscape(enemy, this);
+            Boolean escaped = TryEscape(enemy, this, enemy.WantsToFight(this));
             if (!escaped)
             {
-                KillLoser(enemy); // fight occurs
+                Fight(enemy); // fight occurs
             }
         }
     }
 
-    public bool TryEscape(Creature escaper, Creature fighter)
+    public bool TryEscape(Creature escaper, Creature fighter, Boolean wantsToFight)
     // Can the first creature escape from the second
     {
-        if (escaper.Abils.GetModifiedSpeed() > fighter.Abils.GetModifiedSpeed() || !fighter.WantsToFight(escaper) || GD.Randf() < 0.1f)
+        if (escaper.Abils.GetModifiedSpeed() > fighter.Abils.GetModifiedSpeed() || !wantsToFight || GD.Randf() < 0.1f)
         // exact speed is greater, or enemy doesnt want to fight, or random small chance to escape
         {
             if (escaper.DesiredFood != null)
@@ -422,12 +423,33 @@ public class Creature : KinematicBody
         else return false;
     }
 
-    public void KillLoser(Creature enemy)
+    public void Fight(Creature enemy)
     {
-        // killing mechanic
         Creature loser = GetLoser(enemy);
+        Creature winner = GetWinner(enemy);
+        float combatScoreDiff = winner.Abils.GetCombatScore() - loser.Abils.GetCombatScore();
+        if (GD.Randf() < ((5*combatScoreDiff) / 100.0f))
+        {
+            KillLoser(GetWinner(enemy), GetLoser(enemy));
+        }
+        else
+        {
+            if (loser.DesiredFood != null)
+            {
+                loser.Blacklist.Add(DesiredFood);
+            }
+            loser.DesiredFood = null;
+            loser.DesiredWater = null;
+            loser.State = StatesEnum.Nothing;
+
+            // TODO: Creatures should lose energy if they draw
+            // not sure how 
+        }
+    }
+
+    public void KillLoser(Creature winner, Creature loser)
+    {
         loser.State = StatesEnum.Nothing;
-        Creature winner = (loser == enemy ? this : enemy);
         winner.Kills++;
         winner.TeamObj.TotalKills++;
         winner.Abils.WonFight(winner.Abils.GetCombatScore(), loser.Abils.GetCombatScore());
@@ -438,18 +460,18 @@ public class Creature : KinematicBody
     public Creature GetLoser(Creature enemy)
     {
         // returns the loser of a fight
-        Creature killedCreature = this;
-        if (enemy.Abils.GetCombatScore() < Abils.GetCombatScore())   // defender has the slight edge in equal cases
-        {
-            killedCreature = enemy;
-        }
-        return killedCreature;
+        return (enemy.Abils.GetCombatScore() < Abils.GetCombatScore() ? enemy : this);
+    }
+
+    public Creature GetWinner(Creature enemy)
+    {
+        return (GetLoser(enemy) == this ? enemy : this);
     }
 
 
-    public Creature GetNearestMate() // TODO: This doesnt work as intended sometimes, two blobs dont choose each other despite being close enough
+    public Creature GetNearestMate()
     {
-        if (!MainObj.IsNullOrQueued(Mate)) // This shouldnt happen
+        if (!MainObj.IsNullOrQueued(Mate)) // TODO: This shouldnt happen but has happened, fix this
         {
             GD.Print("Called GetNearestMate() to look for new mate but Mate is not null or queued");
             LookAtFromPosition(Translation, Mate.Translation, Vector3.Up);
@@ -514,7 +536,8 @@ public class Creature : KinematicBody
                 {
                     if (!MainObj.IsNullOrQueued(seeker) && seeker.TeamObj == TeamObj)
                     {
-                        float timeAlly = (seeker.Translation.DistanceSquaredTo(food.Translation)) / seeker.Abils.GetModifiedSpeed();
+                        //float timeAlly = (seeker.Translation.DistanceSquaredTo(food.Translation)) / seeker.Abils.GetModifiedSpeed();
+                        float timeAlly = seeker.CalculateTimeToLocation(food.Translation);
                         if (timeToFood > timeAlly || seeker.EatingTimeLeft > 0) // if u r eating already, u are "closer"
                         {
                             isAllyCloser = true;
