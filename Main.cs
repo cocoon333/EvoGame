@@ -26,8 +26,7 @@ public class Main : Node
 
     Team PlayerTeam;
 
-    OpenSimplexNoise NoiseTexture;
-    float WaterLevel;
+    public float WaterLevel;
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
@@ -51,11 +50,8 @@ public class Main : Node
         }
         FoodList.Clear();
 
-        MeshInstance ground = GetNode<MeshInstance>("ArenaNodes/Ground/MeshInstance");
-        ShaderMaterial shader = (ShaderMaterial)ground.GetActiveMaterial(0);
-        NoiseTexture noise = (NoiseTexture)shader.GetShaderParam("noise");
-        NoiseTexture = noise.Noise;
-        WaterLevel = (float)shader.GetShaderParam("waterlevel");
+        MeshInstance ground = GetNode<MeshInstance>("ArenaNodes/Water");
+        WaterLevel = ground.Translation.y;
 
 
         for (int i = 0; i < 200; i++)
@@ -63,7 +59,7 @@ public class Main : Node
             SpawnFood();
         }
 
-        for (int i = 0; i < 2; i++)
+        for (int i = 0; i < 1; i++)
         {
             Team team = (Team)TeamScene.Instance();
             team.TeamNumber = i;
@@ -73,7 +69,7 @@ public class Main : Node
             Node teamParent = GetNode<Node>("TeamParent");
             teamParent.AddChild(team);
 
-            for (int j = 0; j < 100; j++)
+            for (int j = 0; j < 10; j++)
             {
                 SpawnCreature(team);
             }
@@ -114,6 +110,11 @@ public class Main : Node
     public void SpawnCreature(Team team)
     {
         Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 20, (float)GD.RandRange(-95, 95)); // TODO: y set to very high temporarily
+        while (IsInWater(spawnLoc))
+        {
+            spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 20, (float)GD.RandRange(-95, 95));
+        }
+        spawnLoc.y = GetHeightAt(spawnLoc) + 1;
         SpawnCreature(spawnLoc, team);
     }
 
@@ -150,10 +151,11 @@ public class Main : Node
         Node foodParent = GetNode<Node>("FoodParent");
         foodParent.AddChild(food);
         Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
-        while (IsInWater(spawnLoc, 1.0f))
+        while (IsInWater(spawnLoc))
         {
             spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
         }
+        spawnLoc.y = GetHeightAt(spawnLoc) + 0.5f;
         food.Initialize(25, (GD.Randf() < 0.2f), spawnLoc);
         FoodList.Add(food);
 
@@ -271,13 +273,29 @@ public class Main : Node
         return teamMembersTwo;
     }
 
-    public Boolean IsInWater(Vector3 location, float waterLevelMultiplier)
+    public Boolean IsInWater(Vector3 location)
     {
         //Vector2 vector = new Vector2(((location.x / 200.0f) + 0.5f) * 512f, ((location.z / 200.0f) + 0.5f) * 512f);
         //float height = (NoiseTexture.GetNoise2dv(vector) / 2.0f) + 0.5f;
-        var terrain = GetNode<Texture3D>("ArenaNodes/Terrain");
-        float height = terrain.GetData().GetHeightAt(location.x / 100, location.z / 100) * 100;
-        return (height <= (WaterLevel * waterLevelMultiplier));
+
+        // var terrain = GetNode<Node>("ArenaNodes/Terrain");
+        // // float height = terrain.GetData().GetHeightAt(location.x / 100, location.z / 100) * 100; // pretty sure this should be scaled by 200 but ill leave it for now
+        // Godot.Object hterraindata = (Godot.Object)terrain.Call("get_data");
+        // float height = (float)hterraindata.Call("get_interpolated_height_at", location);
+
+        float height = GetHeightAt(location);
+        
+        return (height <= WaterLevel);
+    }
+
+    public float GetHeightAt(Vector3 location)
+    {
+        var terrain = GetNode<Node>("ArenaNodes/Terrain");
+        Godot.Object hterraindata =  (Godot.Object)terrain.Call("get_data");
+        Vector3 normalized = location + 100.0f*Vector3.One;
+        normalized = normalized / 0.39f;
+        float height = (float)hterraindata.Call("get_interpolated_height_at", normalized);
+        return height;
     }
 
     public Boolean IsNullOrQueued(Node node)

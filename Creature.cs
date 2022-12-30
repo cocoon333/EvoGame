@@ -151,7 +151,7 @@ public class Creature : KinematicBody
             // Creature is drinking
             // replenish hydration and stop drinking if over hydration max
             Debug.Assert(DesiredWater != null);
-            if (!MainObj.IsInWater(Translation, 0.9f))
+            if (!MainObj.IsInWater(Translation))
             {
                 DesiredWater = null;
                 State = StatesEnum.Nothing;
@@ -168,13 +168,15 @@ public class Creature : KinematicBody
         }
         else
         {
+            float yVel = _velocity.y;
             _velocity = Vector3.Forward * Abils.GetModifiedSpeed() / 2;
-            if (MainObj.IsInWater(Translation, 0.9f))
+            if (MainObj.IsInWater(Translation))
             {
                 _velocity *= WATER_MOVEMENT_SPEED;
             }
             _velocity = _velocity.Rotated(Vector3.Up, Rotation.y);
-            // Vertical velocity
+
+            _velocity.y = yVel;
             _velocity.y -= FallAcceleration * delta;
             Debug.Assert(_velocity.y > -10000); // makes sure velocity isnt snowballing off the charts
             _velocity = MoveAndSlide(_velocity);
@@ -255,7 +257,7 @@ public class Creature : KinematicBody
                 {
                     State = StatesEnum.Nothing;
                 }
-                else if (MainObj.IsInWater(Translation, 0.9f) && Translation.DistanceSquaredTo(DesiredWater.Location) < 4.1)
+                else if (MainObj.IsInWater(Translation) && Translation.DistanceSquaredTo(DesiredWater.Location) < 4.1)
                 {
                     State = StatesEnum.Drinking;
                 }
@@ -284,7 +286,8 @@ public class Creature : KinematicBody
             for (int i = 0; i < GetSlideCount(); i++)
             {
                 KinematicCollision collision = GetSlideCollision(i);
-                if (!(collision.Collider is StaticBody sb && sb.IsInGroup("ground")))
+                Node node = (Node)collision.Collider;
+                if (!node.IsInGroup("ground"))
                 {
                     if (!(collision.Collider is Creature creat && creat != this))
                     {
@@ -591,7 +594,7 @@ public class Creature : KinematicBody
         for (float i = 0; i <= distance; i += increment)
         {
             Vector3 sampleLocation = Translation + i * directedUnitVector;
-            Boolean isWater = MainObj.IsInWater(target, 1.0f);
+            Boolean isWater = MainObj.IsInWater(target);
             weightedDistance += increment;
             if (isWater)
             {
@@ -604,9 +607,9 @@ public class Creature : KinematicBody
 
     public void LookAtClosestWater()
     {
-        if (DesiredWater != null && MainObj.IsInWater(DesiredWater.Location, 0.9f))
+        if (DesiredWater != null && MainObj.IsInWater(DesiredWater.Location))
         {
-            if (DesiredWater.Location.y != Translation.y) DesiredWater.Location.y = Translation.y;
+            //if (DesiredWater.Location.y != Translation.y) DesiredWater.Location.y = Translation.y;
 
             if (!Translation.IsEqualApprox(DesiredWater.Location))
             {
@@ -642,9 +645,9 @@ public class Creature : KinematicBody
 
                 if (x > 97 || x < -97 || z < -97 || z > 97) continue;
 
-                if (MainObj.IsInWater(new Vector3(x, Translation.y, z), 0.9f))
+                if (MainObj.IsInWater(new Vector3(x, MainObj.WaterLevel, z)))
                 {
-                    Vector3 tempVector = new Vector3(x, Translation.y, z);
+                    Vector3 tempVector = new Vector3(x, MainObj.WaterLevel, z);
                     if (tempVector.DistanceSquaredTo(Translation) <= Mathf.Pow(Abils.GetModifiedSight(), 2))
                     {
                         waterFound = true;
@@ -663,7 +666,6 @@ public class Creature : KinematicBody
 
         if (closestWater != null)
         {
-            closestWater.Location.y = Translation.y;
             DesiredWater = closestWater;
             if (!Translation.IsEqualApprox(DesiredWater.Location))
             {

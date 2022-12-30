@@ -1,4 +1,4 @@
-[gd_scene load_steps=43 format=2]
+[gd_scene load_steps=35 format=2]
 
 [ext_resource path="res://Main.cs" type="Script" id=1]
 [ext_resource path="res://futura medium bt.ttf" type="DynamicFontData" id=2]
@@ -19,78 +19,6 @@ font_data = ExtResource( 2 )
 
 [sub_resource type="Theme" id=19]
 default_font = SubResource( 18 )
-
-[sub_resource type="BoxShape" id=1]
-extents = Vector3( 100, 1, 100 )
-
-[sub_resource type="Shader" id=23]
-code = "shader_type spatial;
-
-uniform sampler2D noise;
-uniform sampler2D normalmap;
-uniform float waterlevel;
-
-varying vec2 tex_position;
-varying float y_position;
-
-void vertex()
-{
-	tex_position = VERTEX.xz;
-	float height = texture(noise, (tex_position / 200.0) + 0.5).x;
-	
-	//y_position = VERTEX.y;
-	y_position = height;
-	//VERTEX.y += height;
-	//VERTEX.y = max(VERTEX.y, 3);
-	//VERTEX.y -= 3.0f;
-}
-
-void fragment()
-{
-	NORMALMAP = texture(normalmap, tex_position).xyz;
-	//METALLIC = 0.0;
-  	//ROUGHNESS = 1.0;
-	
-	//ALBEDO = vec3(y_position, y_position, y_position); // grayscale noise map floor
-	
-	if (y_position <= waterlevel*0.9)
-	{
-		ALBEDO = vec3(0, 0, 1);
-		METALLIC = 0.0;
-		ROUGHNESS = 0.01;
-	}
-	else if (y_position <= waterlevel)
-	{
-		ALBEDO = vec3(205.0/256.0, 170.0/256.0, 0);
-	}
-	else
-	{
-		ALBEDO = vec3(0, 1, 0);
-	}
-}"
-
-[sub_resource type="OpenSimplexNoise" id=31]
-
-[sub_resource type="NoiseTexture" id=27]
-noise = SubResource( 31 )
-
-[sub_resource type="OpenSimplexNoise" id=29]
-
-[sub_resource type="NoiseTexture" id=30]
-as_normalmap = true
-noise = SubResource( 29 )
-
-[sub_resource type="ShaderMaterial" id=24]
-shader = SubResource( 23 )
-shader_param/waterlevel = 0.45
-shader_param/noise = SubResource( 27 )
-shader_param/normalmap = SubResource( 30 )
-
-[sub_resource type="PlaneMesh" id=25]
-material = SubResource( 24 )
-size = Vector2( 200, 200 )
-subdivide_width = 200
-subdivide_depth = 200
 
 [sub_resource type="BoxShape" id=3]
 extents = Vector3( 50, 5, 1 )
@@ -212,19 +140,6 @@ text = "Exit"
 
 [node name="ArenaNodes" type="Spatial" parent="."]
 
-[node name="Ground" type="StaticBody" parent="ArenaNodes" groups=["ground"]]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0 )
-visible = false
-collision_layer = 4
-collision_mask = 0
-
-[node name="CollisionShape" type="CollisionShape" parent="ArenaNodes/Ground"]
-shape = SubResource( 1 )
-
-[node name="MeshInstance" type="MeshInstance" parent="ArenaNodes/Ground"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0 )
-mesh = SubResource( 25 )
-
 [node name="DirectionalLight" type="DirectionalLight" parent="ArenaNodes"]
 transform = Transform( 1, 0, 0, 0, 5.96046e-08, 1, 0, -1, 5.96046e-08, 0, 54, 42 )
 shadow_enabled = true
@@ -310,7 +225,7 @@ __meta__ = {
 "_editor_description_": " "
 }
 
-[node name="Terrain" type="Spatial" parent="ArenaNodes"]
+[node name="Terrain" type="Spatial" parent="ArenaNodes" groups=["ground"]]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -100, 0, -100 )
 script = ExtResource( 11 )
 __meta__ = {
