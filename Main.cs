@@ -113,7 +113,7 @@ public class Main : Node
 
     public void SpawnCreature(Team team)
     {
-        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 2f, (float)GD.RandRange(-95, 95));
+        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 20, (float)GD.RandRange(-95, 95)); // TODO: y set to very high temporarily
         SpawnCreature(spawnLoc, team);
     }
 
@@ -273,8 +273,10 @@ public class Main : Node
 
     public Boolean IsInWater(Vector3 location, float waterLevelMultiplier)
     {
-        Vector2 vector = new Vector2(((location.x / 200.0f) + 0.5f) * 512f, ((location.z / 200.0f) + 0.5f) * 512f);
-        float height = (NoiseTexture.GetNoise2dv(vector) / 2.0f) + 0.5f;
+        //Vector2 vector = new Vector2(((location.x / 200.0f) + 0.5f) * 512f, ((location.z / 200.0f) + 0.5f) * 512f);
+        //float height = (NoiseTexture.GetNoise2dv(vector) / 2.0f) + 0.5f;
+        var terrain = GetNode<Texture3D>("ArenaNodes/Terrain");
+        float height = terrain.GetData().GetHeightAt(location.x / 100, location.z / 100) * 100;
         return (height <= (WaterLevel * waterLevelMultiplier));
     }
 

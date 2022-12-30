@@ -176,6 +176,7 @@ public class Creature : KinematicBody
             _velocity = _velocity.Rotated(Vector3.Up, Rotation.y);
             // Vertical velocity
             _velocity.y -= FallAcceleration * delta;
+            Debug.Assert(_velocity.y > -10000); // makes sure velocity isnt snowballing off the charts
             _velocity = MoveAndSlide(_velocity);
 
             if (State is StatesEnum.PathingToMate)
@@ -428,7 +429,7 @@ public class Creature : KinematicBody
         Creature loser = GetLoser(enemy);
         Creature winner = GetWinner(enemy);
         float combatScoreDiff = winner.Abils.GetCombatScore() - loser.Abils.GetCombatScore();
-        if (GD.Randf() < ((5*combatScoreDiff) / 100.0f))
+        if (GD.Randf() < ((5 * combatScoreDiff) / 100.0f))
         {
             KillLoser(GetWinner(enemy), GetLoser(enemy));
         }

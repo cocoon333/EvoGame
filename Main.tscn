@@ -1,4 +1,4 @@
-[gd_scene load_steps=35 format=2]
+[gd_scene load_steps=43 format=2]
 
 [ext_resource path="res://Main.cs" type="Script" id=1]
 [ext_resource path="res://futura medium bt.ttf" type="DynamicFontData" id=2]
@@ -7,6 +7,11 @@
 [ext_resource path="res://Team.tscn" type="PackedScene" id=5]
 [ext_resource path="res://minus.png" type="Texture" id=6]
 [ext_resource path="res://plus.png" type="Texture" id=7]
+[ext_resource path="res://data/data.hterrain" type="Resource" id=8]
+[ext_resource path="res://terrain_textures/slot0_normal_roughness.packed_tex" type="Texture" id=9]
+[ext_resource path="res://addons/zylann.hterrain/hterrain_texture_set.gd" type="Script" id=10]
+[ext_resource path="res://addons/zylann.hterrain/hterrain.gd" type="Script" id=11]
+[ext_resource path="res://terrain_textures/slot0_albedo_bump.packed_tex" type="Texture" id=12]
 
 [sub_resource type="DynamicFont" id=18]
 size = 32
@@ -92,6 +97,18 @@ extents = Vector3( 50, 5, 1 )
 
 [sub_resource type="CubeMesh" id=4]
 size = Vector3( 100, 10, 2 )
+
+[sub_resource type="PlaneMesh" id=33]
+
+[sub_resource type="SpatialMaterial" id=34]
+flags_transparent = true
+albedo_color = Color( 0.06633, 0.352013, 0.628906, 0.588235 )
+roughness = 0.5
+
+[sub_resource type="Resource" id=32]
+script = ExtResource( 10 )
+mode = 0
+textures = [ [ ExtResource( 12 ) ], [ ExtResource( 9 ) ] ]
 
 [sub_resource type="DynamicFont" id=6]
 font_data = ExtResource( 2 )
@@ -197,6 +214,7 @@ text = "Exit"
 
 [node name="Ground" type="StaticBody" parent="ArenaNodes" groups=["ground"]]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0 )
+visible = false
 collision_layer = 4
 collision_mask = 0
 
@@ -228,11 +246,11 @@ __meta__ = {
 }
 
 [node name="CollisionShape" type="CollisionShape" parent="ArenaNodes/Wall1"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 0, -50 )
 shape = SubResource( 3 )
 
 [node name="MeshInstance" type="MeshInstance" parent="ArenaNodes/Wall1"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 0, -50 )
 mesh = SubResource( 4 )
 
 [node name="Wall2" type="StaticBody" parent="ArenaNodes"]
@@ -244,11 +262,11 @@ __meta__ = {
 }
 
 [node name="CollisionShape" type="CollisionShape" parent="ArenaNodes/Wall2"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 50 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 0, 50 )
 shape = SubResource( 3 )
 
 [node name="MeshInstance" type="MeshInstance" parent="ArenaNodes/Wall2"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 50 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 0, 50 )
 mesh = SubResource( 4 )
 
 [node name="Wall3" type="StaticBody" parent="ArenaNodes"]
@@ -260,11 +278,11 @@ __meta__ = {
 }
 
 [node name="CollisionShape" type="CollisionShape" parent="ArenaNodes/Wall3"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 0, -50 )
 shape = SubResource( 3 )
 
 [node name="MeshInstance" type="MeshInstance" parent="ArenaNodes/Wall3"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 0, -50 )
 mesh = SubResource( 4 )
 
 [node name="Wall4" type="StaticBody" parent="ArenaNodes"]
@@ -276,12 +294,47 @@ __meta__ = {
 }
 
 [node name="CollisionShape" type="CollisionShape" parent="ArenaNodes/Wall4"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 0, -50 )
 shape = SubResource( 3 )
 
 [node name="MeshInstance" type="MeshInstance" parent="ArenaNodes/Wall4"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -50 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 0, -50 )
 mesh = SubResource( 4 )
+
+[node name="Water" type="MeshInstance" parent="ArenaNodes"]
+transform = Transform( 100, 0, 0, 0, 1, 0, 0, 0, 100, 0, 0.45, 0 )
+mesh = SubResource( 33 )
+skeleton = NodePath("../Terrain")
+material/0 = SubResource( 34 )
+__meta__ = {
+"_editor_description_": " "
+}
+
+[node name="Terrain" type="Spatial" parent="ArenaNodes"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -100, 0, -100 )
+script = ExtResource( 11 )
+__meta__ = {
+"_editor_description_": ""
+}
+lod_scale = 2.0
+map_scale = Vector3( 0.39, 1, 0.39 )
+_terrain_data = ExtResource( 8 )
+chunk_size = 32
+collision_enabled = true
+collision_layer = 4
+collision_mask = 0
+shader_type = "Classic4"
+custom_shader = null
+custom_globalmap_shader = null
+texture_set = SubResource( 32 )
+render_layers = 1
+shader_params/u_ground_uv_scale_per_texture = Plane( 20, 20, 20, 20 )
+shader_params/u_depth_blending = true
+shader_params/u_triplanar = false
+shader_params/u_tile_reduction = Plane( 1, 1, 1, 1 )
+shader_params/u_globalmap_blend_start = null
+shader_params/u_globalmap_blend_distance = null
+shader_params/u_colormap_opacity_per_texture = Plane( 1, 1, 1, 1 )
 
 [node name="TeamParent" type="Node" parent="."]
 pause_mode = 1
