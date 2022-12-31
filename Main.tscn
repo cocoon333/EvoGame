@@ -21,12 +21,13 @@ font_data = ExtResource( 2 )
 default_font = SubResource( 18 )
 
 [sub_resource type="BoxShape" id=3]
-extents = Vector3( 50, 5, 1 )
+extents = Vector3( 256, 5, 1 )
 
 [sub_resource type="CubeMesh" id=4]
-size = Vector3( 100, 10, 2 )
+size = Vector3( 513, 10, 1 )
 
 [sub_resource type="PlaneMesh" id=33]
+size = Vector2( 513, 513 )
 
 [sub_resource type="SpatialMaterial" id=34]
 flags_transparent = true
@@ -146,14 +147,13 @@ shadow_enabled = true
 directional_shadow_max_distance = 400.0
 
 [node name="CameraPivot" type="Position3D" parent="ArenaNodes"]
-transform = Transform( 1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 0, 0 )
+transform = Transform( 1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 256, 0, 256 )
 
 [node name="Camera" type="Camera" parent="ArenaNodes/CameraPivot"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 200 )
 far = 8192.0
 
 [node name="Wall1" type="StaticBody" parent="ArenaNodes"]
-transform = Transform( 2, 0, 0, 0, 1, 0, 0, 0, 2, 0, 5, 0 )
 collision_layer = 4
 collision_mask = 0
 __meta__ = {
@@ -161,15 +161,14 @@ __meta__ = {
 }
 
 [node name="CollisionShape" type="CollisionShape" parent="ArenaNodes/Wall1"]
-transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 0, -50 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 256, 0, 0 )
 shape = SubResource( 3 )
 
 [node name="MeshInstance" type="MeshInstance" parent="ArenaNodes/Wall1"]
-transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 0, -50 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 256, 0, 0 )
 mesh = SubResource( 4 )
 
 [node name="Wall2" type="StaticBody" parent="ArenaNodes"]
-transform = Transform( 2, 0, 0, 0, 1, 0, 0, 0, 2, 0, 5, 0 )
 collision_layer = 4
 collision_mask = 0
 __meta__ = {
@@ -177,15 +176,15 @@ __meta__ = {
 }
 
 [node name="CollisionShape" type="CollisionShape" parent="ArenaNodes/Wall2"]
-transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 0, 50 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 256, 0, 513 )
 shape = SubResource( 3 )
 
 [node name="MeshInstance" type="MeshInstance" parent="ArenaNodes/Wall2"]
-transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 0, 50 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 256, 0, 513 )
 mesh = SubResource( 4 )
 
 [node name="Wall3" type="StaticBody" parent="ArenaNodes"]
-transform = Transform( -8.74228e-08, 0, 2, 0, 1, 0, -2, 0, -8.74228e-08, 0, 5, 0 )
+transform = Transform( -4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 0, 0, 0 )
 collision_layer = 4
 collision_mask = 0
 __meta__ = {
@@ -193,15 +192,15 @@ __meta__ = {
 }
 
 [node name="CollisionShape" type="CollisionShape" parent="ArenaNodes/Wall3"]
-transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 0, -50 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, -256, 0, 0 )
 shape = SubResource( 3 )
 
 [node name="MeshInstance" type="MeshInstance" parent="ArenaNodes/Wall3"]
-transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 0, -50 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, -256, 0, 0 )
 mesh = SubResource( 4 )
 
 [node name="Wall4" type="StaticBody" parent="ArenaNodes"]
-transform = Transform( -8.74228e-08, 0, -2, 0, 1, 0, 2, 0, -8.74228e-08, 0, 5, 0 )
+transform = Transform( -4.37114e-08, 0, -1, 0, 1, 0, 1, 0, -4.37114e-08, 0, 0, 0 )
 collision_layer = 4
 collision_mask = 0
 __meta__ = {
@@ -209,15 +208,15 @@ __meta__ = {
 }
 
 [node name="CollisionShape" type="CollisionShape" parent="ArenaNodes/Wall4"]
-transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 0, -50 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 256, 0, -513 )
 shape = SubResource( 3 )
 
 [node name="MeshInstance" type="MeshInstance" parent="ArenaNodes/Wall4"]
-transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 0, 0, -50 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 256, 0, -513 )
 mesh = SubResource( 4 )
 
 [node name="Water" type="MeshInstance" parent="ArenaNodes"]
-transform = Transform( 100, 0, 0, 0, 1, 0, 0, 0, 100, 0, 0.45, 0 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 256, 0.45, 256 )
 mesh = SubResource( 33 )
 skeleton = NodePath("../Terrain")
 material/0 = SubResource( 34 )
@@ -226,13 +225,11 @@ __meta__ = {
 }
 
 [node name="Terrain" type="Spatial" parent="ArenaNodes" groups=["ground"]]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, -100, 0, -100 )
 script = ExtResource( 11 )
 __meta__ = {
 "_editor_description_": ""
 }
 lod_scale = 2.0
-map_scale = Vector3( 0.39, 1, 0.39 )
 _terrain_data = ExtResource( 8 )
 chunk_size = 32
 collision_enabled = true

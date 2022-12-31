@@ -30,7 +30,7 @@ public class Main : Node
 
     bool isDrought = false;
 
-    public const int MAP_SIZE = 512;
+    public const int MAP_SIZE = 513;
 
     const int DEFAULT_REPLENSHIMENT = 25;
 
@@ -39,8 +39,10 @@ public class Main : Node
 
     int numberOfTeams = 1;
     public int NumberOfTeams { get; set; }
-    int creaturesPerTeam = 10;
+    int creaturesPerTeam = 225;
     public int CreaturesPerTeam { get; set; }
+
+    float [] MapArray = new float[MAP_SIZE*MAP_SIZE];
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
@@ -67,6 +69,9 @@ public class Main : Node
         MeshInstance ground = GetNode<MeshInstance>("ArenaNodes/Water");
         WaterLevel = ground.Translation.y;
 
+        var terrain = GetNode<Node>("ArenaNodes/Terrain");
+        Godot.Object hterraindata = (Godot.Object)terrain.Call("get_data");
+        MapArray = (float[])hterraindata.Call("get_all_heights");
 
         for (int i = 0; i < initialFoodAmount; i++)
         {
@@ -303,10 +308,14 @@ public class Main : Node
 
     public float GetHeightAt(Vector3 location)
     {
+        int index = Mathf.RoundToInt(location.z)*513 + Mathf.RoundToInt(location.x); // x and z are intentionally swapped, library is reversed
+        return MapArray[index];
+        /*
         var terrain = GetNode<Node>("ArenaNodes/Terrain");
         Godot.Object hterraindata = (Godot.Object)terrain.Call("get_data");
         float height = (float)hterraindata.Call("get_interpolated_height_at", location);
         return height;
+        */
     }
 
     public Boolean IsNullOrQueued(Node node)
