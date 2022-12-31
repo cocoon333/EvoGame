@@ -39,7 +39,7 @@ public class Main : Node
 
     int numberOfTeams = 1;
     public int NumberOfTeams { get; set; }
-    int creaturesPerTeam = 225;
+    int creaturesPerTeam = 1;
     public int CreaturesPerTeam { get; set; }
 
     float [] MapArray = new float[MAP_SIZE*MAP_SIZE];
