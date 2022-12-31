@@ -28,6 +28,20 @@ public class Main : Node
 
     public float WaterLevel;
 
+    bool isDrought = false;
+
+    public const int MAP_SIZE = 512;
+
+    const int DEFAULT_REPLENSHIMENT = 25;
+
+    int initialFoodAmount = 200;
+    public int InitialFoodAmount { get; set; }
+
+    int numberOfTeams = 1;
+    public int NumberOfTeams { get; set; }
+    int creaturesPerTeam = 10;
+    public int CreaturesPerTeam { get; set; }
+
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
@@ -54,12 +68,12 @@ public class Main : Node
         WaterLevel = ground.Translation.y;
 
 
-        for (int i = 0; i < 200; i++)
+        for (int i = 0; i < initialFoodAmount; i++)
         {
             SpawnFood();
         }
 
-        for (int i = 0; i < 1; i++)
+        for (int i = 0; i < numberOfTeams; i++)
         {
             Team team = (Team)TeamScene.Instance();
             team.TeamNumber = i;
@@ -69,7 +83,7 @@ public class Main : Node
             Node teamParent = GetNode<Node>("TeamParent");
             teamParent.AddChild(team);
 
-            for (int j = 0; j < 10; j++)
+            for (int j = 0; j < creaturesPerTeam; j++)
             {
                 SpawnCreature(team);
             }
@@ -86,21 +100,20 @@ public class Main : Node
         creatureLabel.Visible = true;
         Label scoreLabel = GetNode<Label>("ScoreLabel");
         scoreLabel.Visible = true;
+
     }
 
     public void SpawnCreature(Vector3 location, Team team)
     {
-        // Drought mod code
-        /*
-        if (team.TotalBirths >= 200)
+        if (team.TotalBirths >= numberOfTeams * creaturesPerTeam && isDrought)
         {
-            MeshInstance ground = GetNode<MeshInstance>("ArenaNodes/Ground/MeshInstance");
-            ShaderMaterial shader = (ShaderMaterial)ground.GetActiveMaterial(0);
             WaterLevel -= 0.01f;
+            MeshInstance water = GetNode<MeshInstance>("ArenaNodes/Water");
+            Vector3 waterTranslation = water.Translation;
+            waterTranslation.y = WaterLevel;
+            water.Translation = waterTranslation;
             GD.Print(WaterLevel);
-            shader.SetShaderParam("waterlevel", WaterLevel);
         }
-        */
 
         team.SpawnCreature(location);
 
@@ -109,10 +122,10 @@ public class Main : Node
 
     public void SpawnCreature(Team team)
     {
-        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 20, (float)GD.RandRange(-95, 95)); // TODO: y set to very high temporarily
+        Vector3 spawnLoc = new Vector3((float)GD.RandRange(0, MAP_SIZE - 5), 0, (float)GD.RandRange(0, MAP_SIZE - 5));
         while (IsInWater(spawnLoc))
         {
-            spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 20, (float)GD.RandRange(-95, 95));
+            spawnLoc = new Vector3((float)GD.RandRange(0, MAP_SIZE - 5), 0, (float)GD.RandRange(0, MAP_SIZE - 5));
         }
         spawnLoc.y = GetHeightAt(spawnLoc) + 1;
         SpawnCreature(spawnLoc, team);
@@ -124,7 +137,7 @@ public class Main : Node
 
         GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, FoodCount);
 
-        // game winning code commented out
+        // TODO: game winning code commented out for debugging purposes
         /*
         if (creature.TeamObj.CreatureCount == 0)
         {
@@ -150,16 +163,16 @@ public class Main : Node
         Food food = (Food)FoodScene.Instance();
         Node foodParent = GetNode<Node>("FoodParent");
         foodParent.AddChild(food);
-        Vector3 spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
+        Vector3 spawnLoc = new Vector3((float)GD.RandRange(0, MAP_SIZE - 5), 1.6f, (float)GD.RandRange(0, MAP_SIZE - 5));
         while (IsInWater(spawnLoc))
         {
-            spawnLoc = new Vector3((float)GD.RandRange(-95, 95), 1.6f, (float)GD.RandRange(-95, 95));
+            spawnLoc = new Vector3((float)GD.RandRange(0, MAP_SIZE - 5), 1.6f, (float)GD.RandRange(0, MAP_SIZE - 5));
         }
-        spawnLoc.y = GetHeightAt(spawnLoc) + 0.5f;
-        food.Initialize(25, (GD.Randf() < 0.2f), spawnLoc);
+        spawnLoc.y = GetHeightAt(spawnLoc) + 1;
+        food.Initialize(DEFAULT_REPLENSHIMENT, (GD.Randf() < 0.2f), spawnLoc);
         FoodList.Add(food);
 
-        GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, ++FoodCount);
+        GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, ++FoodCount); // increments FoodCount and then updates FoodCount label
     }
 
     public void EatFood(Food food)
@@ -176,11 +189,15 @@ public class Main : Node
         SpawnFood();
         food.QueueFree();
 
-        GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, --FoodCount);
+        GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, --FoodCount); // decrements FoodCount and then updates FoodCount label
     }
 
     public void SelectCreature(Creature creature)
     {
+        /*
+        Updates Creature to selected state
+        Changes creature color and displays stats in the top left corner
+        */
         creature.Selected = true;
         creature.UpdateColor();
 
@@ -219,6 +236,8 @@ public class Main : Node
         }
         label.Text = labelText;
     }
+
+    public bool IsDrought { get; set; } // auto get set for isDrought private variable
 
     public List<Food> GetAllFoodInSight(Creature creature)
     {
@@ -275,26 +294,18 @@ public class Main : Node
 
     public Boolean IsInWater(Vector3 location)
     {
-        //Vector2 vector = new Vector2(((location.x / 200.0f) + 0.5f) * 512f, ((location.z / 200.0f) + 0.5f) * 512f);
-        //float height = (NoiseTexture.GetNoise2dv(vector) / 2.0f) + 0.5f;
-
-        // var terrain = GetNode<Node>("ArenaNodes/Terrain");
-        // // float height = terrain.GetData().GetHeightAt(location.x / 100, location.z / 100) * 100; // pretty sure this should be scaled by 200 but ill leave it for now
-        // Godot.Object hterraindata = (Godot.Object)terrain.Call("get_data");
-        // float height = (float)hterraindata.Call("get_interpolated_height_at", location);
-
-        float height = GetHeightAt(location);
-        
-        return (height <= WaterLevel);
+        /*
+        What a sexy function
+        Returns whether a location is in water
+        */
+        return (GetHeightAt(location) <= WaterLevel);
     }
 
     public float GetHeightAt(Vector3 location)
     {
         var terrain = GetNode<Node>("ArenaNodes/Terrain");
-        Godot.Object hterraindata =  (Godot.Object)terrain.Call("get_data");
-        Vector3 normalized = location + 100.0f*Vector3.One;
-        normalized = normalized / 0.39f;
-        float height = (float)hterraindata.Call("get_interpolated_height_at", normalized);
+        Godot.Object hterraindata = (Godot.Object)terrain.Call("get_data");
+        float height = (float)hterraindata.Call("get_interpolated_height_at", location);
         return height;
     }
 

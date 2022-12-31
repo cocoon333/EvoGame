@@ -643,9 +643,9 @@ public class Creature : KinematicBody
                     else z += distance;
                 }
 
-                if (x > 97 || x < -97 || z < -97 || z > 97) continue;
+                if (x < 5 || x > Main.MAP_SIZE - 5 || z < 5 || z > Main.MAP_SIZE - 5) continue;
 
-                if (MainObj.IsInWater(new Vector3(x, MainObj.WaterLevel, z)))
+                if (MainObj.IsInWater(new Vector3(x, 0, z)))
                 {
                     Vector3 tempVector = new Vector3(x, MainObj.WaterLevel, z);
                     if (tempVector.DistanceSquaredTo(Translation) <= Mathf.Pow(Abils.GetModifiedSight(), 2))
@@ -667,7 +667,7 @@ public class Creature : KinematicBody
         if (closestWater != null)
         {
             DesiredWater = closestWater;
-            if (!Translation.IsEqualApprox(DesiredWater.Location))
+            if (!(Mathf.IsEqualApprox(DesiredWater.Location.x, Translation.x) && Mathf.IsEqualApprox(DesiredWater.Location.z, Translation.z)))
             {
                 LookAtFromPosition(Translation, DesiredWater.Location, Vector3.Up);
             }
