@@ -40,7 +40,7 @@ public class Main : Node
 
     int numberOfTeams = 1;
     public int NumberOfTeams { get; set; }
-    int creaturesPerTeam = 1;
+    int creaturesPerTeam = 100;
     public int CreaturesPerTeam { get; set; }
 
     float[] MapArray = new float[MAP_SIZE * MAP_SIZE];
@@ -377,7 +377,7 @@ public class Main : Node
             {
                 ClippedCamera cam = GetNode<ClippedCamera>("ArenaNodes/CameraPivot/ClippedCamera");
                 Vector3 direction = cam.Translation;
-                direction.z -= 2;
+                direction.z -= 10;
                 if (direction.z <= 5) direction.z = 5;
                 cam.Translation = direction;
             }
@@ -385,7 +385,7 @@ public class Main : Node
             {
                 ClippedCamera cam = GetNode<ClippedCamera>("ArenaNodes/CameraPivot/ClippedCamera");
                 Vector3 direction = cam.Translation;
-                direction.z += 2;
+                direction.z += 10;
                 cam.Translation = direction;
             }
         }
@@ -409,8 +409,11 @@ public class Main : Node
                 Position3D camPivot = GetNode<Position3D>("ArenaNodes/CameraPivot");
                 ClippedCamera cam = GetNode<ClippedCamera>("ArenaNodes/CameraPivot/ClippedCamera");
 
-                cam.Translation += new Vector3(relative.x, 0, 0);
-                camPivot.Translation += new Vector3(0, 0, relative.y);
+                //cam.Translation += new Vector3(relative.x, 0, 0);
+                //camPivot.Translation += new Vector3(0, 0, relative.y);
+                Vector3 movement = new Vector3(relative.x, 0, relative.y);
+                camPivot.Translation += movement;
+                //camPivot.Translate(movement);
             }
         }
     }
