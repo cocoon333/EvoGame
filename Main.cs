@@ -375,7 +375,7 @@ public class Main : Node
             }
             else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelUp)
             {
-                ClippedCamera cam = GetNode<ClippedCamera>("ArenaNodes/CameraPivot/ClippedCamera");
+                ClippedCamera cam = GetNode<ClippedCamera>("ArenaNodes/CameraParent/CameraPivot/ClippedCamera");
                 Vector3 direction = cam.Translation;
                 direction.z -= 10;
                 if (direction.z <= 5) direction.z = 5;
@@ -383,7 +383,7 @@ public class Main : Node
             }
             else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelDown)
             {
-                ClippedCamera cam = GetNode<ClippedCamera>("ArenaNodes/CameraPivot/ClippedCamera");
+                ClippedCamera cam = GetNode<ClippedCamera>("ArenaNodes/CameraParent/CameraPivot/ClippedCamera");
                 Vector3 direction = cam.Translation;
                 direction.z += 10;
                 cam.Translation = direction;
@@ -391,29 +391,22 @@ public class Main : Node
         }
         else if (@event is InputEventMouseMotion motionEvent)
         {
-            if (rightDragging)
+            if (middleDragging)
             {
                 Vector2 relative = motionEvent.Relative;
-                Position3D camPivot = GetNode<Position3D>("ArenaNodes/CameraPivot");
-                ClippedCamera cam = GetNode<ClippedCamera>("ArenaNodes/CameraPivot/ClippedCamera");
-                camPivot.RotateY(relative.x / (-1000));
-                cam.RotateX(relative.y / (-1000));
-                Vector3 rotation = cam.GlobalRotation;
-                rotation.x = Math.Max(rotation.x, -1.5f);
-                rotation.x = Math.Min(rotation.x, 0.5f);
-                cam.GlobalRotation = rotation;
-            }
-            else if (middleDragging)
-            {
-                Vector2 relative = motionEvent.Relative;
-                Position3D camPivot = GetNode<Position3D>("ArenaNodes/CameraPivot");
-                ClippedCamera cam = GetNode<ClippedCamera>("ArenaNodes/CameraPivot/ClippedCamera");
+                Position3D camParent = GetNode<Position3D>("ArenaNodes/CameraParent");
+                Position3D camPivot = camParent.GetNode<Position3D>("CameraPivot");
 
-                //cam.Translation += new Vector3(relative.x, 0, 0);
-                //camPivot.Translation += new Vector3(0, 0, relative.y);
+                camParent.RotateY(relative.x / (-1000));
+                camPivot.RotateX(relative.y / (-1000));
+            }
+            else if (rightDragging)
+            {
+                Vector2 relative = motionEvent.Relative;
+                Position3D camParent = GetNode<Position3D>("ArenaNodes/CameraParent");
+    
                 Vector3 movement = new Vector3(relative.x, 0, relative.y);
-                camPivot.Translation += movement;
-                //camPivot.Translate(movement);
+                camParent.TranslateObjectLocal(movement);
             }
         }
     }
@@ -490,7 +483,7 @@ public class Main : Node
             // Something terrible has gone wrong
             GD.Print("Tried to change a stat but button passed in an invalid string D: String: " + buttonPressed);
         }
-        UpdateStatsMenu();
+        UpdateStatsMenu(); // this assumes stats can only be changed inside the stats menu
     }
 
     public override void _Process(float delta)
