@@ -15,7 +15,8 @@ public class Main : Node
 
 #pragma warning restore 649
 
-    public Boolean Dragging = false;
+    Boolean rightDragging = false;
+    Boolean middleDragging = false;
 
     Creature SelectedCreature = null;
 
@@ -42,7 +43,7 @@ public class Main : Node
     int creaturesPerTeam = 1;
     public int CreaturesPerTeam { get; set; }
 
-    float [] MapArray = new float[MAP_SIZE*MAP_SIZE];
+    float[] MapArray = new float[MAP_SIZE * MAP_SIZE];
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
@@ -308,7 +309,7 @@ public class Main : Node
 
     public float GetHeightAt(Vector3 location)
     {
-        int index = Mathf.RoundToInt(location.z)*513 + Mathf.RoundToInt(location.x); // x and z are intentionally swapped, library is reversed
+        int index = Mathf.RoundToInt(location.z) * 513 + Mathf.RoundToInt(location.x); // x and z are intentionally swapped, library is reversed
         return MapArray[index];
         /*
         var terrain = GetNode<Node>("ArenaNodes/Terrain");
@@ -345,21 +346,36 @@ public class Main : Node
             if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.Right)
             {
                 // Start dragging if right click pressed
-                if (!Dragging && mouseEvent.Pressed)
+                if (!rightDragging && mouseEvent.Pressed)
                 {
                     Input.MouseMode = Input.MouseModeEnum.Captured;
-                    Dragging = true;
+                    rightDragging = true;
                 }
                 // stop dragging if right click released
-                if (Dragging && !mouseEvent.Pressed)
+                if (rightDragging && !mouseEvent.Pressed)
                 {
                     Input.MouseMode = Input.MouseModeEnum.Visible;
-                    Dragging = false;
+                    rightDragging = false;
+                }
+            }
+            else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.Middle)
+            {
+                // Start dragging if middle click pressed
+                if (!middleDragging && mouseEvent.Pressed)
+                {
+                    Input.MouseMode = Input.MouseModeEnum.Captured;
+                    middleDragging = true;
+                }
+                // stop dragging if middle click released
+                if (middleDragging && !mouseEvent.Pressed)
+                {
+                    Input.MouseMode = Input.MouseModeEnum.Visible;
+                    middleDragging = false;
                 }
             }
             else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelUp)
             {
-                Camera cam = GetNode<Camera>("ArenaNodes/CameraPivot/Camera");
+                ClippedCamera cam = GetNode<ClippedCamera>("ArenaNodes/CameraPivot/ClippedCamera");
                 Vector3 direction = cam.Translation;
                 direction.z -= 2;
                 if (direction.z <= 5) direction.z = 5;
@@ -367,23 +383,35 @@ public class Main : Node
             }
             else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelDown)
             {
-                Camera cam = GetNode<Camera>("ArenaNodes/CameraPivot/Camera");
+                ClippedCamera cam = GetNode<ClippedCamera>("ArenaNodes/CameraPivot/ClippedCamera");
                 Vector3 direction = cam.Translation;
                 direction.z += 2;
                 cam.Translation = direction;
             }
         }
-        else if (@event is InputEventMouseMotion motionEvent && Dragging)
+        else if (@event is InputEventMouseMotion motionEvent)
         {
-            Vector2 relative = motionEvent.Relative;
-            Position3D camPivot = GetNode<Position3D>("ArenaNodes/CameraPivot");
-            Camera cam = GetNode<Camera>("ArenaNodes/CameraPivot/Camera");
-            camPivot.RotateY(relative.x / (-1000));
-            cam.RotateX(relative.y / (-1000));
-            Vector3 rotation = cam.GlobalRotation;
-            rotation.x = Math.Max(rotation.x, -1.5f);
-            rotation.x = Math.Min(rotation.x, 0.5f);
-            cam.GlobalRotation = rotation;
+            if (rightDragging)
+            {
+                Vector2 relative = motionEvent.Relative;
+                Position3D camPivot = GetNode<Position3D>("ArenaNodes/CameraPivot");
+                ClippedCamera cam = GetNode<ClippedCamera>("ArenaNodes/CameraPivot/ClippedCamera");
+                camPivot.RotateY(relative.x / (-1000));
+                cam.RotateX(relative.y / (-1000));
+                Vector3 rotation = cam.GlobalRotation;
+                rotation.x = Math.Max(rotation.x, -1.5f);
+                rotation.x = Math.Min(rotation.x, 0.5f);
+                cam.GlobalRotation = rotation;
+            }
+            else if (middleDragging)
+            {
+                Vector2 relative = motionEvent.Relative;
+                Position3D camPivot = GetNode<Position3D>("ArenaNodes/CameraPivot");
+                ClippedCamera cam = GetNode<ClippedCamera>("ArenaNodes/CameraPivot/ClippedCamera");
+
+                cam.Translation += new Vector3(relative.x, 0, 0);
+                camPivot.Translation += new Vector3(0, 0, relative.y);
+            }
         }
     }
 

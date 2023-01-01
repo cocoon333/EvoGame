@@ -327,13 +327,14 @@ public class Creature : KinematicBody
     public Vector3 GetRotationVector(Vector3 lookDir)
     {
         Vector2 vec2 = new Vector2(lookDir.x, lookDir.z);
-        Vector3 rotationAxis = new Vector3(1, 0, (-lookDir.x)/lookDir.z); // choose arbitrary x and solve for z
+        Vector3 rotationAxis = new Vector3(lookDir.z, 0, (-lookDir.x)); // choose arbitrary x and solve for z
+        /* Vector3 rotationAxis = new Vector3(1, 0, (-lookDir.x) / lookDir.z); // choose arbitrary x and solve for z
         if (Mathf.IsEqualApprox(lookDir.z, 0)) // above technique wont work if lookdir.z is 0, but inexplicably sets it as NaN and not divide by zero error
         {
-            rotationAxis = new Vector3((-lookDir.z)/lookDir.x, 0, 1);
-        }
+            rotationAxis = new Vector3((-lookDir.z) / lookDir.x, 0, 1);
+        } */
         rotationAxis = rotationAxis.Normalized();
-        Vector3 rotatedVector = lookDir.Rotated(rotationAxis, - Mathf.Pi/2);
+        Vector3 rotatedVector = lookDir.Rotated(rotationAxis, -Mathf.Pi / 2);
         Debug.Assert(Mathf.IsEqualApprox(rotatedVector.Dot(lookDir), 0));
 
         return rotatedVector;
