@@ -27,7 +27,7 @@ public class Main : Node
 
     Team PlayerTeam;
 
-    public float WaterLevel;
+    public float WaterLevel = 0.5f;
 
     bool isDrought = false;
 
@@ -53,32 +53,31 @@ public class Main : Node
 
     public void NewGame()
     {
+        // create the map
+        CreateMap();
+
+        // Empty Team List
         foreach (Team team in TeamsList)
         {
             team.QueueFree();
         }
         TeamsList.Clear();
-        FoodCount = 0;
-        UpdateCreatureLabel(null);
 
+        // Empty Food List
+        FoodCount = 0;
         foreach (Food food in FoodList)
         {
             if (!IsNullOrQueued(food)) food.QueueFree();
         }
         FoodList.Clear();
 
-        MeshInstance ground = GetNode<MeshInstance>("ArenaNodes/Water");
-        WaterLevel = ground.Translation.y;
-
-        var terrain = GetNode<Node>("ArenaNodes/Terrain");
-        Godot.Object hterraindata = (Godot.Object)terrain.Call("get_data");
-        MapArray = (float[])hterraindata.Call("get_all_heights");
-
+        // Spawn Food
         for (int i = 0; i < initialFoodAmount; i++)
         {
             SpawnFood();
         }
 
+        // Spawn Teams
         for (int i = 0; i < numberOfTeams; i++)
         {
             Team team = (Team)TeamScene.Instance();
@@ -89,24 +88,61 @@ public class Main : Node
             Node teamParent = GetNode<Node>("TeamParent");
             teamParent.AddChild(team);
 
+            // Spawn Creatures
             for (int j = 0; j < creaturesPerTeam; j++)
             {
                 SpawnCreature(team);
             }
         }
 
+        // Set the PlayerTeam
         PlayerTeam = TeamsList[0];
 
+        // Close the main menu and make the world visible
         Control mainMenu = GetNode<Control>("MainMenuScreen");
         mainMenu.Visible = false;
         Spatial arenaNodes = GetNode<Spatial>("ArenaNodes");
         arenaNodes.Visible = true;
 
+        // Make scoreboard and creature label visible
+        UpdateCreatureLabel(null);
         Label creatureLabel = GetNode<Label>("CreatureLabel");
         creatureLabel.Visible = true;
         Label scoreLabel = GetNode<Label>("ScoreLabel");
         scoreLabel.Visible = true;
 
+    }
+
+    public void CreateMap()
+    {
+        // Set up the map
+        var terrain = GetNode<Node>("ArenaNodes/Terrain");
+        Godot.Object hterraindata = (Godot.Object)terrain.Call("get_data");
+
+        // looks complicated but checks if MAP_SIZE is a power of two plus one
+        // neither c# or godot has built in log methods for anything other than natural log and common log which is annoying af
+        Debug.Assert(Mathf.FloorToInt(Mathf.Log(MAP_SIZE - 1) / Mathf.Log(2)) == Mathf.CeilToInt(Mathf.Log(MAP_SIZE - 1) / Mathf.Log(2)));
+        int mapsize = (int)hterraindata.Call("get_resolution");
+        if (mapsize != MAP_SIZE) // TODO: resizing doesnt even work, collision is gone for some reason
+        {
+            hterraindata.Call("resize", MAP_SIZE, true, new Vector2(-1, -1));
+            hterraindata.Call("notify_full_change");
+        }
+
+        MapArray = (float[])hterraindata.Call("get_all_heights");
+        Debug.Assert(MapArray.Length == MAP_SIZE * MAP_SIZE);
+
+        MeshInstance ground = GetNode<MeshInstance>("ArenaNodes/Water");
+        PlaneMesh mesh = (PlaneMesh)(ground.Mesh);
+        mesh.Size = new Vector2(MAP_SIZE, MAP_SIZE);
+        ground.Translation = new Vector3(MAP_SIZE / 2, WaterLevel, MAP_SIZE / 2);
+
+        for (int i = 1; i <= 4; i++)
+        {
+            StaticBody wall = GetNode<StaticBody>("ArenaNodes/Wall" + i);
+            float scale = (MAP_SIZE - 1) / 512; // TODO: 512 is hardcoded to be default map size
+            wall.Scale = new Vector3(scale, 1, scale);
+        }
     }
 
     public void SpawnCreature(Vector3 location, Team team)
@@ -309,7 +345,13 @@ public class Main : Node
 
     public float GetHeightAt(Vector3 location)
     {
-        int index = Mathf.RoundToInt(location.z) * 513 + Mathf.RoundToInt(location.x); // x and z are intentionally swapped, library is reversed
+        int index = Mathf.RoundToInt(location.z) * MAP_SIZE + Mathf.RoundToInt(location.x); // x and z are intentionally swapped, library is reversed
+        if (index >= MapArray.Length || index < 0)
+        {
+            GD.Print("Index out of range for MapArray");
+            // TODO: this is a band aid fix
+            index = Mathf.RoundToInt(Mathf.Min(Mathf.Max(location.z, 0), MAP_SIZE)) * MAP_SIZE + Mathf.RoundToInt(Mathf.Min(Mathf.Max(location.x, 0), MAP_SIZE));
+        }
         return MapArray[index];
         /*
         var terrain = GetNode<Node>("ArenaNodes/Terrain");
@@ -402,10 +444,10 @@ public class Main : Node
             }
             else if (rightDragging)
             {
-                Vector2 relative = motionEvent.Relative;
+                Vector2 relative = -motionEvent.Relative; // invert the controls so they don't feel weird
                 Position3D camParent = GetNode<Position3D>("ArenaNodes/CameraParent");
-    
-                Vector3 movement = new Vector3(relative.x, 0, relative.y);
+
+                Vector3 movement = new Vector3(relative.x / 4, 0, relative.y / 4);
                 camParent.TranslateObjectLocal(movement);
             }
         }

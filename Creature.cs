@@ -184,7 +184,10 @@ public class Creature : KinematicBody
             _velocity = MoveAndSlide(_velocity);
 
             Vector3 lookDir = (Translation - prevLocation);
-            RotationAxis = GetRotationVector(lookDir);
+            if (!lookDir.IsEqualApprox(Vector3.Zero))
+            {
+                RotationAxis = GetRotationVector(lookDir);
+            }
 
             if (State is StatesEnum.PathingToMate)
             {
@@ -195,8 +198,10 @@ public class Creature : KinematicBody
                 }
                 else
                 {
-                    LookAtFromPosition(Translation, Mate.Translation, RotationAxis);
-                    Mate.LookAtFromPosition(Mate.Translation, Translation, Mate.RotationAxis);
+                    //LookAtFromPosition(Translation, Mate.Translation, RotationAxis);
+                    //Mate.LookAtFromPosition(Mate.Translation, Translation, Mate.RotationAxis);
+                    LookAt(Mate.Translation, RotationAxis);
+                    Mate.LookAt(Translation, Mate.RotationAxis);
 
                     if (Translation.DistanceSquaredTo(Mate.Translation) < 9)
                     {
@@ -298,16 +303,20 @@ public class Creature : KinematicBody
                     {
                         if (State is StatesEnum.PathingToFood)
                         {
-                            //LookAtFromPosition(Translation, DesiredFood.Translation, RotationAxis);
+                            // // LookAtFromPosition(Translation, DesiredFood.Translation, RotationAxis);
+                            // LookAt(DesiredFood.Translation, RotationAxis);
                         }
                         else if (State is StatesEnum.PathingToWater)
                         {
-                            //LookAtFromPosition(Translation, DesiredWater.Location, RotationAxis);
+                            // // LookAtFromPosition(Translation, DesiredWater.Location, RotationAxis);
+                            // LookAt(DesiredWater.Location, RotationAxis);
                         }
                         else if (State is StatesEnum.PathingToMate)
                         {
-                            //LookAtFromPosition(Translation, Mate.Translation, RotationAxis);
-                            //Mate.LookAtFromPosition(Mate.Translation, Translation, Mate.RotationAxis);
+                            // // LookAtFromPosition(Translation, Mate.Translation, RotationAxis);
+                            // // Mate.LookAtFromPosition(Mate.Translation, Translation, Mate.RotationAxis);
+                            // LookAt(Mate.Translation, RotationAxis);
+                            // Mate.LookAt(Translation, Mate.RotationAxis);
                         }
                         else
                         {
@@ -329,7 +338,11 @@ public class Creature : KinematicBody
         Vector3 rotationAxis = new Vector3(lookDir.z, 0, (-lookDir.x));
 
         // this still fails the dot product assertion but no idea what to default it to, need to fix the source of this bug
-        if (rotationAxis.IsEqualApprox(Vector3.Zero)) rotationAxis = Vector3.Up;
+        if (rotationAxis.IsEqualApprox(Vector3.Zero))
+        {
+            rotationAxis = Vector3.Up;
+            GD.Print("Vector3 lookDir in GetRotationVector was the zero vector, can't normalize this");
+        }
         else rotationAxis = rotationAxis.Normalized();
 
         Vector3 rotatedVector = lookDir.Rotated(rotationAxis, -Mathf.Pi / 2);
@@ -497,7 +510,8 @@ public class Creature : KinematicBody
         if (!MainObj.IsNullOrQueued(Mate)) // TODO: This shouldnt happen but has happened, fix this
         {
             GD.Print("Called GetNearestMate() to look for new mate but Mate is not null or queued");
-            LookAtFromPosition(Translation, Mate.Translation, RotationAxis);
+            //LookAtFromPosition(Translation, Mate.Translation, RotationAxis);
+            LookAt(Mate.Translation, RotationAxis);
             return Mate;
         }
 
@@ -525,7 +539,10 @@ public class Creature : KinematicBody
         if (!MainObj.IsNullOrQueued(DesiredFood))
         {
             if (!Translation.IsEqualApprox(DesiredFood.Translation))
-                LookAtFromPosition(Translation, DesiredFood.Translation, RotationAxis);
+            {
+                //LookAtFromPosition(Translation, DesiredFood.Translation, RotationAxis);
+                LookAt(DesiredFood.Translation, RotationAxis);
+            }
             return;
         }
 
@@ -590,11 +607,17 @@ public class Creature : KinematicBody
                 }
             }
 
-            LookAtFromPosition(Translation, closestFood.Translation, RotationAxis);
             DesiredFood = closestFood;
-            if (!closestFood.CurrentSeekers.Contains(this))
+            //LookAtFromPosition(Translation, closestFood.Translation, RotationAxis);
+            LookAt(DesiredFood.Translation, RotationAxis);
+            
+            if (!DesiredFood.CurrentSeekers.Contains(this))
             {
-                closestFood.CurrentSeekers.Add(this);
+                DesiredFood.CurrentSeekers.Add(this);
+            }
+            else // this creature is already in desired food's current seekers list
+            {
+                GD.Print("Did full search to find desired food but was already in desired food's current seekers list");
             }
         }
         else
@@ -632,7 +655,8 @@ public class Creature : KinematicBody
 
             if (!Translation.IsEqualApprox(DesiredWater.Location))
             {
-                LookAtFromPosition(Translation, DesiredWater.Location, RotationAxis);
+                //LookAtFromPosition(Translation, DesiredWater.Location, RotationAxis);
+                LookAt(DesiredWater.Location, RotationAxis);
             }
             return;
         }
@@ -688,7 +712,8 @@ public class Creature : KinematicBody
             DesiredWater = closestWater;
             if (!(Mathf.IsEqualApprox(DesiredWater.Location.x, Translation.x) && Mathf.IsEqualApprox(DesiredWater.Location.z, Translation.z)))
             {
-                LookAtFromPosition(Translation, DesiredWater.Location, RotationAxis);
+                //LookAtFromPosition(Translation, DesiredWater.Location, RotationAxis);
+                LookAt(DesiredWater.Location, RotationAxis);
             }
         }
         else
