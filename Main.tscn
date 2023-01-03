@@ -1,4 +1,4 @@
-[gd_scene load_steps=35 format=2]
+[gd_scene load_steps=36 format=2]
 
 [ext_resource path="res://Main.cs" type="Script" id=1]
 [ext_resource path="res://futura medium bt.ttf" type="DynamicFontData" id=2]
@@ -12,6 +12,7 @@
 [ext_resource path="res://addons/zylann.hterrain/hterrain_texture_set.gd" type="Script" id=10]
 [ext_resource path="res://addons/zylann.hterrain/hterrain.gd" type="Script" id=11]
 [ext_resource path="res://terrain_textures/slot0_albedo_bump.packed_tex" type="Texture" id=12]
+[ext_resource path="res://CameraController.cs" type="Script" id=13]
 
 [sub_resource type="DynamicFont" id=18]
 size = 32
@@ -241,13 +242,14 @@ shader_params/u_globalmap_blend_start = null
 shader_params/u_globalmap_blend_distance = null
 shader_params/u_colormap_opacity_per_texture = Plane( 1, 1, 1, 1 )
 
-[node name="CameraParent" type="Position3D" parent="ArenaNodes"]
+[node name="CameraController" type="Position3D" parent="ArenaNodes"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 256, 0, 256 )
+script = ExtResource( 13 )
 
-[node name="CameraPivot" type="Position3D" parent="ArenaNodes/CameraParent"]
+[node name="CameraPivot" type="Position3D" parent="ArenaNodes/CameraController"]
 transform = Transform( 1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 50, 0 )
 
-[node name="ClippedCamera" type="ClippedCamera" parent="ArenaNodes/CameraParent/CameraPivot"]
+[node name="ClippedCamera" type="ClippedCamera" parent="ArenaNodes/CameraController/CameraPivot"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 144.515 )
 far = 8192.0
 collision_mask = 0

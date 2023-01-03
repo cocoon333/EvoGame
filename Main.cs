@@ -15,9 +15,6 @@ public class Main : Node
 
 #pragma warning restore 649
 
-    Boolean rightDragging = false;
-    Boolean middleDragging = false;
-
     Creature SelectedCreature = null;
 
     List<Team> TeamsList = new List<Team>();
@@ -120,7 +117,7 @@ public class Main : Node
         Godot.Object hterraindata = (Godot.Object)terrain.Call("get_data");
 
         // looks complicated but checks if MAP_SIZE is a power of two plus one
-        // neither c# or godot has built in log methods for anything other than natural log and common log which is annoying af
+        // neither c# or godot has built in log methods for anything other than natural log and common log which is incredibly annoying
         Debug.Assert(Mathf.FloorToInt(Mathf.Log(MAP_SIZE - 1) / Mathf.Log(2)) == Mathf.CeilToInt(Mathf.Log(MAP_SIZE - 1) / Mathf.Log(2)));
         int mapsize = (int)hterraindata.Call("get_resolution");
         if (mapsize != MAP_SIZE) // TODO: resizing doesnt even work, collision is gone for some reason
@@ -350,7 +347,8 @@ public class Main : Node
         {
             GD.Print("Index out of range for MapArray");
             // TODO: this is a band aid fix
-            index = Mathf.RoundToInt(Mathf.Min(Mathf.Max(location.z, 0), MAP_SIZE)) * MAP_SIZE + Mathf.RoundToInt(Mathf.Min(Mathf.Max(location.x, 0), MAP_SIZE));
+            // rounds z and x to either 0 or MAP_SIZE-1
+            index = Mathf.RoundToInt(Mathf.Min(Mathf.Max(location.z, 0), MAP_SIZE-1)) * MAP_SIZE + Mathf.RoundToInt(Mathf.Min(Mathf.Max(location.x, 0), MAP_SIZE-1));
         }
         return MapArray[index];
         /*
@@ -378,79 +376,6 @@ public class Main : Node
     public void ChangeStat(Team team, int statIndex, int increment)
     {
         team.ChangeStats(statIndex, increment);
-    }
-
-    public override void _UnhandledInput(InputEvent @event) // weird architecture
-    {
-        //base._UnhandledInput(@event);
-        if (@event is InputEventMouseButton mouseEvent)
-        {
-            if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.Right)
-            {
-                // Start dragging if right click pressed
-                if (!rightDragging && mouseEvent.Pressed)
-                {
-                    Input.MouseMode = Input.MouseModeEnum.Captured;
-                    rightDragging = true;
-                }
-                // stop dragging if right click released
-                if (rightDragging && !mouseEvent.Pressed)
-                {
-                    Input.MouseMode = Input.MouseModeEnum.Visible;
-                    rightDragging = false;
-                }
-            }
-            else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.Middle)
-            {
-                // Start dragging if middle click pressed
-                if (!middleDragging && mouseEvent.Pressed)
-                {
-                    Input.MouseMode = Input.MouseModeEnum.Captured;
-                    middleDragging = true;
-                }
-                // stop dragging if middle click released
-                if (middleDragging && !mouseEvent.Pressed)
-                {
-                    Input.MouseMode = Input.MouseModeEnum.Visible;
-                    middleDragging = false;
-                }
-            }
-            else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelUp)
-            {
-                ClippedCamera cam = GetNode<ClippedCamera>("ArenaNodes/CameraParent/CameraPivot/ClippedCamera");
-                Vector3 direction = cam.Translation;
-                direction.z -= 10;
-                if (direction.z <= 5) direction.z = 5;
-                cam.Translation = direction;
-            }
-            else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelDown)
-            {
-                ClippedCamera cam = GetNode<ClippedCamera>("ArenaNodes/CameraParent/CameraPivot/ClippedCamera");
-                Vector3 direction = cam.Translation;
-                direction.z += 10;
-                cam.Translation = direction;
-            }
-        }
-        else if (@event is InputEventMouseMotion motionEvent)
-        {
-            if (middleDragging)
-            {
-                Vector2 relative = motionEvent.Relative;
-                Position3D camParent = GetNode<Position3D>("ArenaNodes/CameraParent");
-                Position3D camPivot = camParent.GetNode<Position3D>("CameraPivot");
-
-                camParent.RotateY(relative.x / (-1000));
-                camPivot.RotateX(relative.y / (-1000));
-            }
-            else if (rightDragging)
-            {
-                Vector2 relative = -motionEvent.Relative; // invert the controls so they don't feel weird
-                Position3D camParent = GetNode<Position3D>("ArenaNodes/CameraParent");
-
-                Vector3 movement = new Vector3(relative.x / 4, 0, relative.y / 4);
-                camParent.TranslateObjectLocal(movement);
-            }
-        }
     }
 
     public void OnStatsButtonPressed(String buttonPressed)
