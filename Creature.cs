@@ -151,7 +151,7 @@ public class Creature : KinematicBody
             // Creature is drinking
             // replenish hydration and stop drinking if over hydration max
             Debug.Assert(DesiredWater != null);
-            if (!MainObj.IsInWater(Translation))
+            if (!MainObj.IsInDrinkableWater(Translation))
             {
                 DesiredWater = null;
                 State = StatesEnum.Nothing;
@@ -183,7 +183,7 @@ public class Creature : KinematicBody
             Debug.Assert(_velocity.y > -10000); // makes sure velocity isnt snowballing off the charts
             _velocity = MoveAndSlide(_velocity);
 
-            Vector3 lookDir = (Translation - prevLocation);
+            Vector3 lookDir = (Translation - prevLocation); // Notably unnormalized
             if (!lookDir.IsEqualApprox(Vector3.Zero))
             {
                 RotationAxis = GetRotationVector(lookDir);
@@ -267,9 +267,13 @@ public class Creature : KinematicBody
                 {
                     State = StatesEnum.Nothing;
                 }
-                else if (MainObj.IsInWater(Translation) && Translation.DistanceSquaredTo(DesiredWater.Location) < 4.1)
+                else if (MainObj.IsInDrinkableWater(Translation) && Translation.DistanceSquaredTo(DesiredWater.Location) < 4.1)
                 {
                     State = StatesEnum.Drinking;
+                    //StartDrinkingWater(); // at some point, if it is warranted, wrap all this code into a StartDrinkingWater() method
+                    Vector3 nextLocation = Translation + lookDir; // Imagine your next location if you kept walking, not 100% accurate but accurate enough
+                    nextLocation.y = Translation.y;
+                    LookAt(nextLocation, RotationAxis);
                 }
             }
             else if (State is StatesEnum.Nothing)
@@ -649,7 +653,7 @@ public class Creature : KinematicBody
 
     public void LookAtClosestWater()
     {
-        if (DesiredWater != null && MainObj.IsInWater(DesiredWater.Location))
+        if (DesiredWater != null && MainObj.IsInDrinkableWater(DesiredWater.Location))
         {
             //if (DesiredWater.Location.y != Translation.y) DesiredWater.Location.y = Translation.y;
 
@@ -688,7 +692,7 @@ public class Creature : KinematicBody
 
                 if (x < 5 || x > Main.MAP_SIZE - 5 || z < 5 || z > Main.MAP_SIZE - 5) continue;
 
-                if (MainObj.IsInWater(new Vector3(x, 0, z)))
+                if (MainObj.IsInDrinkableWater(new Vector3(x, 0, z)))
                 {
                     Vector3 tempVector = new Vector3(x, MainObj.WaterLevel, z);
                     if (tempVector.DistanceSquaredTo(Translation) <= Mathf.Pow(Abils.GetModifiedSight(), 2))

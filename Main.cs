@@ -17,35 +17,32 @@ public class Main : Node
 
     Creature SelectedCreature = null;
 
-    List<Team> TeamsList = new List<Team>();
+    public List<Team> TeamsList = new List<Team>();
 
-    int FoodCount = 0;
+    public int FoodCount = 0;
     List<Food> FoodList = new List<Food>();
 
     Team PlayerTeam;
-
-    public float WaterLevel = 0.5f;
-
-    bool isDrought = false;
 
     public const int MAP_SIZE = 513;
 
     const int DEFAULT_REPLENSHIMENT = 25;
 
-    int initialFoodAmount = 200;
-    public int InitialFoodAmount { get; set; }
+    // Export Variables
 
-    int numberOfTeams = 1;
-    public int NumberOfTeams { get; set; }
-    int creaturesPerTeam = 100;
-    public int CreaturesPerTeam { get; set; }
+    [Export] public int NumberOfTeams { get; set;} = 1;
+    [Export] public int CreaturesPerTeam { get; set; } = 100;
+    [Export] public int InitialFoodAmount { get; set; } = 200;
+    [Export] public bool IsDrought { get; set; } = false; // auto get set for isDrought private variable
+    [Export] public float WaterLevel {get; set;} = 0.5f;
+    [Export] public float DrinkableWaterDepth {get; set;} = 2;
 
     float[] MapArray = new float[MAP_SIZE * MAP_SIZE];
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
-
+        
     }
 
     public void NewGame()
@@ -69,13 +66,13 @@ public class Main : Node
         FoodList.Clear();
 
         // Spawn Food
-        for (int i = 0; i < initialFoodAmount; i++)
+        for (int i = 0; i < InitialFoodAmount; i++)
         {
             SpawnFood();
         }
 
         // Spawn Teams
-        for (int i = 0; i < numberOfTeams; i++)
+        for (int i = 0; i < NumberOfTeams; i++)
         {
             Team team = (Team)TeamScene.Instance();
             team.TeamNumber = i;
@@ -86,7 +83,7 @@ public class Main : Node
             teamParent.AddChild(team);
 
             // Spawn Creatures
-            for (int j = 0; j < creaturesPerTeam; j++)
+            for (int j = 0; j < CreaturesPerTeam; j++)
             {
                 SpawnCreature(team);
             }
@@ -144,7 +141,7 @@ public class Main : Node
 
     public void SpawnCreature(Vector3 location, Team team)
     {
-        if (team.TotalBirths >= numberOfTeams * creaturesPerTeam && isDrought)
+        if (team.TotalBirths >= CreaturesPerTeam && IsDrought)
         {
             WaterLevel -= 0.01f;
             MeshInstance water = GetNode<MeshInstance>("ArenaNodes/Water");
@@ -155,8 +152,6 @@ public class Main : Node
         }
 
         team.SpawnCreature(location);
-
-        GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, FoodCount);
     }
 
     public void SpawnCreature(Team team)
@@ -174,7 +169,7 @@ public class Main : Node
     {
         creature.TeamObj.CreatureDeath(creature);
 
-        GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, FoodCount);
+        //GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, FoodCount);
 
         // TODO: game winning code commented out for debugging purposes
         /*
@@ -211,12 +206,13 @@ public class Main : Node
         food.Initialize(DEFAULT_REPLENSHIMENT, (GD.Randf() < 0.2f), spawnLoc);
         FoodList.Add(food);
 
-        GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, ++FoodCount); // increments FoodCount and then updates FoodCount label
+        FoodCount++;
     }
 
     public void EatFood(Food food)
     {
         List<Creature> seekers = food.CurrentSeekers;
+        Debug.Assert(seekers.Count <= TeamsList.Count);
         foreach (Creature seeker in seekers)
         {
             seeker.DesiredFood = null;
@@ -228,7 +224,7 @@ public class Main : Node
         SpawnFood();
         food.QueueFree();
 
-        GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, --FoodCount); // decrements FoodCount and then updates FoodCount label
+        FoodCount--;
     }
 
     public void SelectCreature(Creature creature)
@@ -275,8 +271,6 @@ public class Main : Node
         }
         label.Text = labelText;
     }
-
-    public bool IsDrought { get; set; } // auto get set for isDrought private variable
 
     public List<Food> GetAllFoodInSight(Creature creature)
     {
@@ -338,6 +332,11 @@ public class Main : Node
         Returns whether a location is in water
         */
         return (GetHeightAt(location) <= WaterLevel);
+    }
+
+    public Boolean IsInDrinkableWater(Vector3 location)
+    {
+        return (GetHeightAt(location) <= WaterLevel - DrinkableWaterDepth);
     }
 
     public float GetHeightAt(Vector3 location)

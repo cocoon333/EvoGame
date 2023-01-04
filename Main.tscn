@@ -97,6 +97,7 @@ font_data = ExtResource( 2 )
 [node name="Main" type="Node"]
 pause_mode = 2
 script = ExtResource( 1 )
+CreaturesPerTeam = 1
 FoodScene = ExtResource( 3 )
 TeamScene = ExtResource( 5 )
 
@@ -210,7 +211,7 @@ transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 256, 0, -513 )
 mesh = SubResource( 4 )
 
 [node name="Water" type="MeshInstance" parent="ArenaNodes"]
-transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 256, 0.45, 256 )
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 256, 0.5, 256 )
 mesh = SubResource( 33 )
 skeleton = NodePath("../Terrain")
 material/0 = SubResource( 34 )
@@ -261,6 +262,7 @@ pause_mode = 1
 pause_mode = 1
 
 [node name="ScoreLabel" type="Label" parent="."]
+visible = false
 margin_left = 15.0
 margin_top = 15.0
 margin_right = 40.0
