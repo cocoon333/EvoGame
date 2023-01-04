@@ -30,19 +30,19 @@ public class Main : Node
 
     // Export Variables
 
-    [Export] public int NumberOfTeams { get; set;} = 1;
+    [Export] public int NumberOfTeams { get; set; } = 1;
     [Export] public int CreaturesPerTeam { get; set; } = 100;
     [Export] public int InitialFoodAmount { get; set; } = 200;
     [Export] public bool IsDrought { get; set; } = false; // auto get set for isDrought private variable
-    [Export] public float WaterLevel {get; set;} = 0.5f;
-    [Export] public float DrinkableWaterDepth {get; set;} = 2;
+    [Export] public float WaterLevel { get; set; } = 0.5f;
+    [Export] public float DrinkableWaterDepth { get; set; } = 2;
 
     float[] MapArray = new float[MAP_SIZE * MAP_SIZE];
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
     {
-        
+
     }
 
     public void NewGame()
@@ -334,9 +334,15 @@ public class Main : Node
         return (GetHeightAt(location) <= WaterLevel);
     }
 
-    public Boolean IsInDrinkableWater(Vector3 location)
+    public Boolean IsInDrinkableWater(Vector3 location, String debug)
     {
         return (GetHeightAt(location) <= WaterLevel - DrinkableWaterDepth);
+    }
+
+    public Tuple<Boolean, float> IsInDrinkableWaterAndGetHeight(Vector3 location)
+    {
+        float height = GetHeightAt(location);
+        return new Tuple<Boolean, float>(height <= WaterLevel - DrinkableWaterDepth, height);
     }
 
     public float GetHeightAt(Vector3 location)
@@ -347,7 +353,7 @@ public class Main : Node
             GD.Print("Index out of range for MapArray");
             // TODO: this is a band aid fix
             // rounds z and x to either 0 or MAP_SIZE-1
-            index = Mathf.RoundToInt(Mathf.Min(Mathf.Max(location.z, 0), MAP_SIZE-1)) * MAP_SIZE + Mathf.RoundToInt(Mathf.Min(Mathf.Max(location.x, 0), MAP_SIZE-1));
+            index = Mathf.RoundToInt(Mathf.Min(Mathf.Max(location.z, 0), MAP_SIZE - 1)) * MAP_SIZE + Mathf.RoundToInt(Mathf.Min(Mathf.Max(location.x, 0), MAP_SIZE - 1));
         }
         return MapArray[index];
         /*

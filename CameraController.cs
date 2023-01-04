@@ -8,7 +8,7 @@ public class CameraController : Position3D
     Boolean MiddleDragging;
 
     // Camera Settings
-    
+
     // Min: 1, Max: 20
     [Export(PropertyHint.Range, "1,20,1")] float ZoomSpeed = 10;
 
@@ -20,7 +20,7 @@ public class CameraController : Position3D
     [Export] Boolean AllowZoom = true;
     [Export] Boolean AllowRotation = true;
     [Export] Boolean AllowMovement = true;
-    
+
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
@@ -75,14 +75,14 @@ public class CameraController : Position3D
             {
                 ClippedCamera cam = GetNode<ClippedCamera>("CameraPivot/ClippedCamera");
                 Vector3 direction = cam.Translation;
-                direction.z -= ZoomSpeed;
+                direction.z = Math.Min(ZoomSpeed + direction.z, -15);
                 cam.Translation = direction;
             }
             else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelDown && AllowZoom)
             {
                 ClippedCamera cam = GetNode<ClippedCamera>("CameraPivot/ClippedCamera");
                 Vector3 direction = cam.Translation;
-                direction.z += ZoomSpeed;
+                direction.z = Math.Min(ZoomSpeed + direction.z, 200);
                 cam.Translation = direction;
             }
         }

@@ -44,7 +44,7 @@ public class Team : Node
         GD.Randomize();
 
         TeamAbilities = new Abilities();
-        TeamAbilities.Initialize(new List<float> { 50f, 50f, 50f, 50f, 50f, 50f, 50f });
+        TeamAbilities.Initialize(new List<float> { 50f, 50f, 50f, 50f, 50f, 75f, 50f }); // endurance set to 100 for testing
         TeamAbilities.SetSaturation(100);
         TeamAbilities.SetHydration(100);
         TeamMembers = new List<Creature>();

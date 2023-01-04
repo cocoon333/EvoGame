@@ -151,7 +151,7 @@ public class Creature : KinematicBody
             // Creature is drinking
             // replenish hydration and stop drinking if over hydration max
             Debug.Assert(DesiredWater != null);
-            if (!MainObj.IsInDrinkableWater(Translation))
+            if (!MainObj.IsInDrinkableWater(Translation, "first"))
             {
                 DesiredWater = null;
                 State = StatesEnum.Nothing;
@@ -187,6 +187,11 @@ public class Creature : KinematicBody
             if (!lookDir.IsEqualApprox(Vector3.Zero))
             {
                 RotationAxis = GetRotationVector(lookDir);
+            }
+            else
+            {
+                GD.Print(State);
+                GD.Print("The creature is in the previous state and lookdir is the zero vector");
             }
 
             if (State is StatesEnum.PathingToMate)
@@ -267,7 +272,7 @@ public class Creature : KinematicBody
                 {
                     State = StatesEnum.Nothing;
                 }
-                else if (MainObj.IsInDrinkableWater(Translation) && Translation.DistanceSquaredTo(DesiredWater.Location) < 4.1)
+                else if (MainObj.IsInDrinkableWater(Translation, "second") && Translation.DistanceSquaredTo(DesiredWater.Location) < 4.1)
                 {
                     State = StatesEnum.Drinking;
                     //StartDrinkingWater(); // at some point, if it is warranted, wrap all this code into a StartDrinkingWater() method
@@ -614,7 +619,7 @@ public class Creature : KinematicBody
             DesiredFood = closestFood;
             //LookAtFromPosition(Translation, closestFood.Translation, RotationAxis);
             LookAt(DesiredFood.Translation, RotationAxis);
-            
+
             if (!DesiredFood.CurrentSeekers.Contains(this))
             {
                 DesiredFood.CurrentSeekers.Add(this);
@@ -653,14 +658,17 @@ public class Creature : KinematicBody
 
     public void LookAtClosestWater()
     {
-        if (DesiredWater != null && MainObj.IsInDrinkableWater(DesiredWater.Location))
+        if (DesiredWater != null && MainObj.IsInDrinkableWater(DesiredWater.Location, "third"))
         {
             //if (DesiredWater.Location.y != Translation.y) DesiredWater.Location.y = Translation.y;
 
             if (!Translation.IsEqualApprox(DesiredWater.Location))
             {
                 //LookAtFromPosition(Translation, DesiredWater.Location, RotationAxis);
-                LookAt(DesiredWater.Location, RotationAxis);
+                Vector3 lookAtVector = DesiredWater.Location;
+                CapsuleShape capsule = (CapsuleShape)GetNode<CollisionShape>("CollisionShape").Shape;
+                lookAtVector.y += capsule.Height;
+                LookAt(lookAtVector, RotationAxis);
             }
             return;
         }
@@ -690,15 +698,17 @@ public class Creature : KinematicBody
                     else z += distance;
                 }
 
-                if (x < 5 || x > Main.MAP_SIZE - 5 || z < 5 || z > Main.MAP_SIZE - 5) continue;
+                if (x < 5 || x > Main.MAP_SIZE - 5 || z < 5 || z > Main.MAP_SIZE - 5) continue; // -5 to all values to avoid edges
 
-                if (MainObj.IsInDrinkableWater(new Vector3(x, 0, z)))
+                Tuple<bool, float> drinkabilityAndHeight = MainObj.IsInDrinkableWaterAndGetHeight(new Vector3(x, 0, z));
+                if (drinkabilityAndHeight.Item1)
                 {
-                    Vector3 tempVector = new Vector3(x, MainObj.WaterLevel, z);
-                    if (tempVector.DistanceSquaredTo(Translation) <= Mathf.Pow(Abils.GetModifiedSight(), 2))
+                    Vector3 waterLocation = new Vector3(x, 0, z); // y is MainObj.WaterLevel to ensure blobs stay level while drinking
+                    if (waterLocation.DistanceSquaredTo(Translation) <= Mathf.Pow(Abils.GetModifiedSight(), 2))
                     {
+                        waterLocation.y = drinkabilityAndHeight.Item2;
                         waterFound = true;
-                        closestWater = new Water(tempVector);
+                        closestWater = new Water(waterLocation);
                         break;
                     }
                 }
@@ -717,7 +727,10 @@ public class Creature : KinematicBody
             if (!(Mathf.IsEqualApprox(DesiredWater.Location.x, Translation.x) && Mathf.IsEqualApprox(DesiredWater.Location.z, Translation.z)))
             {
                 //LookAtFromPosition(Translation, DesiredWater.Location, RotationAxis);
-                LookAt(DesiredWater.Location, RotationAxis);
+                Vector3 lookAtVector = DesiredWater.Location;
+                CapsuleShape capsule = (CapsuleShape)GetNode<CollisionShape>("CollisionShape").Shape;
+                lookAtVector.y += capsule.Height;
+                LookAt(lookAtVector, RotationAxis);
             }
         }
         else
