@@ -21,7 +21,7 @@ public class Creature : KinematicBody
     public int Kills;
 
     private Vector3 _velocity = Vector3.Zero;
-    Vector3 RotationAxis;
+    Vector3 RotationAxis = Vector3.Up;
     Vector3 PreviousLocation;
 
     const int WATER_REPLENISHMENT = 10;
@@ -151,7 +151,7 @@ public class Creature : KinematicBody
             // Creature is drinking
             // replenish hydration and stop drinking if over hydration max
             Debug.Assert(DesiredWater != null);
-            if (!MainObj.IsInDrinkableWater(Translation, "first"))
+            if (!MainObj.IsInDrinkableWater(Translation))
             {
                 DesiredWater = null;
                 State = StatesEnum.Nothing;
@@ -192,7 +192,30 @@ public class Creature : KinematicBody
             // fix this soon (hopefully just a reminder for myself and this doesnt end up being missed), it doesnt catch the error
             if (!localForward.IsEqualApprox(Vector3.Zero))
             {
-                RotationAxis = GetRotationVector(localForward);
+                //RotationAxis = GetRotationVector(localForward);
+                //RotationAxis = this.Transform.basis.y.Normalized();
+                
+
+                Vector3 walkDir = -this.Transform.basis.z;
+                Vector3 lookDir = localForward;
+                //walkDir.y = 0;
+                //lookDir.y = 0;
+                walkDir = walkDir.Normalized(); // length of 1 so rotate around a circle with radius 1
+                lookDir = lookDir.Normalized();
+                //GD.Print("two vectors: " + walkDir + " " + lookDir); // these two are equal (or like very close to equal) once y component is eliminated and normalized
+                float yDiff = walkDir.y - lookDir.y;
+                
+                // angles in degrees would be (yDiff / 2pi) * 360 degs cuz circumference of the circle is 2pi cuz radius is 1
+                // converting to radians simplifies to just yDiff
+                float angleInRads = yDiff;
+
+                // run some similar code as GetRotationVector to get perpendicular vector to find rotationaxis to rotate transform
+                Vector3 perpendicular = new Vector3(walkDir.z, 0, -walkDir.x);
+                
+                Transform transform = this.Transform;
+                transform.basis = transform.basis.Rotated(perpendicular, angleInRads);
+                transform.basis.Scale = Vector3.One;
+                this.Transform = transform;
             }
             else
             {
@@ -273,19 +296,19 @@ public class Creature : KinematicBody
             }
             else if (State is StatesEnum.PathingToWater)
             {
-                LookAtClosestWater(); // keep this so it can continue recalculating to closer water
+                LookAtDesiredWater(); // keep this so it can continue recalculating to closer water
                 if (DesiredWater is null) // this shouldnt happen pretty sure
                 {
                     State = StatesEnum.Nothing;
                 }
-                else if (MainObj.IsInDrinkableWater(Translation, "second") && Translation.DistanceSquaredTo(DesiredWater.Location) < 4.1)
+                else if (MainObj.IsInDrinkableWater(Translation) && Translation.DistanceSquaredTo(DesiredWater.Location) < 4.1)
                 {
                     State = StatesEnum.Drinking;
                     //StartDrinkingWater(); // at some point, if it is warranted, wrap all this code into a StartDrinkingWater() method
 
-                    Vector3 nextLocation = Translation + localForward; // Imagine your next location if you kept walking, not 100% accurate but accurate enough
-                    nextLocation.y = Translation.y;
-                    LookAt(nextLocation, RotationAxis);
+                    //Vector3 nextLocation = Translation + localForward; // Imagine your next location if you kept walking, not 100% accurate but accurate enough
+                    //nextLocation.y = Translation.y;
+                    //LookAt(nextLocation, RotationAxis);
                 }
             }
             else if (State is StatesEnum.Nothing)
@@ -303,7 +326,7 @@ public class Creature : KinematicBody
                     }
                     else
                     {
-                        LookAtClosestWater();
+                        FindClosestWater();
                         if (DesiredWater != null) State = StatesEnum.PathingToWater;
                     }
                 }
@@ -550,70 +573,50 @@ public class Creature : KinematicBody
         return closestMate;
     }
 
+    public void LookAtTarget(Vector3 targetLocation)
+    {
+        Vector3 targetOffset = (targetLocation - this.Translation); // the local (relative to this creature) translation of the DesiredFood
+        Vector3 localForward = -this.Transform.basis.z; // should be the vector of moving forward
+        Vector2 targetOffsetXZ = new Vector2(targetOffset.x, targetOffset.z).Normalized(); // ignore the y component (flatten the vector almost)
+        Vector2 localForwardXZ = new Vector2(localForward.x, localForward.z).Normalized(); // same as above
+        if (!targetOffsetXZ.IsEqualApprox(localForwardXZ)) // this doesnt work all (like a ton of) the time but it should be just checking not already pointing to the same direction
+        {
+            float angleInRads = localForwardXZ.AngleTo(targetOffsetXZ); // the angle between the two vectors
+            targetOffset.AngleTo(localForward);
+            if (!(Mathf.Abs(angleInRads) < 0.01f || Mathf.Abs(angleInRads) - Mathf.Pi > -0.01f))
+            {
+                // rotates the basis (not the transform cuz the transform will also modify Translation/origin) by the angle
+                Transform transform = this.Transform;
+                transform.basis = transform.basis.Rotated(Vector3.Up, angleInRads);
+                this.Transform = transform;
+                // this does work to make it pointed in the same direction
+            }
+        }
+
+        float actualY = 0;
+        // these should theoretically be equal except when either is 0 cuz undefined
+        if (!Mathf.IsEqualApprox(-this.Transform.basis.z.x, 0))
+        {
+            actualY = (targetOffset.x / (-this.Transform.basis.z.x));
+        }
+        else
+        {
+            actualY = targetOffset.z / (-this.Transform.basis.z.z);
+        }
+        actualY *= (-this.Transform.basis.z.y);
+        // actualY is set to whatever we would be looking at if we looked in the direction of our target
+        Vector3 actualTargetLocation = targetLocation;
+        actualTargetLocation.y = this.Translation.y + actualY;
+
+        // look at
+        LookAt(actualTargetLocation, RotationAxis);
+    }
+
     public Boolean LookAtDesiredFood()
     {
         if (!MainObj.IsNullOrQueued(DesiredFood))
         {
-            // all this code should work if the missing part is also added
-            // basically we want to look at the correct y value (above or below the actual y value)
-            // also all this code should be in a function and be repurposed to work with any target Vector3 as input but whatever for now
-            // left it in this function and disabled hydration in Abilities.cs
-
-            // the main problem with this code is that RotationAxis is never modified from Vector3.Up
-            // so this all works fine but they are not affected by terrain because the part in _PhysicsProcess() is wrong
-            // at least im pretty sure
-            Boolean enabled = false;
-            if (enabled)
-            {
-                Vector3 foodOffset = (DesiredFood.Translation - this.Translation); // the local (relative to this creature) translation of the DesiredFood
-                Vector3 localForward = -this.Transform.basis.z; // should be the vector of moving forward
-                Vector2 foodOffsetXZ = new Vector2(foodOffset.x, foodOffset.z).Normalized(); // ignore the y component (flatten the vector almost)
-                Vector2 localForwardXZ = new Vector2(localForward.x, localForward.z).Normalized(); // same as above
-                if (!foodOffsetXZ.IsEqualApprox(localForwardXZ)) // this doesnt work all (like a ton of) the time but it should be just checking not already pointing to the same direction
-                {
-                    float angleInRads = localForwardXZ.AngleTo(foodOffsetXZ); // the angle between the two vectors
-                    if (!(Mathf.Abs(angleInRads) < 0.01f || Mathf.Abs(angleInRads) - Mathf.Pi > -0.01f))
-                    {
-                        GD.Print(foodOffsetXZ + " " + localForwardXZ);
-
-                        // rotates the basis (not the transform cuz the transform will also modify Translation/origin) by the angle
-                        Transform transform = this.Transform;
-                        transform.basis = transform.basis.Rotated(Vector3.Up, angleInRads);
-
-                        this.Transform = transform;
-                        // this does work to make it pointed in the same direction
-                    }
-
-                }
-
-                float actualY = 0;
-                // these should theoretically be equal except when either is 0 cuz undefined
-                if (!Mathf.IsEqualApprox(-this.Transform.basis.z.x, 0))
-                {
-                    actualY = (foodOffset.x / (-this.Transform.basis.z.x));
-                }
-                else
-                {
-                    actualY = foodOffset.z / (-this.Transform.basis.z.z);
-                }
-                actualY *= (-this.Transform.basis.z.y);
-                // actualY is set to whatever we would be looking at if we looked in the direction of our target
-                Vector3 actualTargetLocation = DesiredFood.Translation;
-                actualTargetLocation.y = this.Translation.y + actualY;
-
-                // look at
-                LookAt(actualTargetLocation, RotationAxis);
-            }
-            else
-            {
-                // This is what the code did before (this is the one if block u need if u wanna revert)
-                if (!Translation.IsEqualApprox(DesiredFood.Translation))
-                {
-                    //LookAtFromPosition(Translation, DesiredFood.Translation, RotationAxis);
-                    LookAt(DesiredFood.Translation, RotationAxis);
-                }
-            }
-
+            LookAtTarget(DesiredFood.Translation);
             return true;
         }
         else return false;
@@ -725,22 +728,36 @@ public class Creature : KinematicBody
         return time;
     }
 
-    public void LookAtClosestWater()
+    public Boolean LookAtDesiredWater()
     {
-        if (DesiredWater != null && MainObj.IsInDrinkableWater(DesiredWater.Location, "third"))
+        if (DesiredWater != null && MainObj.IsInDrinkableWater(DesiredWater.Location))
         {
-            //if (DesiredWater.Location.y != Translation.y) DesiredWater.Location.y = Translation.y;
-
+            if (!(Mathf.IsEqualApprox(Translation.x, DesiredWater.Location.x) && Mathf.IsEqualApprox(Translation.z, DesiredWater.Location.z)))
+            {
+                LookAtTarget(DesiredWater.Location);
+            }
+            
+            return true;
+            /*
             if (!Translation.IsEqualApprox(DesiredWater.Location))
             {
-                //LookAtFromPosition(Translation, DesiredWater.Location, RotationAxis);
+                
                 Vector3 lookAtVector = DesiredWater.Location;
                 CapsuleShape capsule = (CapsuleShape)GetNode<CollisionShape>("CollisionShape").Shape;
                 lookAtVector.y += capsule.Height;
-                LookAt(lookAtVector, RotationAxis);
             }
-            return;
+            */
         }
+        else
+        {
+            return false;
+        }
+    }
+
+    public void FindClosestWater()
+    {
+        Debug.Assert(DesiredWater == null);
+        
 
         int distance = 0;
         Boolean waterFound = false;
@@ -793,14 +810,7 @@ public class Creature : KinematicBody
         if (closestWater != null)
         {
             DesiredWater = closestWater;
-            if (!(Mathf.IsEqualApprox(DesiredWater.Location.x, Translation.x) && Mathf.IsEqualApprox(DesiredWater.Location.z, Translation.z)))
-            {
-                //LookAtFromPosition(Translation, DesiredWater.Location, RotationAxis);
-                Vector3 lookAtVector = DesiredWater.Location;
-                CapsuleShape capsule = (CapsuleShape)GetNode<CollisionShape>("CollisionShape").Shape;
-                lookAtVector.y += capsule.Height;
-                LookAt(lookAtVector, RotationAxis);
-            }
+            LookAtDesiredWater();
         }
         else
         {

@@ -97,7 +97,6 @@ font_data = ExtResource( 2 )
 [node name="Main" type="Node"]
 pause_mode = 2
 script = ExtResource( 1 )
-CreaturesPerTeam = 1
 FoodScene = ExtResource( 3 )
 TeamScene = ExtResource( 5 )
 

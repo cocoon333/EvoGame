@@ -236,16 +236,6 @@ public class Main : Node
         creature.Selected = true;
         creature.UpdateColor();
 
-        // Debug code
-        if (creature != null)
-        {
-            //GD.Print(creature.Transform.basis.x);
-            //GD.Print(creature.Transform.basis.y);
-            //GD.Print(creature.Transform.basis.z);
-            //GD.Print(creature.Transform.origin);
-        }
-        // end
-
         if (!IsNullOrQueued(SelectedCreature))
         {
             SelectedCreature.Selected = false;
@@ -344,7 +334,7 @@ public class Main : Node
         return (GetHeightAt(location) <= WaterLevel);
     }
 
-    public Boolean IsInDrinkableWater(Vector3 location, String debug)
+    public Boolean IsInDrinkableWater(Vector3 location)
     {
         return (GetHeightAt(location) <= WaterLevel - DrinkableWaterDepth);
     }
