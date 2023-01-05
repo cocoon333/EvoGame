@@ -49,6 +49,10 @@ public class Abilities : Node
         Hydration = 50;
         SaturationLoss = (100 - GetModifiedEndurance()) / 100f * 5;
         HydrationLoss = (100 - GetModifiedEndurance()) / 100f * 5;
+
+        // DEBUG PURPOSES
+        Hydration = 151;
+        HydrationLoss = 0;
     }
 
     public float GetModifiedStat(float mainStat, float inverseStat)

@@ -239,10 +239,10 @@ public class Main : Node
         // Debug code
         if (creature != null)
         {
-            GD.Print(creature.Transform.basis.x);
-            GD.Print(creature.Transform.basis.y);
-            GD.Print(creature.Transform.basis.z);
-            GD.Print(creature.Transform.origin);
+            //GD.Print(creature.Transform.basis.x);
+            //GD.Print(creature.Transform.basis.y);
+            //GD.Print(creature.Transform.basis.z);
+            //GD.Print(creature.Transform.origin);
         }
         // end
 

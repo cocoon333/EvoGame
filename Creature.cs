@@ -21,7 +21,8 @@ public class Creature : KinematicBody
     public int Kills;
 
     private Vector3 _velocity = Vector3.Zero;
-    //Vector3 RotationAxis;
+    Vector3 RotationAxis;
+    Vector3 PreviousLocation;
 
     const int WATER_REPLENISHMENT = 10;
     const float WATER_MOVEMENT_SPEED = 0.5f;
@@ -167,6 +168,7 @@ public class Creature : KinematicBody
         }
         else
         {
+            PreviousLocation = this.Translation;
             float yVel = _velocity.y;
             //_velocity = Vector3.Forward * Abils.GetModifiedSpeed() / 2;
 
@@ -183,18 +185,14 @@ public class Creature : KinematicBody
             Debug.Assert(_velocity.y > -10000); // makes sure velocity isnt snowballing off the charts
             _velocity = MoveAndSlide(_velocity);
 
-            //Vector3 lookDir = (Translation - prevLocation); // Notably unnormalized
-            
-            // negative cuz forward is on negative z axis in godot (look at Vector3.Forward)
-            Vector3 localForward = -this.Transform.basis.z; // not guaranteed to be normalized
+            //Vector3 localForward = -this.Transform.basis.z; // not guaranteed to be normalized
+            Vector3 localForward = (this.Translation - PreviousLocation); // not normalized
 
+            // TODO: i know i should fix this right now, but y component has quantity but becomes zero vector in GetRotationVector()
+            // fix this soon (hopefully just a reminder for myself and this doesnt end up being missed), it doesnt catch the error
             if (!localForward.IsEqualApprox(Vector3.Zero))
             {
-                Transform transform = this.Transform;
-                transform.basis.y = GetRotationVector(localForward);
-                this.Transform = transform;
-                
-                //RotationAxis = GetRotationVector(lookDir);
+                RotationAxis = GetRotationVector(localForward);
             }
             else
             {
@@ -213,8 +211,8 @@ public class Creature : KinematicBody
                 {
                     //LookAtFromPosition(Translation, Mate.Translation, RotationAxis);
                     //Mate.LookAtFromPosition(Mate.Translation, Translation, Mate.RotationAxis);
-                    LookAt(Mate.Translation, this.Transform.basis.y.Normalized());
-                    Mate.LookAt(Translation, Mate.Transform.basis.y.Normalized());
+                    LookAt(Mate.Translation, RotationAxis);
+                    Mate.LookAt(Translation, Mate.RotationAxis);
 
                     if (Translation.DistanceSquaredTo(Mate.Translation) < 9)
                     {
@@ -262,8 +260,8 @@ public class Creature : KinematicBody
             }
             else if (State is StatesEnum.PathingToFood)
             {
-                LookAtClosestFood();
-                if (DesiredFood is null) // this shouldnt happen really
+                Boolean success = LookAtDesiredFood();
+                if (!success || DesiredFood is null)
                 {
                     State = StatesEnum.Nothing;
                 }
@@ -287,7 +285,7 @@ public class Creature : KinematicBody
 
                     Vector3 nextLocation = Translation + localForward; // Imagine your next location if you kept walking, not 100% accurate but accurate enough
                     nextLocation.y = Translation.y;
-                    LookAt(nextLocation, this.Transform.basis.y.Normalized());
+                    LookAt(nextLocation, RotationAxis);
                 }
             }
             else if (State is StatesEnum.Nothing)
@@ -300,7 +298,7 @@ public class Creature : KinematicBody
                 {
                     if ((Abils.GetSaturation() / Abils.GetSaturationLoss()) <= (Abils.GetHydration() / Abils.GetHydrationLoss()))
                     {
-                        LookAtClosestFood();
+                        FindClosestFood();
                         if (DesiredFood != null) State = StatesEnum.PathingToFood;
                     }
                     else
@@ -529,7 +527,7 @@ public class Creature : KinematicBody
         {
             GD.Print("Called GetNearestMate() to look for new mate but Mate is not null or queued");
             //LookAtFromPosition(Translation, Mate.Translation, RotationAxis);
-            LookAt(Mate.Translation, this.Transform.basis.y.Normalized());
+            LookAt(Mate.Translation, RotationAxis);
             return Mate;
         }
 
@@ -552,17 +550,78 @@ public class Creature : KinematicBody
         return closestMate;
     }
 
-    public void LookAtClosestFood()
+    public Boolean LookAtDesiredFood()
     {
         if (!MainObj.IsNullOrQueued(DesiredFood))
         {
-            if (!Translation.IsEqualApprox(DesiredFood.Translation))
+            // all this code should work if the missing part is also added
+            // basically we want to look at the correct y value (above or below the actual y value)
+            // also all this code should be in a function and be repurposed to work with any target Vector3 as input but whatever for now
+            // left it in this function and disabled hydration in Abilities.cs
+
+            // the main problem with this code is that RotationAxis is never modified from Vector3.Up
+            // so this all works fine but they are not affected by terrain because the part in _PhysicsProcess() is wrong
+            // at least im pretty sure
+            Boolean enabled = false;
+            if (enabled)
             {
-                //LookAtFromPosition(Translation, DesiredFood.Translation, RotationAxis);
-                LookAt(DesiredFood.Translation, this.Transform.basis.y.Normalized());
+                Vector3 foodOffset = (DesiredFood.Translation - this.Translation); // the local (relative to this creature) translation of the DesiredFood
+                Vector3 localForward = -this.Transform.basis.z; // should be the vector of moving forward
+                Vector2 foodOffsetXZ = new Vector2(foodOffset.x, foodOffset.z).Normalized(); // ignore the y component (flatten the vector almost)
+                Vector2 localForwardXZ = new Vector2(localForward.x, localForward.z).Normalized(); // same as above
+                if (!foodOffsetXZ.IsEqualApprox(localForwardXZ)) // this doesnt work all (like a ton of) the time but it should be just checking not already pointing to the same direction
+                {
+                    float angleInRads = localForwardXZ.AngleTo(foodOffsetXZ); // the angle between the two vectors
+                    if (!(Mathf.Abs(angleInRads) < 0.01f || Mathf.Abs(angleInRads) - Mathf.Pi > -0.01f))
+                    {
+                        GD.Print(foodOffsetXZ + " " + localForwardXZ);
+
+                        // rotates the basis (not the transform cuz the transform will also modify Translation/origin) by the angle
+                        Transform transform = this.Transform;
+                        transform.basis = transform.basis.Rotated(Vector3.Up, angleInRads);
+
+                        this.Transform = transform;
+                        // this does work to make it pointed in the same direction
+                    }
+
+                }
+
+                float actualY = 0;
+                // these should theoretically be equal except when either is 0 cuz undefined
+                if (!Mathf.IsEqualApprox(-this.Transform.basis.z.x, 0))
+                {
+                    actualY = (foodOffset.x / (-this.Transform.basis.z.x));
+                }
+                else
+                {
+                    actualY = foodOffset.z / (-this.Transform.basis.z.z);
+                }
+                actualY *= (-this.Transform.basis.z.y);
+                // actualY is set to whatever we would be looking at if we looked in the direction of our target
+                Vector3 actualTargetLocation = DesiredFood.Translation;
+                actualTargetLocation.y = this.Translation.y + actualY;
+
+                // look at
+                LookAt(actualTargetLocation, RotationAxis);
             }
-            return;
+            else
+            {
+                // This is what the code did before (this is the one if block u need if u wanna revert)
+                if (!Translation.IsEqualApprox(DesiredFood.Translation))
+                {
+                    //LookAtFromPosition(Translation, DesiredFood.Translation, RotationAxis);
+                    LookAt(DesiredFood.Translation, RotationAxis);
+                }
+            }
+
+            return true;
         }
+        else return false;
+    }
+
+    public void FindClosestFood()
+    {
+        Debug.Assert(MainObj.IsNullOrQueued(DesiredFood));
 
         List<Food> visibleFood = MainObj.GetAllFoodInSight(this);
 
@@ -626,8 +685,9 @@ public class Creature : KinematicBody
             }
 
             DesiredFood = closestFood;
-            //LookAtFromPosition(Translation, closestFood.Translation, RotationAxis);
-            LookAt(DesiredFood.Translation, this.Transform.basis.y.Normalized());
+
+            Boolean success = LookAtDesiredFood();
+            Debug.Assert(success);
 
             if (!DesiredFood.CurrentSeekers.Contains(this))
             {
@@ -677,7 +737,7 @@ public class Creature : KinematicBody
                 Vector3 lookAtVector = DesiredWater.Location;
                 CapsuleShape capsule = (CapsuleShape)GetNode<CollisionShape>("CollisionShape").Shape;
                 lookAtVector.y += capsule.Height;
-                LookAt(lookAtVector, this.Transform.basis.y.Normalized());
+                LookAt(lookAtVector, RotationAxis);
             }
             return;
         }
@@ -739,7 +799,7 @@ public class Creature : KinematicBody
                 Vector3 lookAtVector = DesiredWater.Location;
                 CapsuleShape capsule = (CapsuleShape)GetNode<CollisionShape>("CollisionShape").Shape;
                 lookAtVector.y += capsule.Height;
-                LookAt(lookAtVector, this.Transform.basis.y.Normalized());
+                LookAt(lookAtVector, RotationAxis);
             }
         }
         else
