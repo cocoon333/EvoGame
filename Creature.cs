@@ -21,8 +21,7 @@ public class Creature : KinematicBody
     public int Kills;
 
     private Vector3 _velocity = Vector3.Zero;
-    Vector3 prevLocation;
-    Vector3 RotationAxis;
+    //Vector3 RotationAxis;
 
     const int WATER_REPLENISHMENT = 10;
     const float WATER_MOVEMENT_SPEED = 0.5f;
@@ -168,25 +167,34 @@ public class Creature : KinematicBody
         }
         else
         {
-            prevLocation = Translation;
-
             float yVel = _velocity.y;
-            _velocity = Vector3.Forward * Abils.GetModifiedSpeed() / 2;
+            //_velocity = Vector3.Forward * Abils.GetModifiedSpeed() / 2;
+
+            // negative cuz forward is on negative z axis in godot (look at Vector3.Forward)
+            _velocity = (-this.Transform.basis.z) * Abils.GetModifiedSpeed() / 2;
             if (MainObj.IsInWater(Translation))
             {
                 _velocity *= WATER_MOVEMENT_SPEED;
             }
-            _velocity = _velocity.Rotated(Vector3.Up, Rotation.y);
+            //_velocity = _velocity.Rotated(Vector3.Up, Rotation.y);
 
             _velocity.y = yVel;
             _velocity.y -= FallAcceleration * delta;
             Debug.Assert(_velocity.y > -10000); // makes sure velocity isnt snowballing off the charts
             _velocity = MoveAndSlide(_velocity);
 
-            Vector3 lookDir = (Translation - prevLocation); // Notably unnormalized
-            if (!lookDir.IsEqualApprox(Vector3.Zero))
+            //Vector3 lookDir = (Translation - prevLocation); // Notably unnormalized
+            
+            // negative cuz forward is on negative z axis in godot (look at Vector3.Forward)
+            Vector3 localForward = -this.Transform.basis.z; // not guaranteed to be normalized
+
+            if (!localForward.IsEqualApprox(Vector3.Zero))
             {
-                RotationAxis = GetRotationVector(lookDir);
+                Transform transform = this.Transform;
+                transform.basis.y = GetRotationVector(localForward);
+                this.Transform = transform;
+                
+                //RotationAxis = GetRotationVector(lookDir);
             }
             else
             {
@@ -205,8 +213,8 @@ public class Creature : KinematicBody
                 {
                     //LookAtFromPosition(Translation, Mate.Translation, RotationAxis);
                     //Mate.LookAtFromPosition(Mate.Translation, Translation, Mate.RotationAxis);
-                    LookAt(Mate.Translation, RotationAxis);
-                    Mate.LookAt(Translation, Mate.RotationAxis);
+                    LookAt(Mate.Translation, this.Transform.basis.y.Normalized());
+                    Mate.LookAt(Translation, Mate.Transform.basis.y.Normalized());
 
                     if (Translation.DistanceSquaredTo(Mate.Translation) < 9)
                     {
@@ -276,9 +284,10 @@ public class Creature : KinematicBody
                 {
                     State = StatesEnum.Drinking;
                     //StartDrinkingWater(); // at some point, if it is warranted, wrap all this code into a StartDrinkingWater() method
-                    Vector3 nextLocation = Translation + lookDir; // Imagine your next location if you kept walking, not 100% accurate but accurate enough
+
+                    Vector3 nextLocation = Translation + localForward; // Imagine your next location if you kept walking, not 100% accurate but accurate enough
                     nextLocation.y = Translation.y;
-                    LookAt(nextLocation, RotationAxis);
+                    LookAt(nextLocation, this.Transform.basis.y.Normalized());
                 }
             }
             else if (State is StatesEnum.Nothing)
@@ -520,7 +529,7 @@ public class Creature : KinematicBody
         {
             GD.Print("Called GetNearestMate() to look for new mate but Mate is not null or queued");
             //LookAtFromPosition(Translation, Mate.Translation, RotationAxis);
-            LookAt(Mate.Translation, RotationAxis);
+            LookAt(Mate.Translation, this.Transform.basis.y.Normalized());
             return Mate;
         }
 
@@ -550,7 +559,7 @@ public class Creature : KinematicBody
             if (!Translation.IsEqualApprox(DesiredFood.Translation))
             {
                 //LookAtFromPosition(Translation, DesiredFood.Translation, RotationAxis);
-                LookAt(DesiredFood.Translation, RotationAxis);
+                LookAt(DesiredFood.Translation, this.Transform.basis.y.Normalized());
             }
             return;
         }
@@ -618,7 +627,7 @@ public class Creature : KinematicBody
 
             DesiredFood = closestFood;
             //LookAtFromPosition(Translation, closestFood.Translation, RotationAxis);
-            LookAt(DesiredFood.Translation, RotationAxis);
+            LookAt(DesiredFood.Translation, this.Transform.basis.y.Normalized());
 
             if (!DesiredFood.CurrentSeekers.Contains(this))
             {
@@ -668,7 +677,7 @@ public class Creature : KinematicBody
                 Vector3 lookAtVector = DesiredWater.Location;
                 CapsuleShape capsule = (CapsuleShape)GetNode<CollisionShape>("CollisionShape").Shape;
                 lookAtVector.y += capsule.Height;
-                LookAt(lookAtVector, RotationAxis);
+                LookAt(lookAtVector, this.Transform.basis.y.Normalized());
             }
             return;
         }
@@ -730,7 +739,7 @@ public class Creature : KinematicBody
                 Vector3 lookAtVector = DesiredWater.Location;
                 CapsuleShape capsule = (CapsuleShape)GetNode<CollisionShape>("CollisionShape").Shape;
                 lookAtVector.y += capsule.Height;
-                LookAt(lookAtVector, RotationAxis);
+                LookAt(lookAtVector, this.Transform.basis.y.Normalized());
             }
         }
         else

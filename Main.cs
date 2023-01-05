@@ -236,6 +236,16 @@ public class Main : Node
         creature.Selected = true;
         creature.UpdateColor();
 
+        // Debug code
+        if (creature != null)
+        {
+            GD.Print(creature.Transform.basis.x);
+            GD.Print(creature.Transform.basis.y);
+            GD.Print(creature.Transform.basis.z);
+            GD.Print(creature.Transform.origin);
+        }
+        // end
+
         if (!IsNullOrQueued(SelectedCreature))
         {
             SelectedCreature.Selected = false;
@@ -356,12 +366,6 @@ public class Main : Node
             index = Mathf.RoundToInt(Mathf.Min(Mathf.Max(location.z, 0), MAP_SIZE - 1)) * MAP_SIZE + Mathf.RoundToInt(Mathf.Min(Mathf.Max(location.x, 0), MAP_SIZE - 1));
         }
         return MapArray[index];
-        /*
-        var terrain = GetNode<Node>("ArenaNodes/Terrain");
-        Godot.Object hterraindata = (Godot.Object)terrain.Call("get_data");
-        float height = (float)hterraindata.Call("get_interpolated_height_at", location);
-        return height;
-        */
     }
 
     public Boolean IsNullOrQueued(Node node)
