@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 
-namespace Abils
+namespace CreatureUtils
 {
     public class Abilities
     {
@@ -17,6 +17,7 @@ namespace Abils
         public float ENERGY_MAX = 150;
 
         public float EatingTime = 2;
+        public float DrinkingTime = 5;
 
         public float SATURATION_MAX = 150;
 

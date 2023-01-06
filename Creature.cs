@@ -1,13 +1,14 @@
 using Godot;
-using Abils;
+using CreatureUtils;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics;
 
 public class Creature : KinematicBody
 {
     public Abilities Abils;
-    public float EatingTimeLeft;
+    public float EatingTimeLeft { get; set; }
     public Food DesiredFood { get; set; } = null;
 
     public int FallAcceleration = 75;
@@ -33,6 +34,7 @@ public class Creature : KinematicBody
     List<Food> Blacklist = new List<Food>();
 
     public Water DesiredWater { get; set; } = null;
+    public float DrinkingTimeLeft {get; set;} = 0;
     public Boolean Selected = false;
 
     public enum StatesEnum
@@ -88,6 +90,10 @@ public class Creature : KinematicBody
         {
             colorVector = new Vector3(1.0f, 1.0f, 1.0f);
         }
+        else if (State is StatesEnum.Nothing)
+        {
+            colorVector = new Vector3(1, 0, 0);
+        }
         else
         {
             colorVector = new Vector3(0f, Abils.GetEnergy() / 100.0f, (100.0f - Abils.GetEnergy()) / 100.0f);
@@ -125,7 +131,6 @@ public class Creature : KinematicBody
 
         if (Abils.GetSaturation() <= 0 || Abils.GetHydration() <= 0)
         {
-            // TODO: make it so health depletes rapidly when energy is 0
             // blob is dead, thanks who guessed
             if (Abils.GetSaturation() < 0) TeamObj.StarvationDeaths++;
             else TeamObj.DehydrationDeaths++;
@@ -164,14 +169,17 @@ public class Creature : KinematicBody
             if (!MainObj.IsInDrinkableWater(Translation))
             {
                 DesiredWater = null;
+                DrinkingTimeLeft = 0;
                 State = StatesEnum.Nothing;
             }
             else
             {
+                DrinkingTimeLeft -= delta;
                 Drink(delta);
-                if (Abils.GetHydration() >= Abils.HYDRATION_MAX || Abils.GetHydration() > Abils.GetSaturation())
+                if (Abils.GetHydration() >= Abils.HYDRATION_MAX || DrinkingTimeLeft <= 0)
                 {
                     DesiredWater = null;
+                    DrinkingTimeLeft = 0;
                     State = StatesEnum.Nothing;
                 }
             }
@@ -209,28 +217,40 @@ public class Creature : KinematicBody
                 // run some similar code as GetRotationVector to get perpendicular vector to find rotationaxis to rotate transform
                 Vector3 perpendicular = new Vector3(localForward.z, 0, -localForward.x);
 
+
                 Transform transform = this.Transform;
                 transform.basis = transform.basis.Rotated(perpendicular, angleInRads);
-                transform.basis.Scale = Vector3.One;
+                transform.basis.Scale = transform.basis.Scale.Sign();
                 this.Transform = transform;
+
 
                 // potentially reconstruct the transform instead using spin and tilt rotation
                 // instead of checking angle between movementDirection and localForward, compare movementDirection to the flat vector to determine tilt rotation
                 // and then reconstruct the transform
                 // commented code in LookAtTarget() to reconstruct there as well, not sure if it will actually solve anything but something to keep in mind
+                /*
+                Transform transform = Transform.Identity;
+                transform.origin = this.Translation;
+                transform.basis.Rotated(Vector3.Right, horizontalSpinRotation);
+                transform.basis.Rotated(Vector3.Up, verticalTiltRotation);
+                if (transform.basis.y.y < 0)
+                {
+                    transform.basis.Scaled(Vector3.Down);
+                }
+                this.Transform = transform;
+                */
             }
             else
             {
                 GD.Print("The creature is in the " + State + " state and the movementDirection vector is zero on both x and z: " + movementDirection);
-                //GD.Print(this.Name);
-                //MainObj.SelectCreature(this);
-                //MainObj.GetTree().Paused = true;
             }
 
             if (State is StatesEnum.PathingToMate)
             {
                 Debug.Assert(MainObj.IsNullOrQueued(DesiredFood));
+                Debug.Assert(EatingTimeLeft == 0);
                 Debug.Assert(DesiredWater is null);
+                Debug.Assert(DrinkingTimeLeft == 0);
 
                 if (MainObj.IsNullOrQueued(Mate))
                 {
@@ -269,7 +289,9 @@ public class Creature : KinematicBody
             else if (State is StatesEnum.LookingForMate)
             {
                 Debug.Assert(MainObj.IsNullOrQueued(DesiredFood));
+                Debug.Assert(EatingTimeLeft == 0);
                 Debug.Assert(DesiredWater is null);
+                Debug.Assert(DrinkingTimeLeft == 0);
 
                 if (CanMate())
                 {
@@ -296,6 +318,7 @@ public class Creature : KinematicBody
             else if (State is StatesEnum.PathingToFood)
             {
                 Debug.Assert(DesiredWater is null);
+                Debug.Assert(DrinkingTimeLeft == 0);
                 Debug.Assert(MainObj.IsNullOrQueued(Mate));
 
                 Boolean success = LookAtDesiredFood();
@@ -313,6 +336,7 @@ public class Creature : KinematicBody
             else if (State is StatesEnum.PathingToWater)
             {
                 Debug.Assert(MainObj.IsNullOrQueued(DesiredFood));
+                Debug.Assert(EatingTimeLeft == 0);
                 Debug.Assert(MainObj.IsNullOrQueued(Mate));
 
                 Boolean success = LookAtDesiredWater(); // keep this so it can continue recalculating to closer water
@@ -324,12 +348,15 @@ public class Creature : KinematicBody
                 else if (MainObj.IsInDrinkableWater(Translation) && Translation.DistanceSquaredTo(DesiredWater.Location) < 4.1)
                 {
                     State = StatesEnum.Drinking;
+                    DrinkingTimeLeft = Abils.DrinkingTime; // drink for up to Abils.DrinkingTime seconds
                 }
             }
             else if (State is StatesEnum.Nothing)
             {
                 Debug.Assert(MainObj.IsNullOrQueued(DesiredFood));
+                Debug.Assert(EatingTimeLeft == 0);
                 Debug.Assert(DesiredWater == null);
+                Debug.Assert(DrinkingTimeLeft == 0);
                 Debug.Assert(MainObj.IsNullOrQueued(Mate));
 
                 if (CanMate())
@@ -389,7 +416,7 @@ public class Creature : KinematicBody
         float libido = Abils.GetModifiedLibido();
         float energy = Abils.GetEnergy();
         float threshold = (150 - libido);
-        if (State is StatesEnum.LookingForMate) threshold -= libido/2;
+        if (State is StatesEnum.LookingForMate) threshold -= libido / 2;
 
         // TODO: make energy libido relationship curved
         if (TimeAlive > 20 && energy > threshold) return true;
@@ -398,27 +425,36 @@ public class Creature : KinematicBody
 
     public void StartEatingFood()
     {
-        Debug.Assert(DesiredFood != null);
-        //if (DesiredFood == null) GD.Print("Started eating food but desired food was null");
+        Debug.Assert(!MainObj.IsNullOrQueued(DesiredFood));
 
         Creature enemy = null;
-        if (DesiredFood.BeingAte)
+        if (DesiredFood.IsBeingAte(this))
         {
+            // TODO: Replace this with a Find() once bugs solved
             List<Creature> currentEaters = DesiredFood.CurrentSeekers.FindAll(creature => (creature != this && creature.State is StatesEnum.Eating));
-            enemy = currentEaters[0];
 
             Debug.Assert(currentEaters.Count == 1); // it's already being ate so we know this should be at least 1, and no more than 1
-            Debug.Assert(DesiredFood.CurrentSeekers.Find(creature => (creature != this && creature.TeamObj == this.TeamObj)) is null); // no ally should be seeking this food
+            Debug.Assert(!DesiredFood.CurrentSeekers.Any(creature => (creature != this && creature.TeamObj == this.TeamObj))); // no ally should be seeking this food
+
+            enemy = currentEaters[0];
         }
 
-        DesiredFood.BeingAte = true;
         EatingTimeLeft = Abils.EatingTime;
 
         if (enemy != null)
         {
+            Debug.Assert(!MainObj.IsNullOrQueued(enemy));
+            Debug.Assert(enemy.TeamObj != this.TeamObj);
+
             // this means that the other seeker (the enemy) has already reached this food
             // this blob is the second to arrive to the food and can now determine whether or not a fight occurs
             TryFight(enemy);
+
+            Debug.Assert(!(MainObj.IsNullOrQueued(this) && MainObj.IsNullOrQueued(enemy))); // we cannot both be dead
+            Debug.Assert(!(this.State is StatesEnum.Eating && enemy.State is StatesEnum.Eating)); // we cannot both be eating
+            Debug.Assert(this.State is StatesEnum.Eating || enemy.State is StatesEnum.Eating); // one of us has to be eating
+            // one of us has to be in state Nothing (and it has to be the other one when combined with above assert)
+            Debug.Assert(this.State is StatesEnum.Nothing || enemy.State is StatesEnum.Nothing);
         }
     }
 
@@ -438,37 +474,37 @@ public class Creature : KinematicBody
 
     public void TryFight(Creature enemy)
     {
+        Debug.Assert(!MainObj.IsNullOrQueued(enemy));
+        Debug.Assert(!MainObj.IsNullOrQueued(this));
+
         if (MainObj.IsNullOrQueued(enemy) || MainObj.IsNullOrQueued(this)) // enemy already dead
         {
             return;
         }
 
+        // do we want to fight the enemy
         Boolean wantsToFight = this.WantsToFight(enemy);
+        Boolean escaped;
+
         if (!wantsToFight) // You don't want to fight the enemy
         {
-            // this is what happens if their estimated strength is greater than our strength
-
-            Boolean escaped = TryEscape(this, enemy, wantsToFight);
-            if (!escaped)
-            {
-                Fight(enemy); // fight occurs
-            }
+            escaped = TryEscape(this, enemy, enemy.WantsToFight(this));
         }
-        else
+        else // we do want to fight the enemy
         {
-            // we think we can take them since supposedly higher strength
-            Boolean escaped = TryEscape(enemy, this, enemy.WantsToFight(this));
-            if (!escaped)
-            {
-                Fight(enemy); // fight occurs
-            }
+            escaped = TryEscape(enemy, this, wantsToFight);
+        }
+
+        if (!escaped)
+        {
+            Fight(enemy); // fight occurs
         }
     }
 
-    public bool TryEscape(Creature escaper, Creature fighter, Boolean wantsToFight)
+    public bool TryEscape(Creature escaper, Creature fighter, Boolean fighterWantsToFight)
     // Can the first creature escape from the second
     {
-        if (escaper.Abils.GetModifiedSpeed() > fighter.Abils.GetModifiedSpeed() || !wantsToFight || GD.Randf() < 0.1f)
+        if (escaper.Abils.GetModifiedSpeed() > fighter.Abils.GetModifiedSpeed() || !fighterWantsToFight || GD.Randf() < 0.1f)
         // exact speed is greater, or enemy doesnt want to fight, or random small chance to escape
         {
             if (escaper.DesiredFood != null)
@@ -499,6 +535,7 @@ public class Creature : KinematicBody
             if (loser.DesiredFood != null)
             {
                 loser.Blacklist.Add(DesiredFood);
+                loser.EatingTimeLeft = 0;
             }
             loser.DesiredFood = null;
             loser.DesiredWater = null;
@@ -513,7 +550,8 @@ public class Creature : KinematicBody
     {
         loser.State = StatesEnum.Nothing;
         loser.DesiredFood = null; // not sure if necessary but better safe than sorry
-        loser.DesiredWater = null;
+        loser.EatingTimeLeft = 0; // probs not necessary either
+        loser.DesiredWater = null; // same as above
         winner.Kills++;
         winner.TeamObj.TotalKills++;
         winner.Abils.WonFight(winner.Abils.GetCombatScore(), loser.Abils.GetCombatScore());
@@ -536,14 +574,7 @@ public class Creature : KinematicBody
     public Creature GetNearestMate()
     {
         Debug.Assert(MainObj.IsNullOrQueued(Mate));
-
-        if (!MainObj.IsNullOrQueued(Mate)) // TODO: This shouldnt happen but has happened, fix this
-        {
-            GD.Print("Called GetNearestMate() to look for new mate but Mate is not null or queued");
-            //LookAtFromPosition(Translation, Mate.Translation, RotationAxis);
-            LookAt(Mate.Translation, Vector3.Up);
-            return Mate;
-        }
+        Debug.Assert(State is StatesEnum.LookingForMate);
 
         List<Creature> visibleTeamMembers = MainObj.GetAllTeamMembersInSight(this);
         Creature closestMate = null;
@@ -574,24 +605,30 @@ public class Creature : KinematicBody
         {
             float angleInRads = localForwardXZ.AngleTo(targetOffsetXZ); // the angle between the two vectors
             horizontalSpinRotation += angleInRads;
-            
+
             targetOffset.AngleTo(localForward);
             if (!(Mathf.Abs(angleInRads) < 0.01f || Mathf.Abs(angleInRads) - Mathf.Pi > -0.01f))
             {
                 // rotates the basis (not the transform cuz the transform will also modify Translation/origin) by the angle
+                /*
                 Transform transform = this.Transform;
                 transform.basis = transform.basis.Rotated(Vector3.Up, angleInRads);
                 this.Transform = transform;
+                */
 
                 // reconstruct the transform from identity by rotating with tilt and spin angles
                 // the counterpart to this would be reconstructing in physics process as well where we tilt
-                /*
+
                 Transform transform = Transform.Identity;
                 transform.origin = this.Translation;
                 transform.basis.Rotated(Vector3.Up, verticalTiltRotation);
                 transform.basis.Rotated(Vector3.Right, horizontalSpinRotation);
+                if (transform.basis.y.y < 0)
+                {
+                    transform.basis.Scaled(Vector3.Down);
+                }
                 this.Transform = transform;
-                */
+
             }
         }
 
@@ -627,6 +664,7 @@ public class Creature : KinematicBody
     public void FindClosestFood()
     {
         Debug.Assert(MainObj.IsNullOrQueued(DesiredFood));
+        Debug.Assert(EatingTimeLeft == 0);
 
         List<Food> visibleFood = MainObj.GetAllFoodInSight(this);
 
@@ -678,9 +716,9 @@ public class Creature : KinematicBody
         if (closestFood != null)
         {
             // get a list of all allies;
-            List<Creature> allies = closestFood.CurrentSeekers.FindAll(ally => ally.TeamObj == this.TeamObj);
+            List<Creature> allies = closestFood.CurrentSeekers.FindAll(ally => ally.TeamObj == this.TeamObj); // TODO: replace this with a Find() once bugs solved
             Debug.Assert(allies.Count <= 1);
-            
+
             foreach (Creature ally in allies)
             {
                 ally.DesiredFood = null;
@@ -690,7 +728,7 @@ public class Creature : KinematicBody
             }
 
             // no ally should be within seekers list
-            Debug.Assert(closestFood.CurrentSeekers.Find(ally => ally.TeamObj == this.TeamObj) is null);
+            Debug.Assert(!closestFood.CurrentSeekers.Any(ally => ally.TeamObj == this.TeamObj));
 
             DesiredFood = closestFood;
 
@@ -754,10 +792,6 @@ public class Creature : KinematicBody
     public void FindClosestWater()
     {
         Debug.Assert(DesiredWater is null);
-        if (DesiredWater != null)
-        {
-            MainObj.GetTree().Paused = true;
-        }
 
         int distance = 0;
         Boolean waterFound = false;

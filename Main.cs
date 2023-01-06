@@ -2,7 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using Abils;
+using CreatureUtils;
 
 public class Main : Node
 {
@@ -21,7 +21,7 @@ public class Main : Node
     public List<Team> TeamsList = new List<Team>();
 
     public int FoodCount = 0;
-    List<Food> FoodList = new List<Food>();
+    public List<Food> FoodList = new List<Food>();
 
     Team PlayerTeam;
 
@@ -197,7 +197,7 @@ public class Main : Node
             spawnLoc = new Vector3((float)GD.RandRange(0, MAP_SIZE - 5), 1.6f, (float)GD.RandRange(0, MAP_SIZE - 5));
         }
         spawnLoc.y = GetHeightAt(spawnLoc) + 1;
-        food.Initialize(DEFAULT_REPLENSHIMENT, (GD.Randf() < 0.2f), spawnLoc);
+        food.Initialize(DEFAULT_REPLENSHIMENT, (GD.Randf() < 0.2f), spawnLoc, (float)GD.RandRange(25.0, 35.0)); // food lifetime is 25 to 35 seconds
         FoodList.Add(food);
 
         FoodCount++;
@@ -272,8 +272,9 @@ public class Main : Node
     public List<Food> GetAllFoodInSight(Creature creature)
     {
         float sightSquared = Mathf.Pow(creature.Abils.GetModifiedSight(), 2);
-        List<Food> allFood = FoodList.FindAll(food => (!IsNullOrQueued(food) && food.Translation.DistanceSquaredTo(creature.Translation) < sightSquared));
-        return allFood;
+        return FoodList.FindAll(
+            food => (!IsNullOrQueued(food)
+            && food.Translation.DistanceSquaredTo(creature.Translation) < sightSquared));
     }
 
     public List<Creature> GetAllCreaturesInSight(Creature creature)
@@ -286,8 +287,10 @@ public class Main : Node
 
         float sightSquared = Mathf.Pow(creature.Abils.GetModifiedSight(), 2);
         // disgustingly long lambda but whatever
-        List<Creature> creaturesInSight = allCreatures.FindAll(otherCreature => (!IsNullOrQueued(otherCreature) && otherCreature.Translation.DistanceSquaredTo(creature.Translation) < sightSquared && creature != otherCreature));
-        return creaturesInSight;
+        return allCreatures.FindAll(
+            otherCreature => (!IsNullOrQueued(otherCreature)
+            && otherCreature.Translation.DistanceSquaredTo(creature.Translation) < sightSquared
+            && creature != otherCreature));
     }
 
     public List<Creature> GetAllTeamMembersInSight(Creature creature)
@@ -295,8 +298,10 @@ public class Main : Node
         // finds the team members in the sight of a creature
         float sightSquared = Mathf.Pow(creature.Abils.GetModifiedSight(), 2);
         // disgustingly long lambda part two
-        List<Creature> teamMembers = creature.TeamObj.TeamMembers.FindAll(ally => (!IsNullOrQueued(ally) && ally.Translation.DistanceSquaredTo(creature.Translation) < sightSquared && creature != ally));
-        return teamMembers;
+        return creature.TeamObj.TeamMembers.FindAll(
+            ally => (!IsNullOrQueued(ally)
+            && ally.Translation.DistanceSquaredTo(creature.Translation) < sightSquared
+            && creature != ally));
     }
 
     public Boolean IsInWater(Vector3 location)

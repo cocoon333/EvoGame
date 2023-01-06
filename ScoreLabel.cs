@@ -14,11 +14,11 @@ public class ScoreLabel : Label
     {
         if (this.Visible)
         {
-            UpdateString(MainObj.TeamsList, MainObj.FoodCount);
+            UpdateString(MainObj.TeamsList, MainObj.FoodList);
         }
     }
 
-    public void UpdateString(List<Team> teams, int foodCount)
+    public void UpdateString(List<Team> teams, List<Food> foodList)
     {
         String display = "Teams\n\n";
         foreach (Team team in teams)
@@ -26,7 +26,9 @@ public class ScoreLabel : Label
             //display += ("Team " + (team.TeamNumber+1) + ": " + team.CreatureCount) + "\n";
             display += team.DisplayTeamInfo() + "\n";
         }
-        display += "Food Count: " + foodCount;
+        int poisonedFood = (foodList.FindAll(food => food.Poisonous)).Count;
+        display += "Healthy Food Count: " + (foodList.Count-poisonedFood) + "\n";
+        display += "Poisonous Food Count: " + poisonedFood;
 
         if (!Text.Equals(display))
         {

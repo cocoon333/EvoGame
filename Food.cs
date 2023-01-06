@@ -1,14 +1,16 @@
 using Godot;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 public class Food : StaticBody
 {
+    Main MainObj;
     public int Replenishment;
     public Boolean Poisonous;
 
-    public Boolean BeingAte;
-    public List<Creature> CurrentSeekers = new List<Creature>(2); // Change this if there are more than 2 teams
+    public List<Creature> CurrentSeekers;
+    public float Lifetime;
 
     SpatialMaterial PoisonousColor = new SpatialMaterial();
 
@@ -17,11 +19,16 @@ public class Food : StaticBody
     public override void _Ready()
     {
         PoisonousColor.AlbedoColor = new Color((175 / 256.0f), 0, 0);
+
+        MainObj = (Main)GetParent().GetParent();
+        int numTeams = MainObj.TeamsList.Count;
+        CurrentSeekers = new List<Creature>(numTeams);
     }
-    public void Initialize(int replenishment, Boolean poisonous, Vector3 spawnLoc)
+    public void Initialize(int replenishment, Boolean poisonous, Vector3 spawnLoc, float lifetime)
     {
         Replenishment = replenishment;
         Poisonous = poisonous;
+        Lifetime = lifetime;
 
         if (Poisonous)
         {
@@ -37,5 +44,19 @@ public class Food : StaticBody
         {
             Translation = spawnLoc;
         }
+    }
+
+    public override void _PhysicsProcess(float delta)
+    {
+        Lifetime -= delta;
+        if (Lifetime < 0)
+        {
+            MainObj.EatFood(this); // call EatFood on this object to despawn this food
+        }
+    }
+
+    public Boolean IsBeingAte(Creature ignoreCreature)
+    {
+        return CurrentSeekers.Any(creature => (creature != ignoreCreature && creature.State is Creature.StatesEnum.Eating));
     }
 }

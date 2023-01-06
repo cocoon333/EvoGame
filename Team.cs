@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Abils;
+using CreatureUtils;
 
 public class Team : Node
 {
@@ -99,7 +99,6 @@ public class Team : Node
         if (creature.DesiredFood != null)
         {
             creature.DesiredFood.CurrentSeekers.Remove(creature);
-            creature.DesiredFood.BeingAte = false;
         }
 
         TeamMembers.Remove(creature);
@@ -117,17 +116,17 @@ public class Team : Node
 
     public float GetAverageAge()
     {
-        return (TeamMembers.Sum(creature => creature.TimeAlive) / TeamMembers.Count);
+        return TeamMembers.Average(creature => creature.TimeAlive);
     }
 
     public float GetAverageNumChildren()
     {
-        return (TeamMembers.Sum(creature => creature.NumChildren) / TeamMembers.Count);
+        return (float)TeamMembers.Average(creature => creature.NumChildren);
     }
 
     public float GetAverageKills()
     {
-        return (TeamMembers.Sum(creature => creature.Kills) / TeamMembers.Count);
+        return (float)TeamMembers.Average(creature => creature.Kills);
     }
 
     public String DisplayTeamInfo()
@@ -139,9 +138,11 @@ public class Team : Node
         returnString += "Total Births: " + TotalBirths + "\n";
         returnString += "Total Kills: " + TotalKills + "\n";
         returnString += "Total Deaths: " + TotalDeaths + "\n";
-        returnString += "\tStarvation Deaths: " + StarvationDeaths + "\n";
-        returnString += "\tDehydration Deaths: " + DehydrationDeaths + "\n";
-        returnString += "\tFighting Deaths: " + FightDeaths + "\n";
+        returnString += "    Starvation Deaths: " + StarvationDeaths + "\n";
+        returnString += "    Dehydration Deaths: " + DehydrationDeaths + "\n";
+        returnString += "    Fighting Deaths: " + FightDeaths + "\n";
+        returnString += "DEBUG: Avg Energy: " + Mathf.Round(TeamMembers.Average(creature => creature.Abils.GetEnergy()));
+        returnString += "\n";
 
         return returnString;
     }
