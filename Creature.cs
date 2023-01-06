@@ -7,13 +7,13 @@ public class Creature : KinematicBody
 {
     public Abilities Abils;
     public float EatingTimeLeft;
-    public Food DesiredFood;
+    public Food DesiredFood {get; set;} = null;
 
     public int FallAcceleration = 75;
 
-    public Creature Mate;
+    public Creature Mate {get; set;} = null;
 
-    public Team TeamObj;
+    public Team TeamObj {get; private set;}
 
     public float TimeAlive;
 
@@ -21,7 +21,6 @@ public class Creature : KinematicBody
     public int Kills;
 
     private Vector3 _velocity = Vector3.Zero;
-    Vector3 RotationAxis = Vector3.Up;
     Vector3 PreviousLocation;
 
     const int WATER_REPLENISHMENT = 10;
@@ -30,7 +29,7 @@ public class Creature : KinematicBody
     Main MainObj;
     List<Food> Blacklist = new List<Food>();
 
-    Water DesiredWater = null;
+    public Water DesiredWater {get; set;} = null;
     public Boolean Selected = false;
 
     public enum StatesEnum
@@ -44,7 +43,7 @@ public class Creature : KinematicBody
         Nothing, // dont like this name for doing nothing, should change at some point
         Fighting // potentially also add a Fleeing state alongside Fighting
     }
-    public StatesEnum State = StatesEnum.Nothing;
+    public StatesEnum State { get; set; } = StatesEnum.Nothing;
 
     // Called when the node enters the scene tree for the first time.
     public override void _Ready()
@@ -111,7 +110,6 @@ public class Creature : KinematicBody
 
     public override void _PhysicsProcess(float delta)
     {
-
         if (IsQueuedForDeletion())
         {
             return;
@@ -136,7 +134,10 @@ public class Creature : KinematicBody
         {
             // Creature is eating
             // Decrement eating time, replenish energy, and then consume food if finished
-            Debug.Assert(DesiredFood != null);
+
+            Debug.Assert(!MainObj.IsNullOrQueued(DesiredFood)); // food is not null
+            Debug.Assert(DesiredWater is null); // water is null
+
             EatingTimeLeft -= delta;
             Eat(delta);
             if (EatingTimeLeft <= 0)
@@ -144,13 +145,19 @@ public class Creature : KinematicBody
                 EatingTimeLeft = 0;
                 MainObj.EatFood(DesiredFood);
                 // State = StatesEnum.Nothing; // this happens in the above method automatically
+
+                Debug.Assert(State is StatesEnum.Nothing);
+                Debug.Assert(MainObj.IsNullOrQueued(DesiredFood));
             }
         }
         else if (State is StatesEnum.Drinking)
         {
             // Creature is drinking
             // replenish hydration and stop drinking if over hydration max
-            Debug.Assert(DesiredWater != null);
+
+            Debug.Assert(DesiredWater != null); // water is not null
+            Debug.Assert(MainObj.IsNullOrQueued(DesiredFood)); // food is null
+
             if (!MainObj.IsInDrinkableWater(Translation))
             {
                 DesiredWater = null;
@@ -170,48 +177,34 @@ public class Creature : KinematicBody
         {
             PreviousLocation = this.Translation;
             float yVel = _velocity.y;
-            //_velocity = Vector3.Forward * Abils.GetModifiedSpeed() / 2;
-
             // negative cuz forward is on negative z axis in godot (look at Vector3.Forward)
-            _velocity = (-this.Transform.basis.z) * Abils.GetModifiedSpeed() / 2;
+            _velocity = (-this.Transform.basis.z).Normalized() * Abils.GetModifiedSpeed() / 2;
             if (MainObj.IsInWater(Translation))
             {
                 _velocity *= WATER_MOVEMENT_SPEED;
             }
-            //_velocity = _velocity.Rotated(Vector3.Up, Rotation.y);
 
             _velocity.y = yVel;
-            _velocity.y -= FallAcceleration * delta;
+            _velocity.y += (-FallAcceleration * delta);
             Debug.Assert(_velocity.y > -10000); // makes sure velocity isnt snowballing off the charts
             _velocity = MoveAndSlide(_velocity);
 
-            //Vector3 localForward = -this.Transform.basis.z; // not guaranteed to be normalized
-            Vector3 localForward = (this.Translation - PreviousLocation); // not normalized
+            Vector3 movementDirection = (this.Translation - PreviousLocation); // not normalized
 
-            // TODO: i know i should fix this right now, but y component has quantity but becomes zero vector in GetRotationVector()
-            // fix this soon (hopefully just a reminder for myself and this doesnt end up being missed), it doesnt catch the error
-            if (!localForward.IsEqualApprox(Vector3.Zero))
+            if (!(Mathf.IsEqualApprox(movementDirection.x, 0) && Mathf.IsEqualApprox(movementDirection.z, 0)))
             {
-                //RotationAxis = GetRotationVector(localForward);
-                //RotationAxis = this.Transform.basis.y.Normalized();
-                
+                Vector3 localForward = -this.Transform.basis.z;
+                localForward = localForward.Normalized(); // length of 1 so rotate around a circle with radius 1
+                movementDirection = movementDirection.Normalized();
+                float yDiff = localForward.y - movementDirection.y;
 
-                Vector3 walkDir = -this.Transform.basis.z;
-                Vector3 lookDir = localForward;
-                //walkDir.y = 0;
-                //lookDir.y = 0;
-                walkDir = walkDir.Normalized(); // length of 1 so rotate around a circle with radius 1
-                lookDir = lookDir.Normalized();
-                //GD.Print("two vectors: " + walkDir + " " + lookDir); // these two are equal (or like very close to equal) once y component is eliminated and normalized
-                float yDiff = walkDir.y - lookDir.y;
-                
                 // angles in degrees would be (yDiff / 2pi) * 360 degs cuz circumference of the circle is 2pi cuz radius is 1
-                // converting to radians simplifies to just yDiff
+                // converting to radians cancels out to just yDiff
                 float angleInRads = yDiff;
 
                 // run some similar code as GetRotationVector to get perpendicular vector to find rotationaxis to rotate transform
-                Vector3 perpendicular = new Vector3(walkDir.z, 0, -walkDir.x);
-                
+                Vector3 perpendicular = new Vector3(localForward.z, 0, -localForward.x);
+
                 Transform transform = this.Transform;
                 transform.basis = transform.basis.Rotated(perpendicular, angleInRads);
                 transform.basis.Scale = Vector3.One;
@@ -219,12 +212,14 @@ public class Creature : KinematicBody
             }
             else
             {
-                GD.Print(State);
-                GD.Print("The creature is in the previous state and lookdir is the zero vector");
+                GD.Print("The creature is in the " + State + " state and the movementDirection vector is zero on both x and z: " + movementDirection);
             }
 
             if (State is StatesEnum.PathingToMate)
             {
+                Debug.Assert(MainObj.IsNullOrQueued(DesiredFood));
+                Debug.Assert(DesiredWater is null);
+
                 if (MainObj.IsNullOrQueued(Mate))
                 {
                     Mate = null;
@@ -232,10 +227,12 @@ public class Creature : KinematicBody
                 }
                 else
                 {
-                    //LookAtFromPosition(Translation, Mate.Translation, RotationAxis);
-                    //Mate.LookAtFromPosition(Mate.Translation, Translation, Mate.RotationAxis);
-                    LookAt(Mate.Translation, RotationAxis);
-                    Mate.LookAt(Translation, Mate.RotationAxis);
+                    Debug.Assert(!MainObj.IsNullOrQueued(Mate)); // a bit redundant right now but a fail safe in case things change in the future
+                    Debug.Assert(Mate.State is StatesEnum.PathingToMate);
+                    Debug.Assert(Mate.Mate == this);
+                    
+                    LookAt(Mate.Translation, Vector3.Up);
+                    Mate.LookAt(Translation, Vector3.Up);
 
                     if (Translation.DistanceSquaredTo(Mate.Translation) < 9)
                     {
@@ -259,22 +256,25 @@ public class Creature : KinematicBody
             }
             else if (State is StatesEnum.LookingForMate)
             {
+                Debug.Assert(MainObj.IsNullOrQueued(DesiredFood));
+                Debug.Assert(DesiredWater is null);
+
                 if (CanMate())
                 {
-                    if (DesiredFood != null) // this shouldnt happen ideally
-                    {
-                        DesiredFood.BeingAte = false;
-                        DesiredFood.CurrentSeekers.Remove(this);
-                        DesiredFood = null;
-                    }
-
                     Mate = GetNearestMate();
                     if (Mate != null)
                     {
+                        Debug.Assert(Mate.State is StatesEnum.LookingForMate);
+                        Debug.Assert(MainObj.IsNullOrQueued(Mate.DesiredFood));
+                        Debug.Assert(Mate.DesiredWater is null);
+
                         Mate.Mate = this;
                         State = StatesEnum.PathingToMate;
                         Mate.State = StatesEnum.PathingToMate;
                     }
+
+                    Debug.Assert((Mate == null) == (State is StatesEnum.LookingForMate));
+                    Debug.Assert((Mate != null) == (State is StatesEnum.PathingToMate));
                 }
                 else
                 {
@@ -283,9 +283,13 @@ public class Creature : KinematicBody
             }
             else if (State is StatesEnum.PathingToFood)
             {
+                Debug.Assert(DesiredWater is null);
+                Debug.Assert(MainObj.IsNullOrQueued(Mate));
+
                 Boolean success = LookAtDesiredFood();
-                if (!success || DesiredFood is null)
+                if (!success)
                 {
+                    DesiredFood = null; // not 100% necessary cuz success is only false if it is null or queued
                     State = StatesEnum.Nothing;
                 }
                 else if (Translation.DistanceSquaredTo(DesiredFood.Translation) < 4.1)
@@ -296,23 +300,26 @@ public class Creature : KinematicBody
             }
             else if (State is StatesEnum.PathingToWater)
             {
-                LookAtDesiredWater(); // keep this so it can continue recalculating to closer water
-                if (DesiredWater is null) // this shouldnt happen pretty sure
+                Debug.Assert(MainObj.IsNullOrQueued(DesiredFood));
+                Debug.Assert(MainObj.IsNullOrQueued(Mate));
+                
+                Boolean success = LookAtDesiredWater(); // keep this so it can continue recalculating to closer water
+                if (!success)
                 {
+                    // Desired water has to be null anways if success is false
                     State = StatesEnum.Nothing;
                 }
                 else if (MainObj.IsInDrinkableWater(Translation) && Translation.DistanceSquaredTo(DesiredWater.Location) < 4.1)
                 {
                     State = StatesEnum.Drinking;
-                    //StartDrinkingWater(); // at some point, if it is warranted, wrap all this code into a StartDrinkingWater() method
-
-                    //Vector3 nextLocation = Translation + localForward; // Imagine your next location if you kept walking, not 100% accurate but accurate enough
-                    //nextLocation.y = Translation.y;
-                    //LookAt(nextLocation, RotationAxis);
                 }
             }
             else if (State is StatesEnum.Nothing)
             {
+                Debug.Assert(MainObj.IsNullOrQueued(DesiredFood));
+                Debug.Assert(DesiredWater == null);
+                Debug.Assert(MainObj.IsNullOrQueued(Mate));
+
                 if (CanMate())
                 {
                     State = StatesEnum.LookingForMate;
@@ -322,12 +329,18 @@ public class Creature : KinematicBody
                     if ((Abils.GetSaturation() / Abils.GetSaturationLoss()) <= (Abils.GetHydration() / Abils.GetHydrationLoss()))
                     {
                         FindClosestFood();
-                        if (DesiredFood != null) State = StatesEnum.PathingToFood;
+                        if (!MainObj.IsNullOrQueued(DesiredFood)) State = StatesEnum.PathingToFood;
+
+                        Debug.Assert((MainObj.IsNullOrQueued(DesiredFood)) == (State is StatesEnum.Nothing)); // either false == false or true == true
+                        Debug.Assert((!MainObj.IsNullOrQueued(DesiredFood)) == (State is StatesEnum.PathingToFood)); // same as above
                     }
                     else
                     {
                         FindClosestWater();
                         if (DesiredWater != null) State = StatesEnum.PathingToWater;
+
+                        Debug.Assert((DesiredWater is null) == (State is StatesEnum.Nothing)); // either false == false or true == true
+                        Debug.Assert((DesiredWater != null) == (State is StatesEnum.PathingToWater)); // same as above
                     }
                 }
             }
@@ -340,24 +353,7 @@ public class Creature : KinematicBody
                 {
                     if (!(collision.Collider is Creature creat && creat != this))
                     {
-                        if (State is StatesEnum.PathingToFood)
-                        {
-                            // // LookAtFromPosition(Translation, DesiredFood.Translation, RotationAxis);
-                            // LookAt(DesiredFood.Translation, RotationAxis);
-                        }
-                        else if (State is StatesEnum.PathingToWater)
-                        {
-                            // // LookAtFromPosition(Translation, DesiredWater.Location, RotationAxis);
-                            // LookAt(DesiredWater.Location, RotationAxis);
-                        }
-                        else if (State is StatesEnum.PathingToMate)
-                        {
-                            // // LookAtFromPosition(Translation, Mate.Translation, RotationAxis);
-                            // // Mate.LookAtFromPosition(Mate.Translation, Translation, Mate.RotationAxis);
-                            // LookAt(Mate.Translation, RotationAxis);
-                            // Mate.LookAt(Translation, Mate.RotationAxis);
-                        }
-                        else
+                        if (State is StatesEnum.LookingForMate || State is StatesEnum.Nothing)
                         {
                             RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));
                         }
@@ -365,29 +361,11 @@ public class Creature : KinematicBody
                     }
                     else if (collision.Collider is Creature && creat.TeamObj != TeamObj)
                     {
-                        //TryFight(creat);
+                        //TryFight(creat); // TODO: Reenable collision fights when ready
                     }
                 }
             }
         }
-    }
-
-    public Vector3 GetRotationVector(Vector3 lookDir)
-    {
-        Vector3 rotationAxis = new Vector3(lookDir.z, 0, (-lookDir.x));
-
-        // this still fails the dot product assertion but no idea what to default it to, need to fix the source of this bug
-        if (rotationAxis.IsEqualApprox(Vector3.Zero))
-        {
-            rotationAxis = Vector3.Up;
-            GD.Print("Vector3 lookDir in GetRotationVector was the zero vector, can't normalize this");
-        }
-        else rotationAxis = rotationAxis.Normalized();
-
-        Vector3 rotatedVector = lookDir.Rotated(rotationAxis, -Mathf.Pi / 2);
-        Debug.Assert(Mathf.IsEqualApprox(rotatedVector.Dot(lookDir), 0));
-
-        return rotatedVector;
     }
 
     // TODO: Sort this method out and organize all its conditions
@@ -490,6 +468,7 @@ public class Creature : KinematicBody
                 escaper.Blacklist.Add(escaper.DesiredFood);
                 escaper.DesiredFood.CurrentSeekers.Remove(escaper);
                 escaper.DesiredFood = null;
+                escaper.DesiredWater = null; // not sure if necessary but yk just in case
                 escaper.EatingTimeLeft = 0;
                 escaper.State = StatesEnum.Nothing;
             }
@@ -525,6 +504,8 @@ public class Creature : KinematicBody
     public void KillLoser(Creature winner, Creature loser)
     {
         loser.State = StatesEnum.Nothing;
+        loser.DesiredFood = null; // not sure if necessary but better safe than sorry
+        loser.DesiredWater = null;
         winner.Kills++;
         winner.TeamObj.TotalKills++;
         winner.Abils.WonFight(winner.Abils.GetCombatScore(), loser.Abils.GetCombatScore());
@@ -550,7 +531,7 @@ public class Creature : KinematicBody
         {
             GD.Print("Called GetNearestMate() to look for new mate but Mate is not null or queued");
             //LookAtFromPosition(Translation, Mate.Translation, RotationAxis);
-            LookAt(Mate.Translation, RotationAxis);
+            LookAt(Mate.Translation, Vector3.Up);
             return Mate;
         }
 
@@ -609,7 +590,7 @@ public class Creature : KinematicBody
         actualTargetLocation.y = this.Translation.y + actualY;
 
         // look at
-        LookAt(actualTargetLocation, RotationAxis);
+        LookAt(actualTargetLocation, Vector3.Up);
     }
 
     public Boolean LookAtDesiredFood()
@@ -681,6 +662,7 @@ public class Creature : KinematicBody
                 if (!MainObj.IsNullOrQueued(ally) && ally.TeamObj == TeamObj)
                 {
                     ally.DesiredFood = null;
+                    ally.DesiredWater = null; // most likely not needed but for precaution's sake
                     ally.State = StatesEnum.Nothing;
                     seekers.Remove(ally);    // concurrent modification exception just isnt a thing apparently
                     break;
@@ -736,17 +718,8 @@ public class Creature : KinematicBody
             {
                 LookAtTarget(DesiredWater.Location);
             }
-            
+
             return true;
-            /*
-            if (!Translation.IsEqualApprox(DesiredWater.Location))
-            {
-                
-                Vector3 lookAtVector = DesiredWater.Location;
-                CapsuleShape capsule = (CapsuleShape)GetNode<CollisionShape>("CollisionShape").Shape;
-                lookAtVector.y += capsule.Height;
-            }
-            */
         }
         else
         {
@@ -756,8 +729,11 @@ public class Creature : KinematicBody
 
     public void FindClosestWater()
     {
-        Debug.Assert(DesiredWater == null);
-        
+        Debug.Assert(DesiredWater is null);
+        if (DesiredWater != null)
+        {
+            MainObj.GetTree().Paused = true;
+        }
 
         int distance = 0;
         Boolean waterFound = false;
@@ -801,21 +777,15 @@ public class Creature : KinematicBody
             }
 
             distance++;
-            if (distance >= Abils.GetModifiedSight())
+            if (distance > Abils.GetModifiedSight())
             {
                 break;
             }
         }
 
-        if (closestWater != null)
-        {
-            DesiredWater = closestWater;
-            LookAtDesiredWater();
-        }
-        else
-        {
-            // do nothing if cant find any water
-        }
+        DesiredWater = closestWater;
+        Boolean success = LookAtDesiredWater();
+        Debug.Assert(success == waterFound);
     }
 
     public void Eat(float delta)    // Assert that food better exist
@@ -828,7 +798,7 @@ public class Creature : KinematicBody
         Abils.SetHydration(Math.Min(Abils.GetHydration() + WATER_REPLENISHMENT * delta, Abils.HYDRATION_MAX));
     }
 
-    class Water
+    public class Water
     {
         public Vector3 Location;
         public Water(Vector3 location)

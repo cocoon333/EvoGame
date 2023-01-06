@@ -143,7 +143,7 @@ public class Main : Node
     {
         if (team.TotalBirths >= CreaturesPerTeam && IsDrought)
         {
-            WaterLevel -= 0.01f;
+            WaterLevel -= 0.1f;
             MeshInstance water = GetNode<MeshInstance>("ArenaNodes/Water");
             Vector3 waterTranslation = water.Translation;
             waterTranslation.y = WaterLevel;
@@ -216,6 +216,7 @@ public class Main : Node
         foreach (Creature seeker in seekers)
         {
             seeker.DesiredFood = null;
+            seeker.DesiredWater = null;
             seeker.EatingTimeLeft = 0;
             seeker.State = Creature.StatesEnum.Nothing;
         }
