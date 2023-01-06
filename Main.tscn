@@ -98,7 +98,6 @@ font_data = ExtResource( 2 )
 pause_mode = 2
 script = ExtResource( 1 )
 NumberOfTeams = 2
-CreaturesPerTeam = 50
 FoodScene = ExtResource( 3 )
 TeamScene = ExtResource( 5 )
 
@@ -172,11 +171,11 @@ __meta__ = {
 }
 
 [node name="CollisionShape" type="CollisionShape" parent="ArenaNodes/Wall2"]
-transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 256, 0, 513 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 256, 0, 512 )
 shape = SubResource( 3 )
 
 [node name="MeshInstance" type="MeshInstance" parent="ArenaNodes/Wall2"]
-transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 256, 0, 513 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 256, 0, 512 )
 mesh = SubResource( 4 )
 
 [node name="Wall3" type="StaticBody" parent="ArenaNodes"]
@@ -204,11 +203,11 @@ __meta__ = {
 }
 
 [node name="CollisionShape" type="CollisionShape" parent="ArenaNodes/Wall4"]
-transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 256, 0, -513 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 256, 0, -512 )
 shape = SubResource( 3 )
 
 [node name="MeshInstance" type="MeshInstance" parent="ArenaNodes/Wall4"]
-transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 256, 0, -513 )
+transform = Transform( 1, 0, 0, 0, 10, 0, 0, 0, 1, 256, 0, -512 )
 mesh = SubResource( 4 )
 
 [node name="Water" type="MeshInstance" parent="ArenaNodes"]
@@ -231,18 +230,15 @@ chunk_size = 32
 collision_enabled = true
 collision_layer = 4
 collision_mask = 0
-shader_type = "Classic4"
+shader_type = "Classic4Lite"
 custom_shader = null
 custom_globalmap_shader = null
 texture_set = SubResource( 32 )
 render_layers = 1
-shader_params/u_ground_uv_scale_per_texture = Plane( 20, 20, 20, 20 )
+shader_params/u_ground_uv_scale = 20
 shader_params/u_depth_blending = true
 shader_params/u_triplanar = false
 shader_params/u_tile_reduction = Plane( 1, 1, 1, 1 )
-shader_params/u_globalmap_blend_start = null
-shader_params/u_globalmap_blend_distance = null
-shader_params/u_colormap_opacity_per_texture = Plane( 1, 1, 1, 1 )
 
 [node name="CameraController" type="Position3D" parent="ArenaNodes"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 256, 0, 256 )
@@ -254,7 +250,7 @@ transform = Transform( 1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0
 [node name="ClippedCamera" type="ClippedCamera" parent="ArenaNodes/CameraController/CameraPivot"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 144.515 )
 far = 8192.0
-collision_mask = 4
+collision_mask = 65535
 
 [node name="TeamParent" type="Node" parent="."]
 pause_mode = 1

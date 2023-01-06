@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using Abils;
 
 public class Main : Node
 {
@@ -123,6 +124,7 @@ public class Main : Node
             hterraindata.Call("notify_full_change");
         }
 
+        GD.Print(((float[])hterraindata.Call("get_all_heights")).Length);
         MapArray = (float[])hterraindata.Call("get_all_heights");
         Debug.Assert(MapArray.Length == MAP_SIZE * MAP_SIZE);
 
@@ -349,13 +351,16 @@ public class Main : Node
     public float GetHeightAt(Vector3 location)
     {
         int index = Mathf.RoundToInt(location.z) * MAP_SIZE + Mathf.RoundToInt(location.x); // x and z are intentionally swapped, library is reversed
+        // I feel like this is fixed
         if (index >= MapArray.Length || index < 0)
         {
             GD.Print("Index out of range for MapArray");
+
             // TODO: this is a band aid fix
             // rounds z and x to either 0 or MAP_SIZE-1
             index = Mathf.RoundToInt(Mathf.Min(Mathf.Max(location.z, 0), MAP_SIZE - 1)) * MAP_SIZE + Mathf.RoundToInt(Mathf.Min(Mathf.Max(location.x, 0), MAP_SIZE - 1));
         }
+
         return MapArray[index];
     }
 

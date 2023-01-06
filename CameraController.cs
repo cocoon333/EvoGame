@@ -75,14 +75,16 @@ public class CameraController : Position3D
             {
                 ClippedCamera cam = GetNode<ClippedCamera>("CameraPivot/ClippedCamera");
                 Vector3 direction = cam.Translation;
-                direction.z = Math.Min(ZoomSpeed + direction.z, -15);
+                //direction.z = Math.Max(direction.z - ZoomSpeed, -15);
+                direction.z -= ZoomSpeed;
                 cam.Translation = direction;
             }
             else if ((ButtonList)mouseEvent.ButtonIndex == ButtonList.WheelDown && AllowZoom)
             {
                 ClippedCamera cam = GetNode<ClippedCamera>("CameraPivot/ClippedCamera");
                 Vector3 direction = cam.Translation;
-                direction.z = Math.Min(ZoomSpeed + direction.z, 200);
+                //direction.z = Math.Min(direction.z + ZoomSpeed, 200);
+                direction.z += ZoomSpeed;
                 cam.Translation = direction;
             }
         }

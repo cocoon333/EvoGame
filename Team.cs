@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Abils;
 
 public class Team : Node
 {
@@ -83,10 +84,8 @@ public class Team : Node
         Creature creature = (Creature)CreatureScene.Instance();
         AddChild(creature);
 
-        Abilities abils = (Abilities)creature.GetNode<Node>("Abilities");
-        abils.Initialize(GetStats());
-
         creature.Initialize(location);
+        creature.Abils.Initialize(GetStats());
 
         CreatureCount++;
         TotalBirths++;

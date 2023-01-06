@@ -1,4 +1,5 @@
 using Godot;
+using Abils;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,13 +8,13 @@ public class Creature : KinematicBody
 {
     public Abilities Abils;
     public float EatingTimeLeft;
-    public Food DesiredFood {get; set;} = null;
+    public Food DesiredFood { get; set; } = null;
 
     public int FallAcceleration = 75;
 
-    public Creature Mate {get; set;} = null;
+    public Creature Mate { get; set; } = null;
 
-    public Team TeamObj {get; private set;}
+    public Team TeamObj { get; private set; }
 
     public float TimeAlive;
 
@@ -29,7 +30,7 @@ public class Creature : KinematicBody
     Main MainObj;
     List<Food> Blacklist = new List<Food>();
 
-    public Water DesiredWater {get; set;} = null;
+    public Water DesiredWater { get; set; } = null;
     public Boolean Selected = false;
 
     public enum StatesEnum
@@ -54,8 +55,8 @@ public class Creature : KinematicBody
     public void Initialize(Vector3 spawnLoc)
     {
         Translation = spawnLoc;
-        Abils = GetNode<Abilities>("Abilities");
         TeamObj = (Team)GetParent();
+        Abils = new Abilities();
 
         Node teamParent = TeamObj.GetParent();
         MainObj = (Main)teamParent.GetParent();
@@ -230,7 +231,7 @@ public class Creature : KinematicBody
                     Debug.Assert(!MainObj.IsNullOrQueued(Mate)); // a bit redundant right now but a fail safe in case things change in the future
                     Debug.Assert(Mate.State is StatesEnum.PathingToMate);
                     Debug.Assert(Mate.Mate == this);
-                    
+
                     LookAt(Mate.Translation, Vector3.Up);
                     Mate.LookAt(Translation, Vector3.Up);
 
@@ -302,7 +303,7 @@ public class Creature : KinematicBody
             {
                 Debug.Assert(MainObj.IsNullOrQueued(DesiredFood));
                 Debug.Assert(MainObj.IsNullOrQueued(Mate));
-                
+
                 Boolean success = LookAtDesiredWater(); // keep this so it can continue recalculating to closer water
                 if (!success)
                 {
