@@ -4,8 +4,6 @@ using System.Collections.Generic;
 
 namespace Abils
 {
-
-
     public class Abilities
     {
         float Speed;

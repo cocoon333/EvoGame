@@ -177,18 +177,10 @@ public class Main : Node
         /*
         if (creature.TeamObj.CreatureCount == 0)
         {
-            if (creature.TeamObj == PlayerTeam) GameOver();
-            else
+            // if the team that is dead is the player team or if no team exists except the player team
+            if (creature.TeamObj == PlayerTeam || TeamsList.FindAll(aliveTeam => aliveTeam.CreatureCount > 0).Count <= 1)
             {
-                int aliveTeams = 0;
-                foreach (Team team in TeamsList)
-                {
-                    if (team.CreatureCount != 0)
-                    {
-                        aliveTeams++;
-                    }
-                }
-                if (aliveTeams <= 1) GameOver();
+                GameOver();
             }
         }
         */
@@ -215,6 +207,7 @@ public class Main : Node
     {
         List<Creature> seekers = food.CurrentSeekers;
         Debug.Assert(seekers.Count <= TeamsList.Count);
+
         foreach (Creature seeker in seekers)
         {
             seeker.DesiredFood = null;
@@ -222,6 +215,7 @@ public class Main : Node
             seeker.EatingTimeLeft = 0;
             seeker.State = Creature.StatesEnum.Nothing;
         }
+        seekers.Clear();
         FoodList.Remove(food);
 
         SpawnFood();
@@ -277,55 +271,32 @@ public class Main : Node
 
     public List<Food> GetAllFoodInSight(Creature creature)
     {
-        List<Food> allFood = new List<Food>();
         float sightSquared = Mathf.Pow(creature.Abils.GetModifiedSight(), 2);
-        foreach (Food food in FoodList)
-        {
-            if (!IsNullOrQueued(food) && food.Translation.DistanceSquaredTo(creature.Translation) < sightSquared)
-            {
-                allFood.Add(food);
-            }
-        }
+        List<Food> allFood = FoodList.FindAll(food => (!IsNullOrQueued(food) && food.Translation.DistanceSquaredTo(creature.Translation) < sightSquared));
         return allFood;
     }
 
     public List<Creature> GetAllCreaturesInSight(Creature creature)
     {
         List<Creature> allCreatures = new List<Creature>();
-        List<Creature> allCreaturesTwo = new List<Creature>();
         foreach (Team team in TeamsList)
         {
             allCreatures.AddRange(team.TeamMembers);
         }
 
         float sightSquared = Mathf.Pow(creature.Abils.GetModifiedSight(), 2);
-
-        foreach (Creature otherCreature in allCreatures)
-        {
-            if (!IsNullOrQueued(otherCreature) && otherCreature.Translation.DistanceSquaredTo(creature.Translation) < sightSquared && creature != otherCreature)
-            {
-                allCreaturesTwo.Add(otherCreature);
-            }
-        }
-
-        return allCreaturesTwo;
+        // disgustingly long lambda but whatever
+        List<Creature> creaturesInSight = allCreatures.FindAll(otherCreature => (!IsNullOrQueued(otherCreature) && otherCreature.Translation.DistanceSquaredTo(creature.Translation) < sightSquared && creature != otherCreature));
+        return creaturesInSight;
     }
 
     public List<Creature> GetAllTeamMembersInSight(Creature creature)
     {
         // finds the team members in the sight of a creature
-        List<Creature> teamMembers = new List<Creature>();
-        List<Creature> teamMembersTwo = new List<Creature>();
-        teamMembers.AddRange(creature.TeamObj.TeamMembers);
         float sightSquared = Mathf.Pow(creature.Abils.GetModifiedSight(), 2);
-        foreach (Creature otherCreature in teamMembers)
-        {
-            if (!IsNullOrQueued(otherCreature) && otherCreature.Translation.DistanceSquaredTo(creature.Translation) < sightSquared && creature != otherCreature)
-            {
-                teamMembersTwo.Add(otherCreature);
-            }
-        }
-        return teamMembersTwo;
+        // disgustingly long lambda part two
+        List<Creature> teamMembers = creature.TeamObj.TeamMembers.FindAll(ally => (!IsNullOrQueued(ally) && ally.Translation.DistanceSquaredTo(creature.Translation) < sightSquared && creature != ally));
+        return teamMembers;
     }
 
     public Boolean IsInWater(Vector3 location)

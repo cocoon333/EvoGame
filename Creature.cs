@@ -23,6 +23,8 @@ public class Creature : KinematicBody
 
     private Vector3 _velocity = Vector3.Zero;
     Vector3 PreviousLocation;
+    float horizontalSpinRotation = 0;
+    float verticalTiltRotation = 0;
 
     const int WATER_REPLENISHMENT = 10;
     const float WATER_MOVEMENT_SPEED = 0.5f;
@@ -74,17 +76,17 @@ public class Creature : KinematicBody
         ShaderMaterial shader = (ShaderMaterial)meshInst.GetActiveMaterial(0);
         Vector3 colorVector;
 
-        if (State is StatesEnum.LookingForMate || State is StatesEnum.PathingToMate)
+        if (Selected)
+        {
+            colorVector = new Vector3(1.0f, (170.0f / 256.0f), (29.0f / 256.0f));
+        }
+        else if (State is StatesEnum.LookingForMate || State is StatesEnum.PathingToMate)
         {
             colorVector = new Vector3(1.0f, 0.0f, 0.5f);
         }
         else if (State is StatesEnum.Drinking)
         {
             colorVector = new Vector3(1.0f, 1.0f, 1.0f);
-        }
-        else if (Selected)
-        {
-            colorVector = new Vector3(1.0f, (170.0f / 256.0f), (29.0f / 256.0f));
         }
         else
         {
@@ -202,6 +204,7 @@ public class Creature : KinematicBody
                 // angles in degrees would be (yDiff / 2pi) * 360 degs cuz circumference of the circle is 2pi cuz radius is 1
                 // converting to radians cancels out to just yDiff
                 float angleInRads = yDiff;
+                verticalTiltRotation += angleInRads;
 
                 // run some similar code as GetRotationVector to get perpendicular vector to find rotationaxis to rotate transform
                 Vector3 perpendicular = new Vector3(localForward.z, 0, -localForward.x);
@@ -210,10 +213,18 @@ public class Creature : KinematicBody
                 transform.basis = transform.basis.Rotated(perpendicular, angleInRads);
                 transform.basis.Scale = Vector3.One;
                 this.Transform = transform;
+
+                // potentially reconstruct the transform instead using spin and tilt rotation
+                // instead of checking angle between movementDirection and localForward, compare movementDirection to the flat vector to determine tilt rotation
+                // and then reconstruct the transform
+                // commented code in LookAtTarget() to reconstruct there as well, not sure if it will actually solve anything but something to keep in mind
             }
             else
             {
                 GD.Print("The creature is in the " + State + " state and the movementDirection vector is zero on both x and z: " + movementDirection);
+                //GD.Print(this.Name);
+                //MainObj.SelectCreature(this);
+                //MainObj.GetTree().Paused = true;
             }
 
             if (State is StatesEnum.PathingToMate)
@@ -237,10 +248,10 @@ public class Creature : KinematicBody
 
                     if (Translation.DistanceSquaredTo(Mate.Translation) < 9)
                     {
-                        Mate.Abils.SetSaturation(Mate.Abils.GetSaturation() - 50);
-                        Mate.Abils.SetHydration(Mate.Abils.GetHydration() - 50);
-                        Abils.SetSaturation(Abils.GetSaturation() - 50);
-                        Abils.SetHydration(Abils.GetHydration() - 50);
+                        Mate.Abils.SetSaturation(Mate.Abils.GetSaturation() - 30);
+                        Mate.Abils.SetHydration(Mate.Abils.GetHydration() - 30);
+                        Abils.SetSaturation(Abils.GetSaturation() - 30);
+                        Abils.SetHydration(Abils.GetHydration() - 30);
 
                         NumChildren++;
                         Mate.NumChildren++;
@@ -357,6 +368,7 @@ public class Creature : KinematicBody
                         if (State is StatesEnum.LookingForMate || State is StatesEnum.Nothing)
                         {
                             RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));
+                            // RotateObjectLocal(up vector, angle)
                         }
                         break;
                     }
@@ -369,18 +381,18 @@ public class Creature : KinematicBody
         }
     }
 
-    // TODO: Sort this method out and organize all its conditions
-    // somewhat sorted but still kinda sucks tbh
     public Boolean CanMate()
     {
+        Debug.Assert(MainObj.IsNullOrQueued(Mate));
+        Debug.Assert(State is StatesEnum.Nothing || State is StatesEnum.LookingForMate);
+
         float libido = Abils.GetModifiedLibido();
         float energy = Abils.GetEnergy();
-
-        if (Mate != null) return true;
-        if (!(State is StatesEnum.Nothing || State is StatesEnum.LookingForMate || State is StatesEnum.PathingToMate)) return false;
+        float threshold = (150 - libido);
+        if (State is StatesEnum.LookingForMate) threshold -= libido/2;
 
         // TODO: make energy libido relationship curved
-        if (TimeAlive > 20 && energy > (150 - libido)) return true;
+        if (TimeAlive > 20 && energy > threshold) return true;
         return false;
     }
 
@@ -392,16 +404,11 @@ public class Creature : KinematicBody
         Creature enemy = null;
         if (DesiredFood.BeingAte)
         {
-            foreach (Creature creature in DesiredFood.CurrentSeekers)
-            {
-                if (creature != this)
-                {
-                    Debug.Assert(creature.TeamObj != this.TeamObj); // TODO: This failed once, check on this (two teams present)
-                    if (creature.TeamObj == TeamObj) { GD.Print("Friendly fire has occured"); }
-                    enemy = creature;
-                    break;
-                }
-            }
+            List<Creature> currentEaters = DesiredFood.CurrentSeekers.FindAll(creature => (creature != this && creature.State is StatesEnum.Eating));
+            enemy = currentEaters[0];
+
+            Debug.Assert(currentEaters.Count == 1); // it's already being ate so we know this should be at least 1, and no more than 1
+            Debug.Assert(DesiredFood.CurrentSeekers.Find(creature => (creature != this && creature.TeamObj == this.TeamObj)) is null); // no ally should be seeking this food
         }
 
         DesiredFood.BeingAte = true;
@@ -528,6 +535,8 @@ public class Creature : KinematicBody
 
     public Creature GetNearestMate()
     {
+        Debug.Assert(MainObj.IsNullOrQueued(Mate));
+
         if (!MainObj.IsNullOrQueued(Mate)) // TODO: This shouldnt happen but has happened, fix this
         {
             GD.Print("Called GetNearestMate() to look for new mate but Mate is not null or queued");
@@ -564,6 +573,8 @@ public class Creature : KinematicBody
         if (!targetOffsetXZ.IsEqualApprox(localForwardXZ)) // this doesnt work all (like a ton of) the time but it should be just checking not already pointing to the same direction
         {
             float angleInRads = localForwardXZ.AngleTo(targetOffsetXZ); // the angle between the two vectors
+            horizontalSpinRotation += angleInRads;
+            
             targetOffset.AngleTo(localForward);
             if (!(Mathf.Abs(angleInRads) < 0.01f || Mathf.Abs(angleInRads) - Mathf.Pi > -0.01f))
             {
@@ -571,7 +582,16 @@ public class Creature : KinematicBody
                 Transform transform = this.Transform;
                 transform.basis = transform.basis.Rotated(Vector3.Up, angleInRads);
                 this.Transform = transform;
-                // this does work to make it pointed in the same direction
+
+                // reconstruct the transform from identity by rotating with tilt and spin angles
+                // the counterpart to this would be reconstructing in physics process as well where we tilt
+                /*
+                Transform transform = Transform.Identity;
+                transform.origin = this.Translation;
+                transform.basis.Rotated(Vector3.Up, verticalTiltRotation);
+                transform.basis.Rotated(Vector3.Right, horizontalSpinRotation);
+                this.Transform = transform;
+                */
             }
         }
 
@@ -640,7 +660,7 @@ public class Creature : KinematicBody
                     {
                         //float timeAlly = (seeker.Translation.DistanceSquaredTo(food.Translation)) / seeker.Abils.GetModifiedSpeed();
                         float timeAlly = seeker.CalculateTimeToLocation(food.Translation);
-                        if (timeToFood > timeAlly || seeker.EatingTimeLeft > 0) // if u r eating already, u are "closer"
+                        if (timeToFood > timeAlly || seeker.State is StatesEnum.Eating) // if u r eating already, u are "closer"
                         {
                             isAllyCloser = true;
                         }
@@ -657,23 +677,26 @@ public class Creature : KinematicBody
 
         if (closestFood != null)
         {
-            List<Creature> seekers = closestFood.CurrentSeekers;
-            foreach (Creature ally in seekers)
+            // get a list of all allies;
+            List<Creature> allies = closestFood.CurrentSeekers.FindAll(ally => ally.TeamObj == this.TeamObj);
+            Debug.Assert(allies.Count <= 1);
+            
+            foreach (Creature ally in allies)
             {
-                if (!MainObj.IsNullOrQueued(ally) && ally.TeamObj == TeamObj)
-                {
-                    ally.DesiredFood = null;
-                    ally.DesiredWater = null; // most likely not needed but for precaution's sake
-                    ally.State = StatesEnum.Nothing;
-                    seekers.Remove(ally);    // concurrent modification exception just isnt a thing apparently
-                    break;
-                }
+                ally.DesiredFood = null;
+                ally.DesiredWater = null; // probably not needed
+                ally.State = StatesEnum.Nothing;
+                closestFood.CurrentSeekers.Remove(ally);
             }
+
+            // no ally should be within seekers list
+            Debug.Assert(closestFood.CurrentSeekers.Find(ally => ally.TeamObj == this.TeamObj) is null);
 
             DesiredFood = closestFood;
 
             Boolean success = LookAtDesiredFood();
             Debug.Assert(success);
+            Debug.Assert(!DesiredFood.CurrentSeekers.Contains(this));
 
             if (!DesiredFood.CurrentSeekers.Contains(this))
             {
@@ -681,7 +704,7 @@ public class Creature : KinematicBody
             }
             else // this creature is already in desired food's current seekers list
             {
-                GD.Print("Did full search to find desired food but was already in desired food's current seekers list");
+                GD.Print("Did full search to find desired food but this creature was already in desired food's current seekers list");
             }
         }
         else
