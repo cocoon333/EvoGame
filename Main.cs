@@ -174,16 +174,21 @@ public class Main : Node
         //GetNode<ScoreLabel>("ScoreLabel").UpdateString(TeamsList, FoodCount);
 
         // TODO: game winning code commented out for debugging purposes
-        /*
+        
         if (creature.TeamObj.CreatureCount == 0)
         {
             // if the team that is dead is the player team or if no team exists except the player team
             if (creature.TeamObj == PlayerTeam || TeamsList.FindAll(aliveTeam => aliveTeam.CreatureCount > 0).Count <= 1)
             {
-                GameOver();
+                // GameOver();
+                // Debug Code to keep the game going permanently
+                for (int i = 0; i < 10; i++)
+                {
+                    SpawnCreature(creature.TeamObj); // spawn 10 more creatures on the team that just got eliminated
+                }
             }
         }
-        */
+        
     }
 
     public void SpawnFood()

@@ -85,6 +85,13 @@ pause_game={
 
 project/assembly_name="Evolution Simulator"
 
+[network]
+
+limits/debugger_stdout/max_chars_per_second=999999
+limits/debugger_stdout/max_messages_per_frame=9999
+limits/debugger_stdout/max_errors_per_second=9999
+limits/debugger_stdout/max_warnings_per_second=9999
+
 [physics]
 
 common/enable_pause_aware_picking=true

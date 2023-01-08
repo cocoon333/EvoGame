@@ -46,7 +46,8 @@ public class Creature : KinematicBody
         LookingForMate,
         PathingToMate,
         Nothing, // dont like this name for doing nothing, should change at some point
-        Fighting // potentially also add a Fleeing state alongside Fighting
+        Fighting // TODO: use this state for longer fights, also potentially also add a Fleeing state alongside Fighting
+        // maybe even change Nothing state into LookingForWater and LookingForFood depending on what creature is trying to locate
     }
     public StatesEnum State { get; set; } = StatesEnum.Nothing;
 
@@ -150,7 +151,7 @@ public class Creature : KinematicBody
             Eat(delta);
             if (EatingTimeLeft <= 0)
             {
-                EatingTimeLeft = 0;
+                EatingTimeLeft = 0; // this happens in the below method so not needed technically
                 MainObj.EatFood(DesiredFood);
                 // State = StatesEnum.Nothing; // this happens in the above method automatically
 
@@ -204,41 +205,19 @@ public class Creature : KinematicBody
 
             if (!(Mathf.IsEqualApprox(movementDirection.x, 0) && Mathf.IsEqualApprox(movementDirection.z, 0)))
             {
-                Vector3 localForward = -this.Transform.basis.z;
-                localForward = localForward.Normalized(); // length of 1 so rotate around a circle with radius 1
-                movementDirection = movementDirection.Normalized();
-                float yDiff = localForward.y - movementDirection.y;
+                Vector3 backward = -(movementDirection.Normalized());
+                Vector3 right = backward.Cross(Vector3.Down);
+                Vector3 up = backward.Cross(right);
 
-                // angles in degrees would be (yDiff / 2pi) * 360 degs cuz circumference of the circle is 2pi cuz radius is 1
-                // converting to radians cancels out to just yDiff
-                float angleInRads = yDiff;
-                verticalTiltRotation += angleInRads;
+                Debug.Assert(Mathf.IsEqualApprox(backward.Dot(right), 0));
+                Debug.Assert(Mathf.IsEqualApprox(right.Dot(up), 0));
+                Debug.Assert(Mathf.IsEqualApprox(backward.Dot(up), 0));
+                Debug.Assert(up.y > 0);
+                // Debug.Assert(Mathf.IsEqualApprox(up.Dot(Vector3.Up), 0)); // same as above
 
-                // run some similar code as GetRotationVector to get perpendicular vector to find rotationaxis to rotate transform
-                Vector3 perpendicular = new Vector3(localForward.z, 0, -localForward.x);
-
-
-                Transform transform = this.Transform;
-                transform.basis = transform.basis.Rotated(perpendicular, angleInRads);
-                transform.basis.Scale = transform.basis.Scale.Sign();
-                this.Transform = transform;
-
-
-                // potentially reconstruct the transform instead using spin and tilt rotation
-                // instead of checking angle between movementDirection and localForward, compare movementDirection to the flat vector to determine tilt rotation
-                // and then reconstruct the transform
-                // commented code in LookAtTarget() to reconstruct there as well, not sure if it will actually solve anything but something to keep in mind
-                /*
-                Transform transform = Transform.Identity;
-                transform.origin = this.Translation;
-                transform.basis.Rotated(Vector3.Right, horizontalSpinRotation);
-                transform.basis.Rotated(Vector3.Up, verticalTiltRotation);
-                if (transform.basis.y.y < 0)
-                {
-                    transform.basis.Scaled(Vector3.Down);
-                }
-                this.Transform = transform;
-                */
+                Transform transformAlternative = new Transform(right, up, backward, Translation);
+                transformAlternative.basis.Scale = Vector3.One;
+                this.Transform = transformAlternative;
             }
             else
             {
@@ -338,11 +317,12 @@ public class Creature : KinematicBody
                 Debug.Assert(MainObj.IsNullOrQueued(DesiredFood));
                 Debug.Assert(EatingTimeLeft == 0);
                 Debug.Assert(MainObj.IsNullOrQueued(Mate));
+                Debug.Assert(DrinkingTimeLeft == 0);
 
                 Boolean success = LookAtDesiredWater(); // keep this so it can continue recalculating to closer water
                 if (!success)
                 {
-                    // Desired water has to be null anways if success is false
+                    // DesiredWater = null; // Desired water has to be null anyways if success is false
                     State = StatesEnum.Nothing;
                 }
                 else if (MainObj.IsInDrinkableWater(Translation) && Translation.DistanceSquaredTo(DesiredWater.Location) < 4.1)
@@ -394,8 +374,8 @@ public class Creature : KinematicBody
                     {
                         if (State is StatesEnum.LookingForMate || State is StatesEnum.Nothing)
                         {
-                            RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));
-                            // RotateObjectLocal(up vector, angle)
+                            // RotateY((float)GD.RandRange(0, 2 * Mathf.Pi));
+                            //RotateObjectLocal(Vector3.Up, (float)GD.RandRange(0, 2 * Mathf.Pi))
                         }
                         break;
                     }
@@ -450,11 +430,10 @@ public class Creature : KinematicBody
             // this blob is the second to arrive to the food and can now determine whether or not a fight occurs
             TryFight(enemy);
 
-            Debug.Assert(!(MainObj.IsNullOrQueued(this) && MainObj.IsNullOrQueued(enemy))); // we cannot both be dead
-            Debug.Assert(!(this.State is StatesEnum.Eating && enemy.State is StatesEnum.Eating)); // we cannot both be eating
-            Debug.Assert(this.State is StatesEnum.Eating || enemy.State is StatesEnum.Eating); // one of us has to be eating
-            // one of us has to be in state Nothing (and it has to be the other one when combined with above assert)
-            Debug.Assert(this.State is StatesEnum.Nothing || enemy.State is StatesEnum.Nothing);
+            Debug.Assert(MainObj.IsNullOrQueued(this) ^ MainObj.IsNullOrQueued(enemy)); // exclusive or, one and only of us can be dead
+            Debug.Assert(this.State is StatesEnum.Eating ^ enemy.State is StatesEnum.Eating); // xor, one and only one of us can be eating
+            // xor, one and only of us has to be in nothing state
+            Debug.Assert(this.State is StatesEnum.Nothing ^ enemy.State is StatesEnum.Nothing);
         }
     }
 
@@ -512,10 +491,13 @@ public class Creature : KinematicBody
                 escaper.Blacklist.Add(escaper.DesiredFood);
                 escaper.DesiredFood.CurrentSeekers.Remove(escaper);
                 escaper.DesiredFood = null;
-                escaper.DesiredWater = null; // not sure if necessary but yk just in case
                 escaper.EatingTimeLeft = 0;
-                escaper.State = StatesEnum.Nothing;
             }
+
+            escaper.DesiredWater = null; // not sure if necessary but yk just in case
+            escaper.DrinkingTimeLeft = 0;
+            escaper.State = StatesEnum.Nothing;
+
             return true;
         }
         else return false;
@@ -539,6 +521,7 @@ public class Creature : KinematicBody
             }
             loser.DesiredFood = null;
             loser.DesiredWater = null;
+            loser.DrinkingTimeLeft = 0;
             loser.State = StatesEnum.Nothing;
 
             // TODO: Creatures should lose energy if they draw
@@ -551,6 +534,7 @@ public class Creature : KinematicBody
         loser.State = StatesEnum.Nothing;
         loser.DesiredFood = null; // not sure if necessary but better safe than sorry
         loser.EatingTimeLeft = 0; // probs not necessary either
+        loser.DrinkingTimeLeft = 0;
         loser.DesiredWater = null; // same as above
         winner.Kills++;
         winner.TeamObj.TotalKills++;
@@ -597,11 +581,13 @@ public class Creature : KinematicBody
 
     public void LookAtTarget(Vector3 targetLocation)
     {
-        Vector3 targetOffset = (targetLocation - this.Translation); // the local (relative to this creature) translation of the DesiredFood
+        Vector3 targetOffset = (targetLocation - this.Translation); // the local (relative to this creature) translation of the targetLocation
         Vector3 localForward = -this.Transform.basis.z; // should be the vector of moving forward
-        Vector2 targetOffsetXZ = new Vector2(targetOffset.x, targetOffset.z).Normalized(); // ignore the y component (flatten the vector almost)
-        Vector2 localForwardXZ = new Vector2(localForward.x, localForward.z).Normalized(); // same as above
-        if (!targetOffsetXZ.IsEqualApprox(localForwardXZ)) // this doesnt work all (like a ton of) the time but it should be just checking not already pointing to the same direction
+        Vector2 targetOffsetXZ = new Vector2(targetOffset.x, targetOffset.z); // ignore the y component (flatten the vector almost)
+        Vector2 localForwardXZ = new Vector2(localForward.x, localForward.z); // same as above
+
+        // cross product of two vectors equal when direction is same or opposite; if they are opposite, sign vectors wont match
+        if (!(Mathf.IsEqualApprox(targetOffsetXZ.Cross(localForwardXZ), 0) && targetOffsetXZ.Sign().IsEqualApprox(localForwardXZ.Sign())))
         {
             float angleInRads = localForwardXZ.AngleTo(targetOffsetXZ); // the angle between the two vectors
             horizontalSpinRotation += angleInRads;
@@ -609,26 +595,7 @@ public class Creature : KinematicBody
             targetOffset.AngleTo(localForward);
             if (!(Mathf.Abs(angleInRads) < 0.01f || Mathf.Abs(angleInRads) - Mathf.Pi > -0.01f))
             {
-                // rotates the basis (not the transform cuz the transform will also modify Translation/origin) by the angle
-                /*
-                Transform transform = this.Transform;
-                transform.basis = transform.basis.Rotated(Vector3.Up, angleInRads);
-                this.Transform = transform;
-                */
-
-                // reconstruct the transform from identity by rotating with tilt and spin angles
-                // the counterpart to this would be reconstructing in physics process as well where we tilt
-
-                Transform transform = Transform.Identity;
-                transform.origin = this.Translation;
-                transform.basis.Rotated(Vector3.Up, verticalTiltRotation);
-                transform.basis.Rotated(Vector3.Right, horizontalSpinRotation);
-                if (transform.basis.y.y < 0)
-                {
-                    transform.basis.Scaled(Vector3.Down);
-                }
-                this.Transform = transform;
-
+                this.RotateObjectLocal(Vector3.Up, angleInRads);
             }
         }
 
@@ -643,11 +610,10 @@ public class Creature : KinematicBody
             actualY = targetOffset.z / (-this.Transform.basis.z.z);
         }
         actualY *= (-this.Transform.basis.z.y);
-        // actualY is set to whatever we would be looking at if we looked in the direction of our target
+        // actualY is set to whatever y position we would be looking at if we looked in the direction of our target taking into account of the slope
         Vector3 actualTargetLocation = targetLocation;
         actualTargetLocation.y = this.Translation.y + actualY;
 
-        // look at
         LookAt(actualTargetLocation, Vector3.Up);
     }
 
@@ -665,6 +631,8 @@ public class Creature : KinematicBody
     {
         Debug.Assert(MainObj.IsNullOrQueued(DesiredFood));
         Debug.Assert(EatingTimeLeft == 0);
+        Debug.Assert(DesiredWater is null);
+        Debug.Assert(DrinkingTimeLeft == 0);
 
         List<Food> visibleFood = MainObj.GetAllFoodInSight(this);
 
@@ -723,6 +691,7 @@ public class Creature : KinematicBody
             {
                 ally.DesiredFood = null;
                 ally.DesiredWater = null; // probably not needed
+                ally.DrinkingTimeLeft = 0;
                 ally.State = StatesEnum.Nothing;
                 closestFood.CurrentSeekers.Remove(ally);
             }
